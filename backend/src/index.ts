@@ -179,6 +179,7 @@ const PriceRequest = mongoose.model('PriceRequest', priceRequestSchema);
   });
 
 const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => {
-  console.log(`API rodando em http://localhost:${PORT}`);
+const HOST = '0.0.0.0'; // Railway precisa escutar em todas as interfaces
+app.listen(PORT, HOST, () => {
+  console.log(`API rodando em http://${HOST}:${PORT}`);
 });
