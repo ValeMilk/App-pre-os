@@ -85,7 +85,7 @@ function AppContent() {
       <AppBar position="static" color="default" elevation={2} sx={{ mb: 4 }}>
         <Toolbar sx={{ justifyContent: 'space-between' }}>
           <Typography variant="h5" fontWeight={700} color="primary.main">
-            App Preços — Solicitação
+            Solicitação de Preços - Valemilk
           </Typography>
           {token && user && (
             <Button variant="outlined" color="secondary" onClick={handleLogout} sx={{ fontWeight: 600, px: 3 }}>Sair</Button>
