@@ -35,6 +35,16 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 app.use(express.json());
+
+// Health check endpoint
+app.get('/', (req: Request, res: Response) => {
+  res.json({ status: 'ok', message: 'API App Preços rodando!' });
+});
+
+app.get('/health', (req: Request, res: Response) => {
+  res.json({ status: 'healthy', timestamp: new Date().toISOString() });
+});
+
 app.use('/api/auth', authRoutes);
 
 // Diagnostic logs to help debugging environment issues
@@ -179,7 +189,8 @@ const PriceRequest = mongoose.model('PriceRequest', priceRequestSchema);
   });
 
 const PORT = parseInt(process.env.PORT || '4000', 10);
-const HOST = '0.0.0.0'; // Railway precisa escutar em todas as interfaces
-app.listen(PORT, HOST, () => {
-  console.log(`API rodando em http://${HOST}:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`✅ Servidor rodando na porta ${PORT}`);
+  console.log(`📡 Railway URL: ${process.env.RAILWAY_PUBLIC_DOMAIN || 'localhost'}`);
+  console.log(`🔗 Acesse: http://0.0.0.0:${PORT}`);
 });
