@@ -22,8 +22,9 @@ import {
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
+import { API_ENDPOINTS } from '../config/api';
 
-const API_URL = 'http://localhost:4000/api/requests';
+const API_URL = API_ENDPOINTS.requests.base;
 
 interface Request {
   _id: string;

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Box, Button, TextField, Typography, Paper, Stack, Alert, Link } from '@mui/material';
+import { API_ENDPOINTS } from '../config/api';
 
 interface Props {
   onAuthSuccess: (token: string, user: { id: string; name: string; email: string }) => void;
@@ -16,7 +17,7 @@ export default function AuthForm({ onAuthSuccess }: Props) {
     setError(null);
     setLoading(true);
     try {
-      const url = 'http://localhost:4000/api/auth/login';
+      const url = API_ENDPOINTS.auth.login;
       const body = { email, password };
       const res = await fetch(url, {
         method: 'POST',

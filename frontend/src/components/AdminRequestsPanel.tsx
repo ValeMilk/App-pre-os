@@ -4,8 +4,9 @@ import TableChartIcon from '@mui/icons-material/TableChart';
 import DownloadIcon from '@mui/icons-material/Download';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import { API_ENDPOINTS } from '../config/api';
 
-const API_URL = 'http://localhost:4000/api/requests/all';
+const API_URL = API_ENDPOINTS.requests.all;
 
 export default function AdminRequestsPanel() {
   const token = localStorage.getItem('token');

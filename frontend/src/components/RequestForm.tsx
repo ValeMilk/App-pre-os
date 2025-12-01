@@ -31,8 +31,8 @@ type PriceRequest = {
   approved_at?: string
 }
 
-
-const API_URL = 'http://localhost:4000/api/requests';
+import { API_ENDPOINTS } from '../config/api';
+const API_URL = API_ENDPOINTS.requests.base;
 
 export default function RequestForm({ clientes, produtos, onClientesLoaded }: Props) {
   const token = localStorage.getItem('token');

@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { Box, Button, TextField, Typography, Alert, Paper, Stack, Avatar, Divider, Tooltip, Tabs, Tab } from '@mui/material';
 import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
 import AssignmentIndIcon from '@mui/icons-material/AssignmentInd';
+import { API_ENDPOINTS } from '../config/api';
 
-const API_URL = 'http://localhost:4000/api/auth/admin-register';
-const SUPERVISOR_URL = 'http://localhost:4000/api/auth/supervisor-register';
+const API_URL = API_ENDPOINTS.auth.adminRegister;
+const SUPERVISOR_URL = API_ENDPOINTS.auth.supervisorRegister;
 
 export default function AdminPanel() {
   const [tab, setTab] = useState(0);
