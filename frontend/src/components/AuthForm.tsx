@@ -54,6 +54,13 @@ export default function AuthForm({ onAuthSuccess }: Props) {
 
   return (
     <Paper sx={{ p: 3, maxWidth: 400, mx: 'auto', mt: 6 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+        <img 
+          src="/logo valemilk.jpg" 
+          alt="Valemilk Logo" 
+          style={{ maxWidth: '200px', height: 'auto' }}
+        />
+      </Box>
       <Typography variant="h5" mb={2} align="center">
         Login do Colaborador
       </Typography>
