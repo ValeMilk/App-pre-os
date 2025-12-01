@@ -14,12 +14,21 @@ const app = express();
 
 // Configuração de CORS para produção
 const corsOptions = {
-  origin: [
-    'http://localhost:5173', // Desenvolvimento local
-    'https://app-pre-os.vercel.app', // Vercel production
-    'https://app-pre-os-git-main-valemilks-projects.vercel.app', // Vercel preview
-    /\.vercel\.app$/, // Qualquer subdomínio vercel.app
-  ],
+  origin: function (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
+    // Permite requisições sem origin (como Postman, curl, etc) ou de dominios vercel.app
+    const allowedOrigins = [
+      'http://localhost:5173',
+      'http://localhost:4000',
+      'https://app-pre-os.vercel.app',
+    ];
+    
+    // Se não tem origin (requisições do servidor) ou é um dominio permitido ou termina em .vercel.app
+    if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
+      callback(null, true);
+    } else {
+      callback(null, true); // Temporariamente permitindo tudo para debug
+    }
+  },
   credentials: true,
   optionsSuccessStatus: 200
 };
