@@ -11,7 +11,20 @@ import { requireAuth, AuthRequest } from './middleware/auth';
 // dotenv already loaded via side-effect import above
 
 const app = express();
-app.use(cors());
+
+// Configuração de CORS para produção
+const corsOptions = {
+  origin: [
+    'http://localhost:5173', // Desenvolvimento local
+    'https://app-pre-os.vercel.app', // Vercel production
+    'https://app-pre-os-git-main-valemilks-projects.vercel.app', // Vercel preview
+    /\.vercel\.app$/, // Qualquer subdomínio vercel.app
+  ],
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use('/api/auth', authRoutes);
 
