@@ -12,13 +12,13 @@
 - ✅ Componente criado para supervisores
 - ✅ Tabela de solicitações pendentes com ações
 - ✅ Botão ✅ (CHECK) para aprovar
-- ✅ Botão ❌ (X) para reprovar (abre dialog para notas obrigatórias)
+- ✅ Botão ❌ (X) para reprovar (abre dialog para Justificativa obrigatórias)
 - ✅ Histórico de solicitações processadas (aprovadas/reprovadas)
 - ✅ Polling automático a cada 5s para atualizar em tempo real
 - ✅ Integração com endpoints:
   - `GET /api/requests/supervisor` (listar solicitações)
   - `PATCH /api/requests/:id/approve` (aprovar)
-  - `PATCH /api/requests/:id/reject` (reprovar com notas)
+  - `PATCH /api/requests/:id/reject` (reprovar com Justificativa)
 
 **App.tsx**
 - ✅ Detecta `user.tipo === 'supervisor'` e exibe `SupervisorPanel`
@@ -72,7 +72,7 @@ Senha: vend123
 1. Selecionar um cliente (Autocomplete)
 2. Selecionar um produto (Autocomplete)
 3. Digitar preço: `100.50`
-4. Adicionar notas (opcional): `Cliente solicitou desconto especial`
+4. Adicionar Justificativa (opcional): `Cliente solicitou desconto especial`
 5. Clicar em "Enviar Solicitação"
 
 **Verificar:**
@@ -117,7 +117,7 @@ Senha: vend123
 **Aguardar 5 segundos:**
 - ✅ Status da solicitação atualiza automaticamente
 - ✅ Se aprovado: background verde, status "Aprovado"
-- ✅ Se reprovado: background vermelho, status "Reprovado", notas do supervisor visíveis
+- ✅ Se reprovado: background vermelho, status "Reprovado", Justificativa do supervisor visíveis
 
 **Login como Admin (outra aba/janela):**
 ```
@@ -138,8 +138,8 @@ Senha: sua_senha_admin
 ### Supervisor Panel
 - [ ] Supervisor vê apenas solicitações de **seus** vendedores (filtro por `codigo_supervisor`)
 - [ ] Botão ✅ aprova e remove da lista de pendentes
-- [ ] Botão ❌ abre dialog obrigatório para notas
-- [ ] Não é possível reprovar sem preencher notas
+- [ ] Botão ❌ abre dialog obrigatório para Justificativa
+- [ ] Não é possível reprovar sem preencher Justificativa
 - [ ] Histórico processado mostra aprovados (verde) e reprovados (vermelho)
 - [ ] Polling funciona (atualiza a cada 5s sem reload)
 
@@ -147,7 +147,7 @@ Senha: sua_senha_admin
 - [ ] Vendedor NÃO vê botões de aprovar/reprovar
 - [ ] Histórico atualiza automaticamente quando supervisor aprova/reprova
 - [ ] Status muda de "Pending" → "Aprovado" ou "Reprovado"
-- [ ] Notas de reprovação aparecem no histórico
+- [ ] Justificativa de reprovação aparecem no histórico
 
 ### Admin Panel
 - [ ] Admin vê TODAS as solicitações (não apenas de um supervisor)

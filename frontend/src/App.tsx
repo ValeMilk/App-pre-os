@@ -108,15 +108,18 @@ function AppContent() {
             token && user && user.email === 'admin@admin.com' ? (
               <Box sx={{
                 width: '100%',
-                maxWidth: 1400,
+                maxWidth: 1600,
                 mx: 'auto',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                minHeight: '70vh',
-                py: 2
+                px: { xs: 2, md: 4 },
+                py: 3
               }}>
-                <Box width="100%" maxWidth={1300} mx="auto" display="grid" gridTemplateColumns={{ xs: '1fr', md: '1fr 2fr' }} gap={5}>
+                <Box 
+                  width="100%" 
+                  display="grid" 
+                  gridTemplateColumns={{ xs: '1fr', md: '420px 1fr' }} 
+                  gap={4}
+                  alignItems="start"
+                >
                   <AdminPanel />
                   <AdminRequestsPanel />
                 </Box>

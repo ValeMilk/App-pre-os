@@ -73,12 +73,15 @@ const priceRequestSchema = new mongoose.Schema({
   product_id: String,
   product_name: String,
   requested_price: String,
+  quantity: String,
   currency: String,
   status: String,
   notes: String,
   created_at: { type: Date, default: Date.now },
   approved_by: String,
   approved_at: Date,
+  altered_by: String,
+  altered_at: Date,
   codigo_supervisor: String,
   nome_supervisor: String
 });
@@ -185,6 +188,33 @@ const PriceRequest = mongoose.model('PriceRequest', priceRequestSchema);
       res.json(request);
     } catch (err) {
       res.status(500).json({ error: 'Erro ao reprovar solicitação', details: err });
+    }
+  });
+
+  app.patch('/api/requests/:id/mark-altered', requireAuth, async (req: AuthRequest, res: Response) => {
+    try {
+      if (!req.user || req.user.email !== 'admin@admin.com') {
+        return res.status(403).json({ error: 'Acesso permitido apenas para admin.' });
+      }
+      const request = await PriceRequest.findById(req.params.id);
+      if (!request) return res.status(404).json({ error: 'Solicitação não encontrada.' });
+      
+      if (request.status !== 'Aprovado' && request.status !== 'Reprovado') {
+        return res.status(400).json({ error: 'Apenas solicitações aprovadas ou reprovadas podem ser marcadas como alteradas.' });
+      }
+
+      const updatedRequest = await PriceRequest.findByIdAndUpdate(
+        req.params.id,
+        {
+          status: 'Alterado',
+          altered_by: req.user?.name,
+          altered_at: new Date()
+        },
+        { new: true }
+      );
+      res.json(updatedRequest);
+    } catch (err) {
+      res.status(500).json({ error: 'Erro ao marcar solicitação como alterada', details: err });
     }
   });
 

@@ -23,6 +23,7 @@ type PriceRequest = {
   product_id: string
   product_name?: string
   requested_price: string
+  quantity?: string
   currency: string
   status: string
   notes?: string
@@ -40,6 +41,7 @@ export default function RequestForm({ clientes, produtos, onClientesLoaded }: Pr
   const [selectedCustomer, setSelectedCustomer] = useState<Cliente | null>(null)
   const [selectedProduct, setSelectedProduct] = useState<Produto | null>(null)
   const [price, setPrice] = useState('')
+  const [quantity, setQuantity] = useState('')
   const [notes, setNotes] = useState('')
   const [requests, setRequests] = useState<PriceRequest[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -114,6 +116,10 @@ export default function RequestForm({ clientes, produtos, onClientesLoaded }: Pr
       setError('Informe um preço válido (número maior que zero).');
       return;
     }
+    if (!quantity || isNaN(Number(quantity)) || Number(quantity) <= 0) {
+      setError('Informe uma quantidade válida (número maior que zero).');
+      return;
+    }
 
     const req = {
       requester_name: 'Vendedor (frontend)',
@@ -123,6 +129,7 @@ export default function RequestForm({ clientes, produtos, onClientesLoaded }: Pr
       product_id: selectedProduct.codigo_produto,
       product_name: selectedProduct.nome_produto,
       requested_price: price,
+      quantity: quantity,
       currency: 'BRL',
       status: 'Pending',
       notes,
@@ -150,6 +157,7 @@ export default function RequestForm({ clientes, produtos, onClientesLoaded }: Pr
       setRequests(prev => [created, ...prev]);
       setSelectedProduct(null);
       setPrice('');
+      setQuantity('');
       setNotes('');
       // Mantém o cliente selecionado para facilitar múltiplas solicitações
       setSuccess('Solicitação registrada com sucesso!');
@@ -252,6 +260,17 @@ export default function RequestForm({ clientes, produtos, onClientesLoaded }: Pr
                 fullWidth
               />
               <TextField
+                label="Quantidade"
+                value={quantity}
+                onChange={e => setQuantity(e.target.value)}
+                required
+                placeholder="1"
+                type="number"
+                inputProps={{ min: 1, step: 1 }}
+                disabled={!selectedCustomer}
+                fullWidth
+              />
+              <TextField
                 label="Justificativa"
                 value={notes}
                 onChange={e => setNotes(e.target.value)}
@@ -268,7 +287,8 @@ export default function RequestForm({ clientes, produtos, onClientesLoaded }: Pr
                 disabled={
                   !selectedCustomer ||
                   !selectedProduct ||
-                  !price || isNaN(Number(price)) || Number(price) <= 0 || loading
+                  !price || isNaN(Number(price)) || Number(price) <= 0 ||
+                  !quantity || isNaN(Number(quantity)) || Number(quantity) <= 0 || loading
                 }
                 sx={{ fontWeight: 700, borderRadius: 2, py: 1.2, fontSize: 18 }}
                 fullWidth
@@ -304,16 +324,21 @@ export default function RequestForm({ clientes, produtos, onClientesLoaded }: Pr
               {requests.map(r => (
                 <Box key={r._id || r.id} sx={{
                   p: 1.5,
-                  border: r.status === 'Aprovado' ? '2px solid #4caf50' : r.status === 'Reprovado' ? '2px solid #f44336' : '1px solid #e3e6f0',
+                  border: r.status === 'Alterado' ? '2px solid #2196f3' : r.status === 'Aprovado' ? '2px solid #4caf50' : r.status === 'Reprovado' ? '2px solid #f44336' : '1px solid #e3e6f0',
                   borderRadius: 2,
                   mb: 1,
-                  bgcolor: r.status === 'Aprovado' ? '#c8e6c9' : r.status === 'Reprovado' ? '#ffcdd2' : '#fff',
+                  bgcolor: r.status === 'Alterado' ? '#bbdefb' : r.status === 'Aprovado' ? '#c8e6c9' : r.status === 'Reprovado' ? '#ffcdd2' : '#fff',
                   boxShadow: '0 2px 8px 0 rgba(60,72,100,0.04)'
                 }}>
                   <Stack direction="row" justifyContent="space-between" alignItems="center">
                     <Typography variant="subtitle2" fontWeight={600} color="primary.main">
                       {r.customer_name}
                     </Typography>
+                    {r.status === 'Alterado' && (
+                      <Typography variant="caption" sx={{ bgcolor: '#2196f3', color: 'white', px: 1, py: 0.5, borderRadius: 1, fontWeight: 600 }}>
+                        ✓ ALTERADO
+                      </Typography>
+                    )}
                     {r.status === 'Aprovado' && (
                       <Typography variant="caption" sx={{ bgcolor: '#4caf50', color: 'white', px: 1, py: 0.5, borderRadius: 1, fontWeight: 600 }}>
                         ✓ APROVADO
@@ -331,7 +356,7 @@ export default function RequestForm({ clientes, produtos, onClientesLoaded }: Pr
                     )}
                   </Stack>
                   <Typography variant="body2" color="text.secondary">
-                    Produto: <b>{r.product_name || r.product_id}</b> — Preço: <b>R$ {Number(r.requested_price).toFixed(2)}</b>
+                    Produto: <b>{r.product_name || r.product_id}</b> — Preço: <b>R$ {Number(r.requested_price).toFixed(2)}</b> — Qtd: <b>{r.quantity || '—'}</b>
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
                     {new Date(r.created_at).toLocaleString()} {r.notes && `— ${r.notes}`}

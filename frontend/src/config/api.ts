@@ -7,6 +7,7 @@ export const API_ENDPOINTS = {
     register: `${API_BASE_URL}/api/auth/register`,
     adminRegister: `${API_BASE_URL}/api/auth/admin-register`,
     supervisorRegister: `${API_BASE_URL}/api/auth/supervisor-register`,
+    users: `${API_BASE_URL}/api/auth/users`,
   },
   requests: {
     all: `${API_BASE_URL}/api/requests/all`,

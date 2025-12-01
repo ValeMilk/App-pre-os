@@ -63,6 +63,16 @@ router.post('/supervisor-register', requireAuth, async (req: AuthRequest, res) =
   res.status(201).json({ id: user._id, name: user.name, email: user.email, codigo_supervisor: user.codigo_supervisor });
 });
 
+// Buscar lista de usuários (apenas nomes para dropdown de login)
+router.get('/users', async (req, res) => {
+  try {
+    const users = await User.find({}, 'name email').sort({ name: 1 });
+    res.json(users.map(u => ({ name: u.name, email: u.email })));
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao buscar usuários' });
+  }
+});
+
 // Login
 router.post('/login', async (req, res) => {
   const JWT_SECRET = process.env.JWT_SECRET as string | undefined;

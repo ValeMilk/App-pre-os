@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Paper, Typography, Button, Stack, Alert, Avatar, Divider, Tooltip, Chip } from '@mui/material';
+import { Box, Paper, Typography, Button, Stack, Alert, Avatar, Divider, Tooltip, Chip, IconButton } from '@mui/material';
 import TableChartIcon from '@mui/icons-material/TableChart';
 import DownloadIcon from '@mui/icons-material/Download';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import EditIcon from '@mui/icons-material/Edit';
 import { API_ENDPOINTS } from '../config/api';
 
 const API_URL = API_ENDPOINTS.requests.all;
@@ -39,6 +40,27 @@ export default function AdminRequestsPanel() {
     fetchRequests();
   }, [token]);
 
+  async function handleMarkAltered(requestId: string) {
+    try {
+      const res = await fetch(`${API_ENDPOINTS.requests.base}/${requestId}/mark-altered`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Erro ao marcar como alterado');
+      }
+      setSuccess('Solicitação marcada como Alterado!');
+      setTimeout(() => setSuccess(null), 3000);
+      fetchRequests();
+    } catch (err: any) {
+      setError(err.message || 'Erro ao marcar solicitação');
+    }
+  }
+
   function exportCsv() {
     if (requests.length === 0) {
       setError('Nenhuma solicitação para exportar.');
@@ -62,7 +84,7 @@ export default function AdminRequestsPanel() {
       r.approved_at || ''
     ]);
     const header = [
-      'ID', 'Vendedor', 'ID Vendedor', 'Código Cliente', 'Cliente', 'ID Produto', 'Produto', 'Preço', 'Moeda', 'Status', 'Notas', 'Criado em', 'Aprovado por', 'Aprovado em'
+      'ID', 'Vendedor', 'ID Vendedor', 'Código Cliente', 'Cliente', 'ID Produto', 'Produto', 'Preço', 'Moeda', 'Status', 'Justificativa', 'Criado em', 'Aprovado por', 'Aprovado em'
     ];
     const csv = [header, ...rows].map((r: (string | number)[]) => r.map((c: string | number) => `"${c}"`).join(';')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -76,110 +98,130 @@ export default function AdminRequestsPanel() {
   }
 
   return (
-    <Box height="100%" display="flex" alignItems="stretch">
-      <Paper elevation={6} sx={{
-        p: 5,
-        borderRadius: 4,
-        bgcolor: '#fff',
-        minWidth: 400,
-        width: '100%',
-        maxWidth: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        boxShadow: '0 8px 32px 0 rgba(60,72,100,0.10)',
-        overflowX: 'auto'
-      }}>
-        <Stack direction="row" alignItems="center" spacing={2} mb={2}>
-          <Avatar sx={{ bgcolor: '#1976d2', width: 56, height: 56 }}>
-            <TableChartIcon fontSize="large" />
-          </Avatar>
-          <Box>
-            <Typography variant="h5" fontWeight={700} color="primary.main">Central de Solicitações</Typography>
-            <Typography variant="subtitle2" color="text.secondary">Visualize e exporte todas as solicitações do sistema</Typography>
-          </Box>
-          <Box flex={1} />
+    <Paper elevation={6} sx={{
+      p: 4,
+      borderRadius: 3,
+      bgcolor: '#fff',
+      width: '100%',
+      boxShadow: '0 8px 32px 0 rgba(60,72,100,0.10)',
+      height: 'fit-content',
+      minHeight: 500
+    }}>
+      <Stack direction="row" alignItems="center" spacing={2} mb={2} flexWrap="wrap">
+        <Avatar sx={{ bgcolor: '#1976d2', width: 48, height: 48 }}>
+          <TableChartIcon />
+        </Avatar>
+        <Box flex={1}>
+          <Typography variant="h5" fontWeight={700} color="primary.main">Central de Solicitações</Typography>
+          <Typography variant="body2" color="text.secondary">Todas as solicitações do sistema</Typography>
+        </Box>
+        <Stack direction="row" spacing={1}>
           <Tooltip title="Atualizar solicitações">
             <Button 
               onClick={fetchRequests} 
               variant="outlined" 
               color="primary" 
+              size="small"
               startIcon={<RefreshIcon />} 
               disabled={loading}
-              sx={{ fontWeight: 600, mr: 1 }}
+              sx={{ fontWeight: 600 }}
             >
               {loading ? 'Atualizando...' : 'Atualizar'}
             </Button>
           </Tooltip>
           <Tooltip title="Exportar todas as solicitações para CSV">
-            <Button onClick={exportCsv} variant="contained" color="success" startIcon={<DownloadIcon />} sx={{ fontWeight: 600 }}>
-              Exportar CSV
+            <Button onClick={exportCsv} variant="contained" color="success" size="small" startIcon={<DownloadIcon />} sx={{ fontWeight: 600 }}>
+              Exportar
             </Button>
           </Tooltip>
         </Stack>
-        <Divider sx={{ mb: 3 }} />
+      </Stack>
+      <Divider sx={{ mb: 2 }} />
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
         {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
         {loading ? (
           <Typography color="text.secondary">Carregando solicitações...</Typography>
         ) : (
-          <Box sx={{ maxHeight: 500, overflow: 'auto', borderRadius: 2, border: '1px solid #e0e0e0', bgcolor: '#fff', width: '100%' }}>
-            <table style={{ width: '100%', minWidth: 1100, borderCollapse: 'collapse', fontSize: 15, tableLayout: 'fixed' }}>
+          <Box sx={{ maxHeight: 600, overflow: 'auto', borderRadius: 2, border: '1px solid #e0e0e0', bgcolor: '#fafafa' }}>
+            <table style={{ width: '100%', minWidth: 1000, borderCollapse: 'collapse', fontSize: 14 }}>
               <colgroup>
-                <col style={{ width: '8%' }} />
+                <col style={{ width: '5%' }} />
+                <col style={{ width: '10%' }} />
+                <col style={{ width: '6%' }} />
+                <col style={{ width: '12%' }} />
                 <col style={{ width: '14%' }} />
                 <col style={{ width: '8%' }} />
-                <col style={{ width: '14%' }} />
-                <col style={{ width: '18%' }} />
-                <col style={{ width: '10%' }} />
-                <col style={{ width: '10%' }} />
-                <col style={{ width: '10%' }} />
+                <col style={{ width: '5%' }} />
                 <col style={{ width: '8%' }} />
+                <col style={{ width: '9%' }} />
+                <col style={{ width: '13%' }} />
+                <col style={{ width: '10%' }} />
               </colgroup>
-              <thead style={{ background: '#f1f5fb' }}>
+              <thead style={{ position: 'sticky', top: 0, background: '#f1f5fb', zIndex: 1 }}>
                 <tr>
-                  <th style={{ padding: 8 }}>ID</th>
-                  <th style={{ padding: 8 }}>Vendedor</th>
-                  <th style={{ padding: 8 }}>Cód. Cliente</th>
-                  <th style={{ padding: 8 }}>Cliente</th>
-                  <th style={{ padding: 8 }}>Produto</th>
-                  <th style={{ padding: 8 }}>Preço</th>
-                  <th style={{ padding: 8 }}>Status</th>
-                  <th style={{ padding: 8 }}>Data</th>
-                  <th style={{ padding: 8 }}>Notas</th>
+                  <th style={{ padding: 10, textAlign: 'left', fontWeight: 600 }}>ID</th>
+                  <th style={{ padding: 10, textAlign: 'left', fontWeight: 600 }}>Vendedor</th>
+                  <th style={{ padding: 10, textAlign: 'left', fontWeight: 600 }}>Cód. Cliente</th>
+                  <th style={{ padding: 10, textAlign: 'left', fontWeight: 600 }}>Cliente</th>
+                  <th style={{ padding: 10, textAlign: 'left', fontWeight: 600 }}>Produto</th>
+                  <th style={{ padding: 10, textAlign: 'right', fontWeight: 600 }}>Preço</th>
+                  <th style={{ padding: 10, textAlign: 'center', fontWeight: 600 }}>Qtd.</th>
+                  <th style={{ padding: 10, textAlign: 'center', fontWeight: 600 }}>Status</th>
+                  <th style={{ padding: 10, textAlign: 'left', fontWeight: 600 }}>Data</th>
+                  <th style={{ padding: 10, textAlign: 'left', fontWeight: 600 }}>Justificativa</th>
+                  <th style={{ padding: 10, textAlign: 'center', fontWeight: 600 }}>Ações</th>
                 </tr>
               </thead>
               <tbody>
                 {requests.map(r => (
                   <tr key={r._id} style={{ 
-                    borderBottom: '1px solid #f0f0f0', 
-                    background: r.status === 'Aprovado' ? '#c8e6c9' : r.status === 'Reprovado' ? '#ffcdd2' : 'inherit' 
+                    borderBottom: '1px solid #e8e8e8', 
+                    background: r.status === 'Alterado' ? '#e3f2fd' : r.status === 'Aprovado' ? '#e8f5e9' : r.status === 'Reprovado' ? '#ffebee' : '#fff'
                   }}>
-                    <td style={{ padding: 8, color: '#888', wordBreak: 'break-all' }}>{r._id}</td>
-                    <td style={{ padding: 8, fontWeight: 500, wordBreak: 'break-word' }}>{r.requester_name}</td>
-                    <td style={{ padding: 8 }}>{r.customer_code}</td>
-                    <td style={{ padding: 8, wordBreak: 'break-word' }}>{r.customer_name}</td>
-                    <td style={{ padding: 8, wordBreak: 'break-word' }}>{r.product_name || r.product_id}</td>
-                    <td style={{ padding: 8, color: '#1976d2', fontWeight: 600 }}>R$ {Number(r.requested_price).toFixed(2)}</td>
-                    <td style={{ padding: 8 }}>
+                    <td style={{ padding: 10, color: '#666', fontSize: 12, wordBreak: 'break-all' }}>{r._id.substring(0, 6)}...</td>
+                    <td style={{ padding: 10, fontWeight: 500 }}>{r.requester_name}</td>
+                    <td style={{ padding: 10 }}>{r.customer_code}</td>
+                    <td style={{ padding: 10, wordBreak: 'break-word' }}>{r.customer_name}</td>
+                    <td style={{ padding: 10, wordBreak: 'break-word', fontSize: 13 }}>{r.product_name || r.product_id}</td>
+                    <td style={{ padding: 10, color: '#1976d2', fontWeight: 600, textAlign: 'right' }}>R$ {Number(r.requested_price).toFixed(2)}</td>
+                    <td style={{ padding: 10, textAlign: 'center', fontWeight: 600 }}>{r.quantity || '—'}</td>
+                    <td style={{ padding: 10, textAlign: 'center' }}>
                       <Chip
                         label={r.status}
-                        color={r.status === 'Aprovado' ? 'success' : r.status === 'Reprovado' ? 'error' : 'warning'}
+                        color={r.status === 'Alterado' ? 'info' : r.status === 'Aprovado' ? 'success' : r.status === 'Reprovado' ? 'error' : 'warning'}
                         size="small"
-                        icon={<AssignmentIcon />}
-                        sx={{ fontWeight: 600, textTransform: 'capitalize' }}
+                        sx={{ fontWeight: 600, fontSize: 11 }}
                       />
                     </td>
-                    <td style={{ padding: 8 }}>{new Date(r.created_at).toLocaleString()}</td>
-                    <td style={{ padding: 8, wordBreak: 'break-word' }}>{r.notes}</td>
+                    <td style={{ padding: 10, fontSize: 12 }}>{new Date(r.created_at).toLocaleDateString('pt-BR')}</td>
+                    <td style={{ padding: 10, wordBreak: 'break-word', fontSize: 12, maxWidth: 150 }}>{r.notes || '—'}</td>
+                    <td style={{ padding: 10, textAlign: 'center' }}>
+                      {(r.status === 'Aprovado' || r.status === 'Reprovado') && (
+                        <Tooltip title="Marcar como Alterado">
+                          <IconButton
+                            size="small"
+                            color="info"
+                            onClick={() => handleMarkAltered(r._id)}
+                          >
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                      {r.status === 'Alterado' && (
+                        <Typography variant="caption" color="text.secondary">✓</Typography>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            {requests.length === 0 && <Typography color="text.secondary" mt={2} align="center">Nenhuma solicitação registrada.</Typography>}
+            {requests.length === 0 && (
+              <Typography color="text.secondary" mt={3} mb={2} align="center">
+                Nenhuma solicitação registrada.
+              </Typography>
+            )}
           </Box>
         )}
       </Paper>
-    </Box>
   );
 }

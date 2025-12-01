@@ -35,6 +35,7 @@ interface Request {
   product_id: string;
   product_name?: string;
   requested_price: string;
+  quantity?: string;
   currency: string;
   status: string;
   notes?: string;
@@ -211,7 +212,8 @@ export default function SupervisorPanel() {
                   <TableCell><strong>Cliente</strong></TableCell>
                   <TableCell><strong>Produto</strong></TableCell>
                   <TableCell align="right"><strong>Preço</strong></TableCell>
-                  <TableCell><strong>Notas</strong></TableCell>
+                  <TableCell align="center"><strong>Qtd.</strong></TableCell>
+                  <TableCell><strong>Justificativa</strong></TableCell>
                   <TableCell><strong>Data</strong></TableCell>
                   <TableCell align="center"><strong>Ações</strong></TableCell>
                 </TableRow>
@@ -236,6 +238,9 @@ export default function SupervisorPanel() {
                     </TableCell>
                     <TableCell align="right">
                       <strong>{req.currency} {req.requested_price}</strong>
+                    </TableCell>
+                    <TableCell align="center">
+                      <strong>{req.quantity || '—'}</strong>
                     </TableCell>
                     <TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {req.notes || '—'}
@@ -289,8 +294,9 @@ export default function SupervisorPanel() {
                   <TableCell><strong>Cliente</strong></TableCell>
                   <TableCell><strong>Produto</strong></TableCell>
                   <TableCell align="right"><strong>Preço</strong></TableCell>
+                  <TableCell align="center"><strong>Qtd.</strong></TableCell>
                   <TableCell align="center"><strong>Status</strong></TableCell>
-                  <TableCell><strong>Notas</strong></TableCell>
+                  <TableCell><strong>Justificativa</strong></TableCell>
                   <TableCell><strong>Aprovado por</strong></TableCell>
                   <TableCell><strong>Data Aprovação</strong></TableCell>
                 </TableRow>
@@ -300,7 +306,7 @@ export default function SupervisorPanel() {
                   <TableRow
                     key={req._id}
                     sx={{
-                      bgcolor: req.status === 'Aprovado' ? '#e8f5e9' : req.status === 'Reprovado' ? '#ffebee' : 'inherit'
+                      bgcolor: req.status === 'Alterado' ? '#e3f2fd' : req.status === 'Aprovado' ? '#e8f5e9' : req.status === 'Reprovado' ? '#ffebee' : 'inherit'
                     }}
                   >
                     <TableCell>{req.requester_name}</TableCell>
@@ -310,9 +316,12 @@ export default function SupervisorPanel() {
                       {req.currency} {req.requested_price}
                     </TableCell>
                     <TableCell align="center">
+                      {req.quantity || '—'}
+                    </TableCell>
+                    <TableCell align="center">
                       <Chip
                         label={req.status}
-                        color={req.status === 'Aprovado' ? 'success' : 'error'}
+                        color={req.status === 'Alterado' ? 'info' : req.status === 'Aprovado' ? 'success' : 'error'}
                         size="small"
                       />
                     </TableCell>

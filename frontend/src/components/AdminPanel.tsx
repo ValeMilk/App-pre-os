@@ -75,24 +75,23 @@ export default function AdminPanel() {
   }
 
   return (
-    <Box height="100%" display="flex" alignItems="stretch">
-      <Paper elevation={6} sx={{
-        p: 5,
-        borderRadius: 4,
-        bgcolor: '#fff',
-        minWidth: 350,
-        width: '100%',
-        maxWidth: 420,
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        boxShadow: '0 8px 32px 0 rgba(60,72,100,0.10)'
-      }}>
-        <Tabs value={tab} onChange={(_, v) => setTab(v)} centered sx={{ mb: 2 }}>
-          <Tab label="Cadastrar Vendedor" />
-          <Tab label="Cadastrar Supervisor" />
-        </Tabs>
-        <Divider sx={{ mb: 3 }} />
+    <Paper elevation={6} sx={{
+      p: 4,
+      borderRadius: 3,
+      bgcolor: '#fff',
+      width: '100%',
+      maxWidth: 480,
+      boxShadow: '0 8px 32px 0 rgba(60,72,100,0.10)',
+      height: 'fit-content'
+    }}>
+      <Typography variant="h5" fontWeight={700} color="primary.main" mb={3} textAlign="center">
+        Cadastro de Usuários
+      </Typography>
+      <Tabs value={tab} onChange={(_, v) => setTab(v)} centered sx={{ mb: 2 }}>
+        <Tab label="Cadastrar Vendedor" sx={{ minWidth: 200, fontSize: '0.80rem' }} />
+        <Tab label="Cadastrar Supervisor" sx={{ minWidth: 200, fontSize: '0.80rem' }} />
+      </Tabs>
+      <Divider sx={{ mb: 5 }} />
         {tab === 0 && (
           <form onSubmit={handleSubmit} autoComplete="off">
             <Stack spacing={2}>
@@ -102,7 +101,7 @@ export default function AdminPanel() {
               <TextField label="E-mail" value={email} onChange={e => setEmail(e.target.value)} required type="email" fullWidth />
               <TextField label="Senha" value={password} onChange={e => setPassword(e.target.value)} required type="password" fullWidth />
               <Tooltip title="Opcional: código interno para identificar o vendedor.">
-                <TextField label="Código do Vendedor (opcional)" value={vendedorCode} onChange={e => setVendedorCode(e.target.value)} fullWidth />
+                <TextField label="Código do Vendedor " value={vendedorCode} onChange={e => setVendedorCode(e.target.value)} fullWidth />
               </Tooltip>
               <Button
                 type="submit"
@@ -142,6 +141,5 @@ export default function AdminPanel() {
           </form>
         )}
       </Paper>
-    </Box>
   );
 }
