@@ -111,7 +111,7 @@ export default function GerentePanel() {
       // Separar pendentes e processadas
       const pending = data.filter((r: Request) => r.status === 'Aguardando Gerência');
       const processed = data.filter((r: Request) => 
-        r.status === 'Aprovado pela Gerência' || r.status === 'Reprovado pela Gerência'
+        r.status === 'Aprovado pela Gerência' || r.status === 'Reprovado pela Gerência' || r.status === 'Alterado'
       );
       
       // Agrupar pendentes por subrede
@@ -539,12 +539,13 @@ export default function GerentePanel() {
                 {/* Subredes processadas */}
                 {groupedProcessed.map((group) => {
                   const isApproved = group.status === 'Aprovado pela Gerência';
+                  const isAltered = group.status === 'Alterado';
                   return (
                     <TableRow 
                       key={group.batchId}
                       sx={{ 
-                        bgcolor: isApproved ? '#f1f8e9' : '#ffebee',
-                        '&:hover': { bgcolor: isApproved ? '#e8f5e9' : '#ffcdd2' }
+                        bgcolor: isAltered ? '#e3f2fd' : (isApproved ? '#f1f8e9' : '#ffebee'),
+                        '&:hover': { bgcolor: isAltered ? '#bbdefb' : (isApproved ? '#e8f5e9' : '#ffcdd2') }
                       }}
                     >
                       <TableCell>{group.requester_name}</TableCell>
@@ -579,7 +580,7 @@ export default function GerentePanel() {
                         <Chip
                           label={group.status}
                           size="small"
-                          color={isApproved ? 'success' : 'error'}
+                          color={isAltered ? 'info' : (isApproved ? 'success' : 'error')}
                           icon={isApproved ? <CheckCircleIcon /> : <CancelIcon />}
                         />
                       </TableCell>
@@ -596,12 +597,13 @@ export default function GerentePanel() {
                 {/* Solicitações individuais processadas */}
                 {individualProcessed.map((req) => {
                   const isApproved = req.status === 'Aprovado pela Gerência';
+                  const isAltered = req.status === 'Alterado';
                   return (
                     <TableRow 
                       key={req._id}
                       sx={{ 
-                        bgcolor: isApproved ? '#f1f8e9' : '#ffebee',
-                        '&:hover': { bgcolor: isApproved ? '#e8f5e9' : '#ffcdd2' }
+                        bgcolor: isAltered ? '#e3f2fd' : (isApproved ? '#f1f8e9' : '#ffebee'),
+                        '&:hover': { bgcolor: isAltered ? '#bbdefb' : (isApproved ? '#e8f5e9' : '#ffcdd2') }
                       }}
                     >
                       <TableCell>{req.requester_name}</TableCell>
@@ -636,7 +638,7 @@ export default function GerentePanel() {
                         <Chip
                           label={req.status}
                           size="small"
-                          color={isApproved ? 'success' : 'error'}
+                          color={isAltered ? 'info' : (isApproved ? 'success' : 'error')}
                           icon={isApproved ? <CheckCircleIcon /> : <CancelIcon />}
                         />
                       </TableCell>

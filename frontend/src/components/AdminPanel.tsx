@@ -108,12 +108,12 @@ export default function AdminPanel() {
   return (
     <Paper elevation={6} sx={{
       p: 4,
-      borderRadius: 3,
-      bgcolor: '#fff',
+      borderRadius: 6,
+      bgcolor: '#ffffffff',
       width: '100%',
       maxWidth: 480,
+      height: 'fit-content',
       boxShadow: '0 8px 32px 0 rgba(60,72,100,0.10)',
-      height: 'fit-content'
     }}>
       <Typography variant="h5" fontWeight={700} color="primary.main" mb={3} textAlign="center">
         Cadastro de Usuários

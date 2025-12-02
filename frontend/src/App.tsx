@@ -95,7 +95,7 @@ function AppContent() {
           )}
         </Toolbar>
       </AppBar>
-      <Container maxWidth={user && user.email === 'admin@admin.com' ? false : 'sm'} disableGutters={user && user.email === 'admin@admin.com'} sx={user && user.email === 'admin@admin.com' ? { display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '85vh' } : {}}>
+      <Container maxWidth={user && user.email === 'admin@admin.com' ? false : 'sm'} disableGutters={user && user.email === 'admin@admin.com'} sx={user && user.email === 'admin@admin.com' ? { display: 'flex', justifyContent: 'flex-start', alignItems: 'flex-start', minHeight: '85vh', pl: 2 } : {}}>
         {error && <Box sx={{ bgcolor: '#fff3cd', p: 2, borderRadius: 1, mb: 2 }}>{error}</Box>}
         
         <Routes>
@@ -116,16 +116,16 @@ function AppContent() {
             token && user && user.email === 'admin@admin.com' ? (
               <Box sx={{
                 width: '100%',
-                maxWidth: 1600,
-                mx: 'auto',
-                px: { xs: 2, md: 4 },
+                maxWidth: 1900,
+                mx: 0,
+                px: { xs: 2, md: 3 },
                 py: 3
               }}>
                 <Box 
                   width="100%" 
                   display="grid" 
                   gridTemplateColumns={{ xs: '1fr', md: '420px 1fr' }} 
-                  gap={4}
+                  gap={3}
                   alignItems="start"
                 >
                   <AdminPanel />

@@ -319,10 +319,10 @@ const PriceRequest = mongoose.model('PriceRequest', priceRequestSchema);
       if (tipo !== 'gerente') {
         return res.status(403).json({ error: 'Acesso permitido apenas para gerentes.' });
       }
-      // Retorna solicitações pendentes E processadas pela gerência
+      // Retorna solicitações pendentes E processadas pela gerência (incluindo Alterado)
       const requests = await PriceRequest.find({ 
         status: { 
-          $in: ['Aguardando Gerência', 'Aprovado pela Gerência', 'Reprovado pela Gerência'] 
+          $in: ['Aguardando Gerência', 'Aprovado pela Gerência', 'Reprovado pela Gerência', 'Alterado'] 
         } 
       }).sort({ created_at: -1 });
       res.json(requests);

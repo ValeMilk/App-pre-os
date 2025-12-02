@@ -150,11 +150,13 @@ export default function AdminRequestsPanel() {
     <Paper elevation={6} sx={{
       p: 4,
       borderRadius: 3,
-      bgcolor: '#fff',
+      bgcolor: '#feffffff',
       width: '100%',
+      maxWidth: 'none',
+      margin: 0,
       boxShadow: '0 8px 32px 0 rgba(60,72,100,0.10)',
       height: 'fit-content',
-      minHeight: 500
+      minHeight: '85vh'
     }}>
       <Stack direction="row" alignItems="center" spacing={2} mb={2} flexWrap="wrap">
         <Avatar sx={{ bgcolor: '#1976d2', width: 48, height: 48 }}>
@@ -247,8 +249,8 @@ export default function AdminRequestsPanel() {
         {loading ? (
           <Typography color="text.secondary">Carregando solicitações...</Typography>
         ) : (
-          <Box sx={{ maxHeight: 600, overflow: 'auto', borderRadius: 2, border: '1px solid #e0e0e0', bgcolor: '#fafafa' }}>
-            <table style={{ width: '100%', minWidth: 1000, borderCollapse: 'collapse', fontSize: 14 }}>
+          <Box sx={{ maxHeight: '65vh', overflow: 'auto', borderRadius: 2, border: '1px solid #e0e0e0', bgcolor: '#fafafa' }}>
+            <table style={{ width: '100%', minWidth: 1300, borderCollapse: 'collapse', fontSize: 14 }}>
               <colgroup>
                 <col style={{ width: '5%' }} />
                 <col style={{ width: '10%' }} />
@@ -288,7 +290,7 @@ export default function AdminRequestsPanel() {
                       r.status === 'Aguardando Gerência' ? '#fff3e0' :
                       '#fff'
                   }}>
-                    <td style={{ padding: 10, color: '#666', fontSize: 12, wordBreak: 'break-all' }}>{r._id.substring(0, 6)}...</td>
+                    <td style={{ padding: 10, color: '#666', fontSize: 16, wordBreak: 'break-all' }}>{r._id.substring(0, 6)}...</td>
                     <td style={{ padding: 10, fontWeight: 500 }}>{r.requester_name}</td>
                     <td style={{ padding: 10 }}>{r.customer_code}</td>
                     <td style={{ padding: 10, wordBreak: 'break-word' }}>{r.customer_name}</td>
@@ -305,11 +307,11 @@ export default function AdminRequestsPanel() {
                           'warning'
                         }
                         size="small"
-                        sx={{ fontWeight: 600, fontSize: 11 }}
+                        sx={{ fontWeight: 600, fontSize: 14 }}
                       />
                     </td>
                     <td style={{ padding: 10, fontSize: 12 }}>{new Date(r.created_at).toLocaleDateString('pt-BR')}</td>
-                    <td style={{ padding: 10, wordBreak: 'break-word', fontSize: 12, maxWidth: 150 }}>{r.notes || '—'}</td>
+                    <td style={{ padding: 10, wordBreak: 'break-word', fontSize: 14, maxWidth: 150 }}>{r.notes || '—'}</td>
                     <td style={{ padding: 10, textAlign: 'center' }}>
                       {(r.status === 'Aprovado' || r.status === 'Reprovado' || r.status === 'Aprovado pela Gerência' || r.status === 'Reprovado pela Gerência') && (
                         <Tooltip title="Marcar como Alterado">
