@@ -45,15 +45,40 @@ interface Request {
   created_at: string;
   approved_by?: string;
   approved_at?: string;
+  subrede_batch_id?: string;
+  subrede_name?: string;
+}
+
+interface GroupedRequest {
+  batchId: string;
+  subrede_name: string;
+  requests: Request[];
+  requester_name: string;
+  product_id: string;
+  product_name: string;
+  requested_price: string;
+  quantity: string;
+  product_minimo: string;
+  product_promocional: string;
+  currency: string;
+  status: string;
+  notes: string;
+  created_at: string;
+  clientCount: number;
 }
 
 export default function GerentePanel() {
   const [requests, setRequests] = useState<Request[]>([]);
   const [allRequests, setAllRequests] = useState<Request[]>([]);
+  const [groupedRequests, setGroupedRequests] = useState<GroupedRequest[]>([]);
+  const [individualRequests, setIndividualRequests] = useState<Request[]>([]);
+  const [groupedProcessed, setGroupedProcessed] = useState<GroupedRequest[]>([]);
+  const [individualProcessed, setIndividualProcessed] = useState<Request[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
+  const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
   const [rejectNotes, setRejectNotes] = useState('');
 
   const fetchRequests = async () => {
@@ -89,8 +114,84 @@ export default function GerentePanel() {
         r.status === 'Aprovado pela Gerência' || r.status === 'Reprovado pela Gerência'
       );
       
+      // Agrupar pendentes por subrede
+      const groupedPending: { [key: string]: Request[] } = {};
+      const individualPending: Request[] = [];
+      
+      pending.forEach((req: Request) => {
+        if (req.subrede_batch_id) {
+          if (!groupedPending[req.subrede_batch_id]) {
+            groupedPending[req.subrede_batch_id] = [];
+          }
+          groupedPending[req.subrede_batch_id].push(req);
+        } else {
+          individualPending.push(req);
+        }
+      });
+      
+      const groupedPendingArray: GroupedRequest[] = Object.entries(groupedPending).map(([batchId, reqs]) => {
+        const firstReq = reqs[0];
+        return {
+          batchId,
+          subrede_name: firstReq.subrede_name || 'SUBREDE',
+          requests: reqs,
+          requester_name: firstReq.requester_name,
+          product_id: firstReq.product_id,
+          product_name: firstReq.product_name || '',
+          requested_price: firstReq.requested_price,
+          quantity: firstReq.quantity || '',
+          product_minimo: firstReq.product_minimo || '',
+          product_promocional: firstReq.product_promocional || '',
+          currency: firstReq.currency,
+          status: firstReq.status,
+          notes: firstReq.notes || '',
+          created_at: firstReq.created_at,
+          clientCount: reqs.length
+        };
+      });
+      
+      // Agrupar processadas por subrede
+      const groupedProc: { [key: string]: Request[] } = {};
+      const individualProc: Request[] = [];
+      
+      processed.forEach((req: Request) => {
+        if (req.subrede_batch_id) {
+          if (!groupedProc[req.subrede_batch_id]) {
+            groupedProc[req.subrede_batch_id] = [];
+          }
+          groupedProc[req.subrede_batch_id].push(req);
+        } else {
+          individualProc.push(req);
+        }
+      });
+      
+      const groupedProcArray: GroupedRequest[] = Object.entries(groupedProc).map(([batchId, reqs]) => {
+        const firstReq = reqs[0];
+        return {
+          batchId,
+          subrede_name: firstReq.subrede_name || 'SUBREDE',
+          requests: reqs,
+          requester_name: firstReq.requester_name,
+          product_id: firstReq.product_id,
+          product_name: firstReq.product_name || '',
+          requested_price: firstReq.requested_price,
+          quantity: firstReq.quantity || '',
+          product_minimo: firstReq.product_minimo || '',
+          product_promocional: firstReq.product_promocional || '',
+          currency: firstReq.currency,
+          status: firstReq.status,
+          notes: firstReq.notes || '',
+          created_at: firstReq.created_at,
+          clientCount: reqs.length
+        };
+      });
+      
       setRequests(pending);
       setAllRequests(processed);
+      setGroupedRequests(groupedPendingArray);
+      setIndividualRequests(individualPending);
+      setGroupedProcessed(groupedProcArray);
+      setIndividualProcessed(individualProc);
     } catch (err: any) {
       setError(err.message || 'Erro ao carregar solicitações');
       console.error('[GerentePanel] Erro ao buscar solicitações:', err);
@@ -136,12 +237,40 @@ export default function GerentePanel() {
 
   const handleRejectClick = (requestId: string) => {
     setSelectedRequestId(requestId);
+    setSelectedBatchId(null);
+    setRejectNotes('');
+    setRejectDialogOpen(true);
+  };
+
+  const handleApproveBatch = async (batchId: string) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      const response = await fetch(`${API_URL}/batch/${batchId}/gerente-approve`, {
+        method: 'PATCH',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (!response.ok) throw new Error('Erro ao aprovar subrede');
+      const data = await response.json();
+      setSuccess(`${data.count} solicitações aprovadas pela gerência!`);
+      setTimeout(() => setSuccess(null), 3000);
+      fetchRequests();
+    } catch (err: any) {
+      setError(err.message || 'Erro ao aprovar subrede');
+    }
+  };
+
+  const handleRejectBatch = (batchId: string) => {
+    setSelectedBatchId(batchId);
+    setSelectedRequestId(null);
     setRejectNotes('');
     setRejectDialogOpen(true);
   };
 
   const handleRejectConfirm = async () => {
-    if (!selectedRequestId) return;
+    if (!selectedRequestId && !selectedBatchId) return;
     if (!rejectNotes.trim()) {
       setError('Por favor, informe o motivo da reprovação.');
       return;
@@ -154,7 +283,18 @@ export default function GerentePanel() {
         return;
       }
 
-      const response = await fetch(`${API_URL}/${selectedRequestId}/gerente-reject`, {
+      let url: string;
+      let successMsg: string;
+
+      if (selectedBatchId) {
+        url = `${API_URL}/batch/${selectedBatchId}/gerente-reject`;
+        successMsg = 'Subrede reprovada pela gerência!';
+      } else {
+        url = `${API_URL}/${selectedRequestId}/gerente-reject`;
+        successMsg = 'Solicitação reprovada pela gerência!';
+      }
+
+      const response = await fetch(url, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -165,17 +305,18 @@ export default function GerentePanel() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Erro ao reprovar solicitação');
+        throw new Error(errorData.error || 'Erro ao reprovar');
       }
 
-      setSuccess('Solicitação reprovada pela gerência!');
+      setSuccess(successMsg);
       setTimeout(() => setSuccess(null), 3000);
       setRejectDialogOpen(false);
       setSelectedRequestId(null);
+      setSelectedBatchId(null);
       setRejectNotes('');
       fetchRequests();
     } catch (err: any) {
-      setError(err.message || 'Erro ao reprovar solicitação');
+      setError(err.message || 'Erro ao reprovar');
       console.error('[GerentePanel] Erro ao reprovar:', err);
     }
   };
@@ -183,6 +324,7 @@ export default function GerentePanel() {
   const handleRejectCancel = () => {
     setRejectDialogOpen(false);
     setSelectedRequestId(null);
+    setSelectedBatchId(null);
     setRejectNotes('');
   };
 
@@ -229,7 +371,79 @@ export default function GerentePanel() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {requests.map((req) => (
+              {/* Subredes agrupadas */}
+              {groupedRequests.map((group) => (
+                <TableRow 
+                  key={group.batchId} 
+                  sx={{ 
+                    '&:hover': { bgcolor: '#fff3e0' },
+                    bgcolor: '#fffde7'
+                  }}
+                >
+                  <TableCell>{group.requester_name}</TableCell>
+                  <TableCell>
+                    <strong>SUBREDE: {group.subrede_name}</strong>
+                    <br />
+                    <Typography variant="caption" color="primary.main">
+                      {group.clientCount} clientes
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    {group.product_name || group.product_id}
+                    <br />
+                    <Typography variant="caption" color="text.secondary">
+                      {group.product_id}
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="right">
+                    <strong style={{ color: '#d32f2f' }}>
+                      {group.currency} {group.requested_price}
+                    </strong>
+                  </TableCell>
+                  <TableCell align="right">
+                    <Typography variant="body2" color="text.secondary">
+                      R$ {group.product_minimo || '—'}
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="right">
+                    <Typography variant="body2" color="primary.main">
+                      R$ {group.product_promocional || '—'}
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="center">
+                    <strong>{group.quantity || '—'}</strong>
+                  </TableCell>
+                  <TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {group.notes || '—'}
+                  </TableCell>
+                  <TableCell>
+                    {new Date(group.created_at).toLocaleDateString('pt-BR')}
+                  </TableCell>
+                  <TableCell align="center">
+                    <Tooltip title="Aprovar Subrede">
+                      <IconButton
+                        color="success"
+                        onClick={() => handleApproveBatch(group.batchId)}
+                        size="small"
+                      >
+                        <CheckCircleIcon />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Reprovar Subrede">
+                      <IconButton
+                        color="error"
+                        onClick={() => handleRejectBatch(group.batchId)}
+                        size="small"
+                      >
+                        <CancelIcon />
+                      </IconButton>
+                    </Tooltip>
+                  </TableCell>
+                </TableRow>
+              ))}
+              
+              {/* Solicitações individuais */}
+              {individualRequests.map((req) => (
                 <TableRow 
                   key={req._id} 
                   sx={{ 
@@ -325,7 +539,65 @@ export default function GerentePanel() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {allRequests.map((req) => {
+                {/* Subredes processadas */}
+                {groupedProcessed.map((group) => {
+                  const isApproved = group.status === 'Aprovado pela Gerência';
+                  return (
+                    <TableRow 
+                      key={group.batchId}
+                      sx={{ 
+                        bgcolor: isApproved ? '#f1f8e9' : '#ffebee',
+                        '&:hover': { bgcolor: isApproved ? '#e8f5e9' : '#ffcdd2' }
+                      }}
+                    >
+                      <TableCell>{group.requester_name}</TableCell>
+                      <TableCell>
+                        <strong>SUBREDE: {group.subrede_name}</strong>
+                        <br />
+                        <Typography variant="caption" color="primary.main">
+                          {group.clientCount} clientes
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        {group.product_name || group.product_id}
+                        <br />
+                        <Typography variant="caption" color="text.secondary">
+                          {group.product_id}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="right">
+                        <strong>
+                          {group.currency} {group.requested_price}
+                        </strong>
+                      </TableCell>
+                      <TableCell align="right">
+                        <Typography variant="body2" color="text.secondary">
+                          R$ {group.product_minimo || '—'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="center">
+                        <strong>{group.quantity || '—'}</strong>
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={group.status}
+                          size="small"
+                          color={isApproved ? 'success' : 'error'}
+                          icon={isApproved ? <CheckCircleIcon /> : <CancelIcon />}
+                        />
+                      </TableCell>
+                      <TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {group.notes || '—'}
+                      </TableCell>
+                      <TableCell>
+                        {group.created_at ? new Date(group.created_at).toLocaleDateString('pt-BR') : '—'}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+                
+                {/* Solicitações individuais processadas */}
+                {individualProcessed.map((req) => {
                   const isApproved = req.status === 'Aprovado pela Gerência';
                   return (
                     <TableRow 

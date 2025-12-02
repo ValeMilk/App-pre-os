@@ -86,7 +86,9 @@ const priceRequestSchema = new mongoose.Schema({
   altered_by: String,
   altered_at: Date,
   codigo_supervisor: String,
-  nome_supervisor: String
+  nome_supervisor: String,
+  subrede_batch_id: String,
+  subrede_name: String
 });
 const PriceRequest = mongoose.model('PriceRequest', priceRequestSchema);
 
@@ -245,6 +247,72 @@ const PriceRequest = mongoose.model('PriceRequest', priceRequestSchema);
     }
   });
 
+  // Aprovar em lote (subrede)
+  app.patch('/api/requests/batch/:batchId/approve', requireAuth, async (req: AuthRequest, res: Response) => {
+    try {
+      const tipo = req.user?.tipo;
+      if (tipo !== 'supervisor') {
+        return res.status(403).json({ error: 'Acesso permitido apenas para supervisores.' });
+      }
+      const result = await PriceRequest.updateMany(
+        { subrede_batch_id: req.params.batchId },
+        {
+          status: 'Aprovado',
+          approved_by: req.user?.name,
+          approved_at: new Date()
+        }
+      );
+      res.json({ message: `${result.modifiedCount} solicitações aprovadas`, count: result.modifiedCount });
+    } catch (err) {
+      res.status(500).json({ error: 'Erro ao aprovar lote', details: err });
+    }
+  });
+
+  // Reprovar em lote (subrede)
+  app.patch('/api/requests/batch/:batchId/reject', requireAuth, async (req: AuthRequest, res: Response) => {
+    try {
+      const tipo = req.user?.tipo;
+      if (tipo !== 'supervisor') {
+        return res.status(403).json({ error: 'Acesso permitido apenas para supervisores.' });
+      }
+      const { notes } = req.body;
+      if (!notes) return res.status(400).json({ error: 'Justificativa obrigatória para reprovação.' });
+      const result = await PriceRequest.updateMany(
+        { subrede_batch_id: req.params.batchId },
+        {
+          status: 'Reprovado',
+          approved_by: req.user?.name,
+          approved_at: new Date(),
+          notes
+        }
+      );
+      res.json({ message: `${result.modifiedCount} solicitações reprovadas`, count: result.modifiedCount });
+    } catch (err) {
+      res.status(500).json({ error: 'Erro ao reprovar lote', details: err });
+    }
+  });
+
+  // Encaminhar para gerência em lote (subrede)
+  app.patch('/api/requests/batch/:batchId/encaminhar-gerencia', requireAuth, async (req: AuthRequest, res: Response) => {
+    try {
+      const tipo = req.user?.tipo;
+      if (tipo !== 'supervisor') {
+        return res.status(403).json({ error: 'Acesso permitido apenas para supervisores.' });
+      }
+      const result = await PriceRequest.updateMany(
+        { subrede_batch_id: req.params.batchId },
+        {
+          status: 'Aguardando Gerência',
+          approved_by: req.user?.name,
+          approved_at: new Date()
+        }
+      );
+      res.json({ message: `${result.modifiedCount} solicitações encaminhadas para gerência`, count: result.modifiedCount });
+    } catch (err) {
+      res.status(500).json({ error: 'Erro ao encaminhar lote para gerência', details: err });
+    }
+  });
+
   app.get('/api/requests/gerente', requireAuth, async (req: AuthRequest, res: Response) => {
     try {
       const tipo = req.user?.tipo;
@@ -308,6 +376,51 @@ const PriceRequest = mongoose.model('PriceRequest', priceRequestSchema);
       res.json(request);
     } catch (err) {
       res.status(500).json({ error: 'Erro ao reprovar pela gerência', details: err });
+    }
+  });
+
+  // Aprovar em lote pela gerência (subrede)
+  app.patch('/api/requests/batch/:batchId/gerente-approve', requireAuth, async (req: AuthRequest, res: Response) => {
+    try {
+      const tipo = req.user?.tipo;
+      if (tipo !== 'gerente') {
+        return res.status(403).json({ error: 'Acesso permitido apenas para gerentes.' });
+      }
+      const result = await PriceRequest.updateMany(
+        { subrede_batch_id: req.params.batchId },
+        {
+          status: 'Aprovado pela Gerência',
+          approved_by: req.user?.name,
+          approved_at: new Date()
+        }
+      );
+      res.json({ message: `${result.modifiedCount} solicitações aprovadas pela gerência`, count: result.modifiedCount });
+    } catch (err) {
+      res.status(500).json({ error: 'Erro ao aprovar lote pela gerência', details: err });
+    }
+  });
+
+  // Reprovar em lote pela gerência (subrede)
+  app.patch('/api/requests/batch/:batchId/gerente-reject', requireAuth, async (req: AuthRequest, res: Response) => {
+    try {
+      const tipo = req.user?.tipo;
+      if (tipo !== 'gerente') {
+        return res.status(403).json({ error: 'Acesso permitido apenas para gerentes.' });
+      }
+      const { notes } = req.body;
+      if (!notes) return res.status(400).json({ error: 'Motivo obrigatório para reprovação pela gerência.' });
+      const result = await PriceRequest.updateMany(
+        { subrede_batch_id: req.params.batchId },
+        {
+          status: 'Reprovado pela Gerência',
+          approved_by: req.user?.name,
+          approved_at: new Date(),
+          notes
+        }
+      );
+      res.json({ message: `${result.modifiedCount} solicitações reprovadas pela gerência`, count: result.modifiedCount });
+    } catch (err) {
+      res.status(500).json({ error: 'Erro ao reprovar lote pela gerência', details: err });
     }
   });
 

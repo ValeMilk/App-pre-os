@@ -39,7 +39,9 @@ const API_URL = API_ENDPOINTS.requests.base;
 export default function RequestForm({ clientes, produtos, onClientesLoaded }: Props) {
   const token = localStorage.getItem('token');
   // Estados do formulário e feedback
+  const [selectionMode, setSelectionMode] = useState<'cliente' | 'subrede'>('cliente');
   const [selectedCustomer, setSelectedCustomer] = useState<Cliente | null>(null)
+  const [selectedSubrede, setSelectedSubrede] = useState<string | null>(null)
   const [selectedProduct, setSelectedProduct] = useState<Produto | null>(null)
   const [price, setPrice] = useState('')
   const [quantity, setQuantity] = useState('')
@@ -50,6 +52,17 @@ export default function RequestForm({ clientes, produtos, onClientesLoaded }: Pr
   const [loading, setLoading] = useState(false);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [pendingSubmit, setPendingSubmit] = useState(false);
+
+  // Extrair lista única de subredes
+  const subredes = React.useMemo(() => {
+    const uniqueSubredes = new Set<string>();
+    clientes.forEach(c => {
+      if (c.subrede && c.subrede.trim()) {
+        uniqueSubredes.add(c.subrede.trim());
+      }
+    });
+    return Array.from(uniqueSubredes).sort();
+  }, [clientes]);
 
   // Carregar solicitações do backend
   const fetchRequests = () => {
@@ -107,10 +120,20 @@ export default function RequestForm({ clientes, produtos, onClientesLoaded }: Pr
     e.preventDefault();
     setError(null);
     setSuccess(null);
-    if (!selectedCustomer) {
-      setError('Selecione um cliente válido.');
-      return;
+    
+    // Validação baseada no modo de seleção
+    if (selectionMode === 'cliente') {
+      if (!selectedCustomer) {
+        setError('Selecione um cliente válido.');
+        return;
+      }
+    } else {
+      if (!selectedSubrede) {
+        setError('Selecione uma subrede válida.');
+        return;
+      }
     }
+    
     if (!selectedProduct) {
       setError('Selecione um produto válido.');
       return;
@@ -125,11 +148,11 @@ export default function RequestForm({ clientes, produtos, onClientesLoaded }: Pr
     }
 
     // Validação de faixa de preço do produto
-    if (selectedProduct.promocional && selectedProduct.maximo && selectedProduct.minimo) {
-      const priceNum = Number(price.replace(',', '.'));
-      const minPrice = Number(selectedProduct.minimo.replace(',', '.'));
-      const maxPrice = Number(selectedProduct.maximo.replace(',', '.'));
-      const promocionalPrice = Number(selectedProduct.promocional.replace(',', '.'));
+    if (selectedProduct && selectedProduct.maximo && selectedProduct.minimo && selectedProduct.promocional) {
+      const priceNum = parseFloat(price);
+      const minPrice = parseFloat(selectedProduct.minimo.replace(',', '.'));
+      const maxPrice = parseFloat(selectedProduct.maximo.replace(',', '.'));
+      const promocionalPrice = parseFloat(selectedProduct.promocional.replace(',', '.'));
       
       // Se preço acima do máximo, bloqueia
       if (priceNum > maxPrice) {
@@ -137,7 +160,13 @@ export default function RequestForm({ clientes, produtos, onClientesLoaded }: Pr
         return;
       }
 
-      // Se preço abaixo do mínimo, solicita confirmação
+      // Se preço abaixo do promocional, bloqueia completamente
+      if (priceNum < promocionalPrice) {
+        setError(`Preço abaixo do promocional não é permitido. Preço Promocional: R$ ${selectedProduct.promocional}`);
+        return;
+      }
+
+      // Se preço abaixo do mínimo (mas acima do promocional), solicita confirmação
       if (priceNum < minPrice && !pendingSubmit) {
         setConfirmDialogOpen(true);
         return;
@@ -151,61 +180,135 @@ export default function RequestForm({ clientes, produtos, onClientesLoaded }: Pr
   async function processSubmit() {
     setPendingSubmit(false);
     setConfirmDialogOpen(false);
-
-    const req = {
-      requester_name: 'Vendedor (frontend)',
-      requester_id: '',
-      customer_code: selectedCustomer.codigo,
-      customer_name: selectedCustomer.nome_fantasia,
-      product_id: selectedProduct.codigo_produto,
-      product_name: selectedProduct.nome_produto,
-      requested_price: price,
-      quantity: quantity,
-      product_maximo: selectedProduct.maximo || '',
-      product_minimo: selectedProduct.minimo || '',
-      product_promocional: selectedProduct.promocional || '',
-      currency: 'BRL',
-      status: 'Pending',
-      notes,
-      codigo_supervisor: selectedCustomer.supervisor_code,
-      nome_supervisor: selectedCustomer.supervisor_name
-    };
     setLoading(true);
+
     try {
-      const res = await fetch(API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(req)
-      });
-      if (res.status === 401) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        window.location.reload();
-        return;
+      if (selectionMode === 'cliente') {
+        // Modo individual: envia 1 solicitação para o cliente selecionado
+        const req = {
+          requester_name: 'Vendedor (frontend)',
+          requester_id: '',
+          customer_code: selectedCustomer!.codigo,
+          customer_name: selectedCustomer!.nome_fantasia,
+          product_id: selectedProduct!.codigo_produto,
+          product_name: selectedProduct!.nome_produto,
+          requested_price: price,
+          quantity: quantity,
+          product_maximo: selectedProduct!.maximo || '',
+          product_minimo: selectedProduct!.minimo || '',
+          product_promocional: selectedProduct!.promocional || '',
+          currency: 'BRL',
+          status: 'Pending',
+          notes,
+          codigo_supervisor: selectedCustomer!.supervisor_code,
+          nome_supervisor: selectedCustomer!.supervisor_name
+        };
+
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify(req)
+        });
+        
+        if (res.status === 401) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          window.location.reload();
+          return;
+        }
+        if (!res.ok) throw new Error('Erro ao enviar solicitação');
+        const created = await res.json();
+        setRequests(prev => [created, ...prev]);
+        setSuccess('Solicitação registrada com sucesso!');
+        
+      } else {
+        // Modo subrede: envia múltiplas solicitações para todos os clientes da subrede
+        const clientesDaSubrede = clientes.filter(c => c.subrede && c.subrede.trim() === selectedSubrede);
+        
+        if (clientesDaSubrede.length === 0) {
+          throw new Error('Nenhum cliente encontrado para esta subrede.');
+        }
+
+        // Gerar ID único para agrupar todas as solicitações desta subrede
+        const subrede_batch_id = `SUBREDE_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+        let successCount = 0;
+        let errorCount = 0;
+
+        for (const cliente of clientesDaSubrede) {
+          try {
+            const req = {
+              requester_name: 'Vendedor (frontend)',
+              requester_id: '',
+              customer_code: cliente.codigo,
+              customer_name: cliente.nome_fantasia,
+              product_id: selectedProduct!.codigo_produto,
+              product_name: selectedProduct!.nome_produto,
+              requested_price: price,
+              quantity: quantity,
+              product_maximo: selectedProduct!.maximo || '',
+              product_minimo: selectedProduct!.minimo || '',
+              product_promocional: selectedProduct!.promocional || '',
+              currency: 'BRL',
+              status: 'Pending',
+              notes: `${notes} [SUBREDE: ${selectedSubrede}]`,
+              codigo_supervisor: cliente.supervisor_code,
+              nome_supervisor: cliente.supervisor_name,
+              subrede_batch_id: subrede_batch_id,
+              subrede_name: selectedSubrede
+            };
+
+            const res = await fetch(API_URL, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`
+              },
+              body: JSON.stringify(req)
+            });
+
+            if (res.status === 401) {
+              localStorage.removeItem('token');
+              localStorage.removeItem('user');
+              window.location.reload();
+              return;
+            }
+
+            if (res.ok) {
+              successCount++;
+            } else {
+              errorCount++;
+            }
+          } catch {
+            errorCount++;
+          }
+        }
+
+        fetchRequests(); // Atualiza lista completa
+        setSuccess(`${successCount} solicitações criadas com sucesso para a subrede "${selectedSubrede}"!${errorCount > 0 ? ` (${errorCount} falharam)` : ''}`);
       }
-      if (!res.ok) throw new Error('Erro ao enviar solicitação');
-      const created = await res.json();
-      setRequests(prev => [created, ...prev]);
+
+      // Limpar formulário
       setSelectedProduct(null);
       setPrice('');
       setQuantity('');
       setNotes('');
-      // Mantém o cliente selecionado para facilitar múltiplas solicitações
-      setSuccess('Solicitação registrada com sucesso!');
-    } catch (err) {
-      setError('Erro ao enviar solicitação para o servidor.');
+      // Mantém o cliente/subrede selecionado para facilitar múltiplas solicitações
+      
+    } catch (err: any) {
+      setError(err.message || 'Erro ao enviar solicitação para o servidor.');
     } finally {
       setLoading(false);
     }
   }
 
-  const handleConfirmBelowMinPrice = () => {
+  const handleConfirmBelowMinPrice = async () => {
     setPendingSubmit(true);
     setConfirmDialogOpen(false);
-    processSubmit();
+    await processSubmit();
   };
 
   const handleCancelBelowMinPrice = () => {
@@ -262,25 +365,72 @@ export default function RequestForm({ clientes, produtos, onClientesLoaded }: Pr
             <Typography variant="h6" fontWeight={700} color="primary.main">Solicitação de Preço</Typography>
           </Stack>
           <Divider sx={{ mb: 2 }} />
+          
+          {/* Botões de Toggle */}
+          <Stack direction="row" spacing={1} mb={3}>
+            <Button
+              variant={selectionMode === 'cliente' ? 'contained' : 'outlined'}
+              onClick={() => {
+                setSelectionMode('cliente');
+                setSelectedSubrede(null);
+                setSelectedCustomer(null);
+              }}
+              fullWidth
+              size="large"
+            >
+              CLIENTE
+            </Button>
+            <Button
+              variant={selectionMode === 'subrede' ? 'contained' : 'outlined'}
+              onClick={() => {
+                setSelectionMode('subrede');
+                setSelectedCustomer(null);
+                setSelectedSubrede(null);
+              }}
+              fullWidth
+              size="large"
+            >
+              SUBREDE
+            </Button>
+          </Stack>
+
           <form onSubmit={submit} autoComplete="off">
             <Stack spacing={2}>
               {error && <Alert severity="error">{error}</Alert>}
               {success && <Alert severity="success">{success}</Alert>}
-              <Autocomplete
-                options={clientes}
-                getOptionLabel={option => `${option.nome_fantasia} — ${option.codigo}`}
-                value={selectedCustomer}
-                onChange={(_, value) => {
-                  setSelectedCustomer(value);
-                  setSelectedProduct(null);
-                  setPrice('');
-                }}
-                renderInput={params => (
-                  <TextField {...params} label="Cliente" required placeholder="Buscar cliente..." size="medium" />
-                )}
-                isOptionEqualToValue={(option, value) => option.codigo === value.codigo}
-                fullWidth
-              />
+              
+              {selectionMode === 'cliente' ? (
+                <Autocomplete
+                  options={clientes}
+                  getOptionLabel={option => `${option.nome_fantasia} — ${option.codigo}`}
+                  value={selectedCustomer}
+                  onChange={(_, value) => {
+                    setSelectedCustomer(value);
+                    setSelectedProduct(null);
+                    setPrice('');
+                  }}
+                  renderInput={params => (
+                    <TextField {...params} label="Cliente" required placeholder="Buscar cliente..." size="medium" />
+                  )}
+                  isOptionEqualToValue={(option, value) => option.codigo === value.codigo}
+                  fullWidth
+                />
+              ) : (
+                <Autocomplete
+                  options={subredes}
+                  getOptionLabel={option => option}
+                  value={selectedSubrede}
+                  onChange={(_, value) => {
+                    setSelectedSubrede(value);
+                    setSelectedProduct(null);
+                    setPrice('');
+                  }}
+                  renderInput={params => (
+                    <TextField {...params} label="Subrede" required placeholder="Selecionar subrede..." size="medium" />
+                  )}
+                  fullWidth
+                />
+              )}
               <Autocomplete
                 options={produtos}
                 getOptionLabel={option => `${option.nome_produto} — ${option.id}`}
@@ -290,12 +440,12 @@ export default function RequestForm({ clientes, produtos, onClientesLoaded }: Pr
                   <TextField {...params} label="Produto" required placeholder="Buscar produto..." size="medium" />
                 )}
                 isOptionEqualToValue={(option, value ) => option.id === value.id}
-                disabled={!selectedCustomer}
+                disabled={selectionMode === 'cliente' ? !selectedCustomer : !selectedSubrede}
                 fullWidth
               />
               {selectedProduct && selectedProduct.promocional && selectedProduct.maximo && (
                 <Alert severity="info" sx={{ fontSize: 13 }}>
-                  Faixa de preço permitida: R$ {selectedProduct.promocional} até R$ {selectedProduct.maximo}
+                  Faixa de preço permitida: R$ {selectedProduct.minimo} até R$ {selectedProduct.maximo}
                 </Alert>
               )}
               <TextField
@@ -306,7 +456,7 @@ export default function RequestForm({ clientes, produtos, onClientesLoaded }: Pr
                 placeholder="0.00"
                 type="number"
                 inputProps={{ min: 0, step: 0.01 }}
-                disabled={!selectedCustomer}
+                disabled={selectionMode === 'cliente' ? !selectedCustomer : !selectedSubrede}
                 fullWidth
               />
               <TextField
@@ -317,7 +467,7 @@ export default function RequestForm({ clientes, produtos, onClientesLoaded }: Pr
                 placeholder="1"
                 type="number"
                 inputProps={{ min: 1, step: 1 }}
-                disabled={!selectedCustomer}
+                disabled={selectionMode === 'cliente' ? !selectedCustomer : !selectedSubrede}
                 fullWidth
               />
               <TextField
@@ -335,7 +485,7 @@ export default function RequestForm({ clientes, produtos, onClientesLoaded }: Pr
                 size="large"
                 endIcon={<SendIcon />}
                 disabled={
-                  !selectedCustomer ||
+                  (selectionMode === 'cliente' ? !selectedCustomer : !selectedSubrede) ||
                   !selectedProduct ||
                   !price || isNaN(Number(price)) || Number(price) <= 0 ||
                   !quantity || isNaN(Number(quantity)) || Number(quantity) <= 0 || loading

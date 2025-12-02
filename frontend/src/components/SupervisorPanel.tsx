@@ -45,14 +45,38 @@ interface Request {
   created_at: string;
   approved_by?: string;
   approved_at?: string;
+  subrede_batch_id?: string;
+  subrede_name?: string;
+}
+
+interface GroupedRequest {
+  batchId: string;
+  subrede_name: string;
+  requests: Request[];
+  requester_name: string;
+  product_id: string;
+  product_name: string;
+  requested_price: string;
+  quantity: string;
+  product_maximo: string;
+  product_minimo: string;
+  product_promocional: string;
+  currency: string;
+  status: string;
+  notes: string;
+  created_at: string;
+  clientCount: number;
 }
 
 export default function SupervisorPanel() {
   const [requests, setRequests] = useState<Request[]>([]);
+  const [groupedRequests, setGroupedRequests] = useState<GroupedRequest[]>([]);
+  const [individualRequests, setIndividualRequests] = useState<Request[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
+  const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
   const [rejectNotes, setRejectNotes] = useState('');
 
   const fetchRequests = async () => {
@@ -81,6 +105,47 @@ export default function SupervisorPanel() {
 
       const data = await response.json();
       setRequests(data);
+      
+      // Agrupar solicitações por subrede_batch_id
+      const grouped: { [key: string]: Request[] } = {};
+      const individual: Request[] = [];
+      
+      data.forEach((req: Request) => {
+        if (req.subrede_batch_id) {
+          if (!grouped[req.subrede_batch_id]) {
+            grouped[req.subrede_batch_id] = [];
+          }
+          grouped[req.subrede_batch_id].push(req);
+        } else {
+          individual.push(req);
+        }
+      });
+      
+      // Converter para array de GroupedRequest
+      const groupedArray: GroupedRequest[] = Object.entries(grouped).map(([batchId, reqs]) => {
+        const firstReq = reqs[0];
+        return {
+          batchId,
+          subrede_name: firstReq.subrede_name || 'SUBREDE',
+          requests: reqs,
+          requester_name: firstReq.requester_name,
+          product_id: firstReq.product_id,
+          product_name: firstReq.product_name || '',
+          requested_price: firstReq.requested_price,
+          quantity: firstReq.quantity || '',
+          product_maximo: firstReq.product_maximo || '',
+          product_minimo: firstReq.product_minimo || '',
+          product_promocional: firstReq.product_promocional || '',
+          currency: firstReq.currency,
+          status: firstReq.status,
+          notes: firstReq.notes || '',
+          created_at: firstReq.created_at,
+          clientCount: reqs.length
+        };
+      });
+      
+      setGroupedRequests(groupedArray);
+      setIndividualRequests(individual);
     } catch (err: any) {
       setError(err.message || 'Erro ao carregar solicitações');
       console.error('[SupervisorPanel] Erro ao buscar solicitações:', err);
@@ -131,7 +196,7 @@ export default function SupervisorPanel() {
   };
 
   const handleRejectConfirm = async () => {
-    if (!selectedRequestId) return;
+    if (!selectedRequestId && !selectedBatchId) return;
     if (!rejectNotes.trim()) {
       setError('Por favor, informe o motivo da reprovação.');
       return;
@@ -144,7 +209,20 @@ export default function SupervisorPanel() {
         return;
       }
 
-      const response = await fetch(`${API_URL}/${selectedRequestId}/reject`, {
+      let url: string;
+      let successMsg: string;
+
+      if (selectedBatchId) {
+        // Reprovar em lote
+        url = `${API_URL}/batch/${selectedBatchId}/reject`;
+        successMsg = 'Subrede reprovada com sucesso!';
+      } else {
+        // Reprovar individual
+        url = `${API_URL}/${selectedRequestId}/reject`;
+        successMsg = 'Solicitação reprovada com sucesso!';
+      }
+
+      const response = await fetch(url, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -155,17 +233,18 @@ export default function SupervisorPanel() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.erro || 'Erro ao reprovar solicitação');
+        throw new Error(errorData.erro || 'Erro ao reprovar');
       }
 
-      setSuccess('Solicitação reprovada com sucesso!');
+      setSuccess(successMsg);
       setTimeout(() => setSuccess(null), 3000);
       setRejectDialogOpen(false);
       setSelectedRequestId(null);
+      setSelectedBatchId(null);
       setRejectNotes('');
       fetchRequests(); // Atualiza lista
     } catch (err: any) {
-      setError(err.message || 'Erro ao reprovar solicitação');
+      setError(err.message || 'Erro ao reprovar');
       console.error('[SupervisorPanel] Erro ao reprovar:', err);
     }
   };
@@ -173,6 +252,7 @@ export default function SupervisorPanel() {
   const handleRejectCancel = () => {
     setRejectDialogOpen(false);
     setSelectedRequestId(null);
+    setSelectedBatchId(null);
     setRejectNotes('');
   };
 
@@ -206,7 +286,55 @@ export default function SupervisorPanel() {
     }
   };
 
-  const canApproveDirectly = (request: Request): boolean => {
+  // Funções para aprovar/reprovar/encaminhar em lote (subrede)
+  const handleApproveBatch = async (batchId: string) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      const response = await fetch(`${API_URL}/batch/${batchId}/approve`, {
+        method: 'PATCH',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (!response.ok) throw new Error('Erro ao aprovar subrede');
+      const data = await response.json();
+      setSuccess(`${data.count} solicitações aprovadas com sucesso!`);
+      setTimeout(() => setSuccess(null), 3000);
+      fetchRequests();
+    } catch (err: any) {
+      setError(err.message || 'Erro ao aprovar subrede');
+    }
+  };
+
+  const handleRejectBatch = (batchId: string) => {
+    setSelectedBatchId(batchId);
+    setSelectedRequestId(null);
+    setRejectNotes('');
+    setRejectDialogOpen(true);
+  };
+
+  const handleEncaminharGerenciaBatch = async (batchId: string) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      const response = await fetch(`${API_URL}/batch/${batchId}/encaminhar-gerencia`, {
+        method: 'PATCH',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (!response.ok) throw new Error('Erro ao encaminhar subrede para gerência');
+      const data = await response.json();
+      setSuccess(`${data.count} solicitações encaminhadas para gerência!`);
+      setTimeout(() => setSuccess(null), 3000);
+      fetchRequests();
+    } catch (err: any) {
+      setError(err.message || 'Erro ao encaminhar subrede');
+    }
+  };
+
+  const canApproveDirectly = (request: Request | GroupedRequest): boolean => {
     if (!request.product_minimo || !request.requested_price) return true;
     const priceNum = Number(request.requested_price.replace(',', '.'));
     const minPrice = Number(request.product_minimo.replace(',', '.'));
@@ -259,7 +387,88 @@ export default function SupervisorPanel() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {pendingRequests.map((req) => (
+                {/* Solicitações agrupadas por subrede */}
+                {groupedRequests.filter(g => g.status === 'Pending').map((group) => (
+                  <TableRow key={group.batchId} sx={{ '&:hover': { bgcolor: '#fff9c4' }, bgcolor: '#fffde7' }}>
+                    <TableCell>{group.requester_name}</TableCell>
+                    <TableCell>
+                      <strong>SUBREDE: {group.subrede_name}</strong>
+                      <br />
+                      <Typography variant="caption" color="primary.main">
+                        {group.clientCount} clientes
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      {group.product_name || group.product_id}
+                      <br />
+                      <Typography variant="caption" color="text.secondary">
+                        {group.product_id}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="right">
+                      <strong>{group.currency} {group.requested_price}</strong>
+                    </TableCell>
+                    <TableCell align="center">
+                      <strong>{group.quantity || '—'}</strong>
+                    </TableCell>
+                    <TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {group.notes || '—'}
+                    </TableCell>
+                    <TableCell>
+                      {new Date(group.created_at).toLocaleDateString('pt-BR')}
+                    </TableCell>
+                    <TableCell align="center">
+                      {canApproveDirectly(group) ? (
+                        <>
+                          <Tooltip title="Aprovar Subrede">
+                            <IconButton
+                              color="success"
+                              onClick={() => handleApproveBatch(group.batchId)}
+                              size="small"
+                            >
+                              <CheckCircleIcon />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Reprovar Subrede">
+                            <IconButton
+                              color="error"
+                              onClick={() => handleRejectBatch(group.batchId)}
+                              size="small"
+                            >
+                              <CancelIcon />
+                            </IconButton>
+                          </Tooltip>
+                        </>
+                      ) : (
+                        <>
+                          <Tooltip title="Encaminhar Subrede para Gerência">
+                            <Button
+                              variant="contained"
+                              color="warning"
+                              size="small"
+                              onClick={() => handleEncaminharGerenciaBatch(group.batchId)}
+                              sx={{ mr: 0.5 }}
+                            >
+                            Encaminhar para Gerência 
+                            </Button>
+                          </Tooltip>
+                          <Tooltip title="Reprovar Subrede">
+                            <IconButton
+                              color="error"
+                              onClick={() => handleRejectBatch(group.batchId)}
+                              size="small"
+                            >
+                              <CancelIcon />
+                            </IconButton>
+                          </Tooltip>
+                        </>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+                
+                {/* Solicitações individuais */}
+                {individualRequests.filter(r => r.status === 'Pending').map((req) => (
                   <TableRow key={req._id} sx={{ '&:hover': { bgcolor: '#f5f5f5' } }}>
                     <TableCell>{req.requester_name}</TableCell>
                     <TableCell>
@@ -311,16 +520,28 @@ export default function SupervisorPanel() {
                           </Tooltip>
                         </>
                       ) : (
-                        <Tooltip title="Preço abaixo do mínimo - Encaminhar para Gerência">
-                          <Button
-                            variant="contained"
-                            color="warning"
-                            size="small"
-                            onClick={() => handleEncaminharGerencia(req._id)}
-                          >
-                            Encaminhar Gerência
-                          </Button>
-                        </Tooltip>
+                        <>
+                          <Tooltip title="Encaminhar para Gerência">
+                            <Button
+                              variant="contained"
+                              color="warning"
+                              size="small"
+                              onClick={() => handleEncaminharGerencia(req._id)}
+                              sx={{ mr: 0.5 }}
+                            >
+                              Encaminhar para Gerência
+                            </Button>
+                          </Tooltip>
+                          <Tooltip title="Reprovar">
+                            <IconButton
+                              color="error"
+                              onClick={() => handleRejectClick(req._id)}
+                              size="small"
+                            >
+                              <CancelIcon />
+                            </IconButton>
+                          </Tooltip>
+                        </>
                       )}
                     </TableCell>
                   </TableRow>
