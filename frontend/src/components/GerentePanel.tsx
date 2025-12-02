@@ -384,9 +384,6 @@ export default function GerentePanel() {
                   <TableCell>
                     <strong>SUBREDE: {group.subrede_name}</strong>
                     <br />
-                    <Typography variant="caption" color="primary.main">
-                      {group.clientCount} clientes
-                    </Typography>
                   </TableCell>
                   <TableCell>
                     {group.product_name || group.product_id}
