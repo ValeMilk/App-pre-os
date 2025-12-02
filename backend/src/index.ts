@@ -74,6 +74,9 @@ const priceRequestSchema = new mongoose.Schema({
   product_name: String,
   requested_price: String,
   quantity: String,
+  product_maximo: String,
+  product_minimo: String,
+  product_promocional: String,
   currency: String,
   status: String,
   notes: String,
@@ -199,7 +202,8 @@ const PriceRequest = mongoose.model('PriceRequest', priceRequestSchema);
       const request = await PriceRequest.findById(req.params.id);
       if (!request) return res.status(404).json({ error: 'Solicitação não encontrada.' });
       
-      if (request.status !== 'Aprovado' && request.status !== 'Reprovado') {
+      const allowedStatuses = ['Aprovado', 'Reprovado', 'Aprovado pela Gerência', 'Reprovado pela Gerência'];
+      if (!allowedStatuses.includes(request.status)) {
         return res.status(400).json({ error: 'Apenas solicitações aprovadas ou reprovadas podem ser marcadas como alteradas.' });
       }
 
@@ -215,6 +219,95 @@ const PriceRequest = mongoose.model('PriceRequest', priceRequestSchema);
       res.json(updatedRequest);
     } catch (err) {
       res.status(500).json({ error: 'Erro ao marcar solicitação como alterada', details: err });
+    }
+  });
+
+  // Endpoints do Gerente
+  app.patch('/api/requests/:id/encaminhar-gerencia', requireAuth, async (req: AuthRequest, res: Response) => {
+    try {
+      const tipo = req.user?.tipo;
+      if (tipo !== 'supervisor') {
+        return res.status(403).json({ error: 'Acesso permitido apenas para supervisores.' });
+      }
+      const request = await PriceRequest.findByIdAndUpdate(
+        req.params.id,
+        {
+          status: 'Aguardando Gerência',
+          approved_by: req.user?.name,
+          approved_at: new Date()
+        },
+        { new: true }
+      );
+      if (!request) return res.status(404).json({ error: 'Solicitação não encontrada.' });
+      res.json(request);
+    } catch (err) {
+      res.status(500).json({ error: 'Erro ao encaminhar para gerência', details: err });
+    }
+  });
+
+  app.get('/api/requests/gerente', requireAuth, async (req: AuthRequest, res: Response) => {
+    try {
+      const tipo = req.user?.tipo;
+      if (tipo !== 'gerente') {
+        return res.status(403).json({ error: 'Acesso permitido apenas para gerentes.' });
+      }
+      // Retorna solicitações pendentes E processadas pela gerência
+      const requests = await PriceRequest.find({ 
+        status: { 
+          $in: ['Aguardando Gerência', 'Aprovado pela Gerência', 'Reprovado pela Gerência'] 
+        } 
+      }).sort({ created_at: -1 });
+      res.json(requests);
+    } catch (err) {
+      res.status(500).json({ error: 'Erro ao buscar solicitações da gerência', details: err });
+    }
+  });
+
+  app.patch('/api/requests/:id/gerente-approve', requireAuth, async (req: AuthRequest, res: Response) => {
+    try {
+      const tipo = req.user?.tipo;
+      if (tipo !== 'gerente') {
+        return res.status(403).json({ error: 'Acesso permitido apenas para gerentes.' });
+      }
+      const request = await PriceRequest.findByIdAndUpdate(
+        req.params.id,
+        {
+          status: 'Aprovado pela Gerência',
+          approved_by: req.user?.name,
+          approved_at: new Date()
+        },
+        { new: true }
+      );
+      if (!request) return res.status(404).json({ error: 'Solicitação não encontrada.' });
+      res.json(request);
+    } catch (err) {
+      res.status(500).json({ error: 'Erro ao aprovar pela gerência', details: err });
+    }
+  });
+
+  app.patch('/api/requests/:id/gerente-reject', requireAuth, async (req: AuthRequest, res: Response) => {
+    try {
+      const tipo = req.user?.tipo;
+      if (tipo !== 'gerente') {
+        return res.status(403).json({ error: 'Acesso permitido apenas para gerentes.' });
+      }
+      const { notes } = req.body;
+      if (!notes) return res.status(400).json({ error: 'Motivo obrigatório para reprovação pela gerência.' });
+      
+      const request = await PriceRequest.findByIdAndUpdate(
+        req.params.id,
+        {
+          status: 'Reprovado pela Gerência',
+          approved_by: req.user?.name,
+          approved_at: new Date(),
+          notes
+        },
+        { new: true }
+      );
+      if (!request) return res.status(404).json({ error: 'Solicitação não encontrada.' });
+      res.json(request);
+    } catch (err) {
+      res.status(500).json({ error: 'Erro ao reprovar pela gerência', details: err });
     }
   });
 

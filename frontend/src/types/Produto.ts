@@ -2,4 +2,7 @@ export type Produto = {
   id: string;
   codigo_produto: string;
   nome_produto: string;
+  maximo?: string;
+  minimo?: string;
+  promocional?: string;
 };

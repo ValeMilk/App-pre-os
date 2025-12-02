@@ -6,6 +6,7 @@ import { API_ENDPOINTS } from '../config/api';
 
 const API_URL = API_ENDPOINTS.auth.adminRegister;
 const SUPERVISOR_URL = API_ENDPOINTS.auth.supervisorRegister;
+const GERENTE_URL = API_ENDPOINTS.auth.gerenteRegister;
 
 export default function AdminPanel() {
   const [tab, setTab] = useState(0);
@@ -25,6 +26,13 @@ export default function AdminPanel() {
   const [supSuccess, setSupSuccess] = useState<string | null>(null);
   const [supError, setSupError] = useState<string | null>(null);
   const [supLoading, setSupLoading] = useState(false);
+  // Gerente
+  const [gerName, setGerName] = useState('');
+  const [gerEmail, setGerEmail] = useState('');
+  const [gerPassword, setGerPassword] = useState('');
+  const [gerSuccess, setGerSuccess] = useState<string | null>(null);
+  const [gerError, setGerError] = useState<string | null>(null);
+  const [gerLoading, setGerLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -74,6 +82,29 @@ export default function AdminPanel() {
     }
   }
 
+  async function handleGerenteSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setGerError(null);
+    setGerSuccess(null);
+    setGerLoading(true);
+    try {
+      const res = await fetch(GERENTE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token')}` },
+        body: JSON.stringify({ name: gerName, email: gerEmail, password: gerPassword })
+      });
+      if (!res.ok) throw new Error((await res.json()).error || 'Erro ao cadastrar gerente');
+      setGerSuccess('Gerente cadastrado com sucesso!');
+      setGerName('');
+      setGerEmail('');
+      setGerPassword('');
+    } catch (err: any) {
+      setGerError(err.message || 'Erro ao cadastrar gerente');
+    } finally {
+      setGerLoading(false);
+    }
+  }
+
   return (
     <Paper elevation={6} sx={{
       p: 4,
@@ -87,9 +118,10 @@ export default function AdminPanel() {
       <Typography variant="h5" fontWeight={700} color="primary.main" mb={3} textAlign="center">
         Cadastro de Usuários
       </Typography>
-      <Tabs value={tab} onChange={(_, v) => setTab(v)} centered sx={{ mb: 2 }}>
-        <Tab label="Cadastrar Vendedor" sx={{ minWidth: 200, fontSize: '0.80rem' }} />
-        <Tab label="Cadastrar Supervisor" sx={{ minWidth: 200, fontSize: '0.80rem' }} />
+      <Tabs value={tab} onChange={(_, v) => setTab(v)} centered variant="scrollable" scrollButtons="auto" sx={{ mb: 2 }}>
+        <Tab label="Vendedor" sx={{ minWidth: 140, fontSize: '0.80rem' }} />
+        <Tab label="Supervisor" sx={{ minWidth: 140, fontSize: '0.80rem' }} />
+        <Tab label="Gerente" sx={{ minWidth: 140, fontSize: '0.80rem' }} />
       </Tabs>
       <Divider sx={{ mb: 5 }} />
         {tab === 0 && (
@@ -136,6 +168,28 @@ export default function AdminPanel() {
                 sx={{ mt: 1, fontWeight: 600 }}
               >
                 {supLoading ? 'Cadastrando...' : 'Cadastrar Supervisor'}
+              </Button>
+            </Stack>
+          </form>
+        )}
+        {tab === 2 && (
+          <form onSubmit={handleGerenteSubmit} autoComplete="off">
+            <Stack spacing={2}>
+              {gerError && <Alert severity="error">{gerError}</Alert>}
+              {gerSuccess && <Alert severity="success">{gerSuccess}</Alert>}
+              <TextField label="Nome do Gerente" value={gerName} onChange={e => setGerName(e.target.value)} required fullWidth autoFocus />
+              <TextField label="E-mail" value={gerEmail} onChange={e => setGerEmail(e.target.value)} required type="email" fullWidth />
+              <TextField label="Senha" value={gerPassword} onChange={e => setGerPassword(e.target.value)} required type="password" fullWidth />
+              <Button
+                type="submit"
+                variant="contained"
+                color="primary"
+                size="large"
+                startIcon={<PersonAddAlt1Icon />}
+                disabled={gerLoading}
+                sx={{ mt: 1, fontWeight: 600 }}
+              >
+                {gerLoading ? 'Cadastrando...' : 'Cadastrar Gerente'}
               </Button>
             </Stack>
           </form>

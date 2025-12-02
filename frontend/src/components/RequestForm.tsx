@@ -2,11 +2,12 @@ import React, { useEffect, useState } from 'react'
 import Papa from 'papaparse'
 import { Cliente } from '../utils/parseCsv'
 import { Produto } from '../utils/parseProdutosCsv'
-import { Box, Button, TextField, Typography, Alert, Stack, Paper, Autocomplete, Divider, Slide, IconButton } from '@mui/material'
+import { Box, Button, TextField, Typography, Alert, Stack, Paper, Autocomplete, Divider, Slide, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, DialogContentText } from '@mui/material'
 import SendIcon from '@mui/icons-material/Send';
 import DownloadIcon from '@mui/icons-material/Download';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import PersonIcon from '@mui/icons-material/Person';
+import WarningIcon from '@mui/icons-material/Warning';
 
 type Props = {
   clientes: Cliente[]
@@ -47,6 +48,8 @@ export default function RequestForm({ clientes, produtos, onClientesLoaded }: Pr
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [loading, setLoading] = useState(false);
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [pendingSubmit, setPendingSubmit] = useState(false);
 
   // Carregar solicitações do backend
   const fetchRequests = () => {
@@ -121,6 +124,34 @@ export default function RequestForm({ clientes, produtos, onClientesLoaded }: Pr
       return;
     }
 
+    // Validação de faixa de preço do produto
+    if (selectedProduct.promocional && selectedProduct.maximo && selectedProduct.minimo) {
+      const priceNum = Number(price.replace(',', '.'));
+      const minPrice = Number(selectedProduct.minimo.replace(',', '.'));
+      const maxPrice = Number(selectedProduct.maximo.replace(',', '.'));
+      const promocionalPrice = Number(selectedProduct.promocional.replace(',', '.'));
+      
+      // Se preço acima do máximo, bloqueia
+      if (priceNum > maxPrice) {
+        setError(`Preço acima do máximo permitido. Máximo: R$ ${selectedProduct.maximo}`);
+        return;
+      }
+
+      // Se preço abaixo do mínimo, solicita confirmação
+      if (priceNum < minPrice && !pendingSubmit) {
+        setConfirmDialogOpen(true);
+        return;
+      }
+    }
+
+    // Prosseguir com o envio
+    await processSubmit();
+  }
+
+  async function processSubmit() {
+    setPendingSubmit(false);
+    setConfirmDialogOpen(false);
+
     const req = {
       requester_name: 'Vendedor (frontend)',
       requester_id: '',
@@ -130,6 +161,9 @@ export default function RequestForm({ clientes, produtos, onClientesLoaded }: Pr
       product_name: selectedProduct.nome_produto,
       requested_price: price,
       quantity: quantity,
+      product_maximo: selectedProduct.maximo || '',
+      product_minimo: selectedProduct.minimo || '',
+      product_promocional: selectedProduct.promocional || '',
       currency: 'BRL',
       status: 'Pending',
       notes,
@@ -167,6 +201,17 @@ export default function RequestForm({ clientes, produtos, onClientesLoaded }: Pr
       setLoading(false);
     }
   }
+
+  const handleConfirmBelowMinPrice = () => {
+    setPendingSubmit(true);
+    setConfirmDialogOpen(false);
+    processSubmit();
+  };
+
+  const handleCancelBelowMinPrice = () => {
+    setConfirmDialogOpen(false);
+    setPendingSubmit(false);
+  };
 
   // Exporta solicitações para CSV
   function exportCsv() {
@@ -238,16 +283,21 @@ export default function RequestForm({ clientes, produtos, onClientesLoaded }: Pr
               />
               <Autocomplete
                 options={produtos}
-                getOptionLabel={option => `${option.nome_produto} — ${option.codigo_produto}`}
+                getOptionLabel={option => `${option.nome_produto} — ${option.id}`}
                 value={selectedProduct}
                 onChange={(_, value) => setSelectedProduct(value)}
                 renderInput={params => (
                   <TextField {...params} label="Produto" required placeholder="Buscar produto..." size="medium" />
                 )}
-                isOptionEqualToValue={(option, value) => option.codigo_produto === value.codigo_produto}
+                isOptionEqualToValue={(option, value ) => option.id === value.id}
                 disabled={!selectedCustomer}
                 fullWidth
               />
+              {selectedProduct && selectedProduct.promocional && selectedProduct.maximo && (
+                <Alert severity="info" sx={{ fontSize: 13 }}>
+                  Faixa de preço permitida: R$ {selectedProduct.promocional} até R$ {selectedProduct.maximo}
+                </Alert>
+              )}
               <TextField
                 label="Preço solicitado"
                 value={price}
@@ -324,10 +374,20 @@ export default function RequestForm({ clientes, produtos, onClientesLoaded }: Pr
               {requests.map(r => (
                 <Box key={r._id || r.id} sx={{
                   p: 1.5,
-                  border: r.status === 'Alterado' ? '2px solid #2196f3' : r.status === 'Aprovado' ? '2px solid #4caf50' : r.status === 'Reprovado' ? '2px solid #f44336' : '1px solid #e3e6f0',
+                  border: 
+                    r.status === 'Alterado' ? '2px solid #2196f3' : 
+                    r.status === 'Aprovado' || r.status === 'Aprovado pela Gerência' ? '2px solid #4caf50' : 
+                    r.status === 'Reprovado' || r.status === 'Reprovado pela Gerência' ? '2px solid #f44336' :
+                    r.status === 'Aguardando Gerência' ? '2px solid #ff9800' :
+                    '1px solid #e3e6f0',
                   borderRadius: 2,
                   mb: 1,
-                  bgcolor: r.status === 'Alterado' ? '#bbdefb' : r.status === 'Aprovado' ? '#c8e6c9' : r.status === 'Reprovado' ? '#ffcdd2' : '#fff',
+                  bgcolor: 
+                    r.status === 'Alterado' ? '#bbdefb' : 
+                    r.status === 'Aprovado' || r.status === 'Aprovado pela Gerência' ? '#c8e6c9' : 
+                    r.status === 'Reprovado' || r.status === 'Reprovado pela Gerência' ? '#ffcdd2' :
+                    r.status === 'Aguardando Gerência' ? '#fff3e0' :
+                    '#fff',
                   boxShadow: '0 2px 8px 0 rgba(60,72,100,0.04)'
                 }}>
                   <Stack direction="row" justifyContent="space-between" alignItems="center">
@@ -339,18 +399,23 @@ export default function RequestForm({ clientes, produtos, onClientesLoaded }: Pr
                         ✓ ALTERADO
                       </Typography>
                     )}
-                    {r.status === 'Aprovado' && (
+                    {(r.status === 'Aprovado' || r.status === 'Aprovado pela Gerência') && (
                       <Typography variant="caption" sx={{ bgcolor: '#4caf50', color: 'white', px: 1, py: 0.5, borderRadius: 1, fontWeight: 600 }}>
                         ✓ APROVADO
                       </Typography>
                     )}
-                    {r.status === 'Reprovado' && (
+                    {(r.status === 'Reprovado' || r.status === 'Reprovado pela Gerência') && (
                       <Typography variant="caption" sx={{ bgcolor: '#f44336', color: 'white', px: 1, py: 0.5, borderRadius: 1, fontWeight: 600 }}>
                         ✗ REPROVADO
                       </Typography>
                     )}
-                    {r.status === 'Pending' && (
+                    {r.status === 'Aguardando Gerência' && (
                       <Typography variant="caption" sx={{ bgcolor: '#ff9800', color: 'white', px: 1, py: 0.5, borderRadius: 1, fontWeight: 600 }}>
+                        ⏳ AGUARDANDO GERÊNCIA
+                      </Typography>
+                    )}
+                    {r.status === 'Pending' && (
+                      <Typography variant="caption" sx={{ bgcolor: '#9e9e9e', color: 'white', px: 1, py: 0.5, borderRadius: 1, fontWeight: 600 }}>
                         ⏱ PENDENTE
                       </Typography>
                     )}
@@ -372,6 +437,44 @@ export default function RequestForm({ clientes, produtos, onClientesLoaded }: Pr
           )}
         </Paper>
       </Slide>
+
+      {/* Dialog de Confirmação para Preço Abaixo do Mínimo */}
+      <Dialog
+        open={confirmDialogOpen}
+        onClose={handleCancelBelowMinPrice}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <WarningIcon color="warning" />
+          Confirmar Preço Abaixo do Mínimo
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            O preço solicitado <strong>R$ {price}</strong> está abaixo do preço mínimo permitido 
+            <strong> R$ {selectedProduct?.minimo}</strong>.
+          </DialogContentText>
+          <DialogContentText sx={{ mt: 2 }}>
+            Esta solicitação será encaminhada para aprovação da gerência.
+          </DialogContentText>
+          <DialogContentText sx={{ mt: 2, fontWeight: 600, color: 'warning.main' }}>
+            Deseja confirmar e enviar esta solicitação?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCancelBelowMinPrice} color="inherit">
+            Cancelar
+          </Button>
+          <Button 
+            onClick={handleConfirmBelowMinPrice} 
+            variant="contained" 
+            color="warning"
+            autoFocus
+          >
+            Confirmar e Enviar
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   )
 }

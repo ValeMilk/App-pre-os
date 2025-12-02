@@ -36,6 +36,9 @@ interface Request {
   product_name?: string;
   requested_price: string;
   quantity?: string;
+  product_maximo?: string;
+  product_minimo?: string;
+  product_promocional?: string;
   currency: string;
   status: string;
   notes?: string;
@@ -173,6 +176,43 @@ export default function SupervisorPanel() {
     setRejectNotes('');
   };
 
+  const handleEncaminharGerencia = async (requestId: string) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError('Token não encontrado. Faça login novamente.');
+        return;
+      }
+
+      const response = await fetch(`${API_URL}/${requestId}/encaminhar-gerencia`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erro ao encaminhar para gerência');
+      }
+
+      setSuccess('Solicitação encaminhada para gerência!');
+      setTimeout(() => setSuccess(null), 3000);
+      fetchRequests();
+    } catch (err: any) {
+      setError(err.message || 'Erro ao encaminhar para gerência');
+      console.error('[SupervisorPanel] Erro ao encaminhar:', err);
+    }
+  };
+
+  const canApproveDirectly = (request: Request): boolean => {
+    if (!request.product_minimo || !request.requested_price) return true;
+    const priceNum = Number(request.requested_price.replace(',', '.'));
+    const minPrice = Number(request.product_minimo.replace(',', '.'));
+    return priceNum >= minPrice;
+  };
+
   const pendingRequests = requests.filter(r => r.status === 'Pending');
   const processedRequests = requests.filter(r => r.status !== 'Pending');
 
@@ -249,24 +289,39 @@ export default function SupervisorPanel() {
                       {new Date(req.created_at).toLocaleDateString('pt-BR')}
                     </TableCell>
                     <TableCell align="center">
-                      <Tooltip title="Aprovar">
-                        <IconButton
-                          color="success"
-                          onClick={() => handleApprove(req._id)}
-                          size="small"
-                        >
-                          <CheckCircleIcon />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Reprovar">
-                        <IconButton
-                          color="error"
-                          onClick={() => handleRejectClick(req._id)}
-                          size="small"
-                        >
-                          <CancelIcon />
-                        </IconButton>
-                      </Tooltip>
+                      {canApproveDirectly(req) ? (
+                        <>
+                          <Tooltip title="Aprovar">
+                            <IconButton
+                              color="success"
+                              onClick={() => handleApprove(req._id)}
+                              size="small"
+                            >
+                              <CheckCircleIcon />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Reprovar">
+                            <IconButton
+                              color="error"
+                              onClick={() => handleRejectClick(req._id)}
+                              size="small"
+                            >
+                              <CancelIcon />
+                            </IconButton>
+                          </Tooltip>
+                        </>
+                      ) : (
+                        <Tooltip title="Preço abaixo do mínimo - Encaminhar para Gerência">
+                          <Button
+                            variant="contained"
+                            color="warning"
+                            size="small"
+                            onClick={() => handleEncaminharGerencia(req._id)}
+                          >
+                            Encaminhar Gerência
+                          </Button>
+                        </Tooltip>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -321,7 +376,12 @@ export default function SupervisorPanel() {
                     <TableCell align="center">
                       <Chip
                         label={req.status}
-                        color={req.status === 'Alterado' ? 'info' : req.status === 'Aprovado' ? 'success' : 'error'}
+                        color={
+                          req.status === 'Alterado' ? 'info' : 
+                          req.status === 'Aprovado' || req.status === 'Aprovado pela Gerência' ? 'success' : 
+                          req.status === 'Aguardando Gerência' ? 'warning' :
+                          'error'
+                        }
                         size="small"
                       />
                     </TableCell>

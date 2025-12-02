@@ -1,10 +1,12 @@
-import React, { useEffect, useState } from 'react';
-import { Box, Paper, Typography, Button, Stack, Alert, Avatar, Divider, Tooltip, Chip, IconButton } from '@mui/material';
+import React, { useEffect, useState, useMemo } from 'react';
+import { Box, Paper, Typography, Button, Stack, Alert, Avatar, Divider, Tooltip, Chip, IconButton, TextField, InputAdornment, Menu, MenuItem } from '@mui/material';
 import TableChartIcon from '@mui/icons-material/TableChart';
 import DownloadIcon from '@mui/icons-material/Download';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import EditIcon from '@mui/icons-material/Edit';
+import SearchIcon from '@mui/icons-material/Search';
+import FilterListIcon from '@mui/icons-material/FilterList';
 import { API_ENDPOINTS } from '../config/api';
 
 const API_URL = API_ENDPOINTS.requests.all;
@@ -15,6 +17,10 @@ export default function AdminRequestsPanel() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('Todos');
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [filterColumn, setFilterColumn] = useState<string>('');
 
   const fetchRequests = () => {
     if (!token) return;
@@ -61,13 +67,56 @@ export default function AdminRequestsPanel() {
     }
   }
 
+  // Filtragem de dados
+  const filteredRequests = useMemo(() => {
+    let filtered = [...requests];
+
+    // Filtro por status
+    if (statusFilter !== 'Todos') {
+      filtered = filtered.filter(r => r.status === statusFilter);
+    }
+
+    // Filtro de pesquisa global
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(r =>
+        r.requester_name?.toLowerCase().includes(term) ||
+        r.customer_code?.toLowerCase().includes(term) ||
+        r.customer_name?.toLowerCase().includes(term) ||
+        r.product_name?.toLowerCase().includes(term) ||
+        r.product_id?.toLowerCase().includes(term) ||
+        r.notes?.toLowerCase().includes(term) ||
+        r.status?.toLowerCase().includes(term) ||
+        r.requested_price?.toString().includes(term) ||
+        r.quantity?.toString().includes(term)
+      );
+    }
+
+    return filtered;
+  }, [requests, searchTerm, statusFilter]);
+
+  const handleFilterClick = (event: React.MouseEvent<HTMLElement>, column: string) => {
+    setAnchorEl(event.currentTarget);
+    setFilterColumn(column);
+  };
+
+  const handleFilterClose = () => {
+    setAnchorEl(null);
+    setFilterColumn('');
+  };
+
+  const handleStatusFilterSelect = (status: string) => {
+    setStatusFilter(status);
+    handleFilterClose();
+  };
+
   function exportCsv() {
-    if (requests.length === 0) {
+    if (filteredRequests.length === 0) {
       setError('Nenhuma solicitação para exportar.');
       return;
     }
     setError(null);
-    const rows = requests.map((r: any) => [
+    const rows = filteredRequests.map((r: any) => [
       r._id || '',
       r.requester_name,
       r.requester_id || '',
@@ -137,6 +186,62 @@ export default function AdminRequestsPanel() {
         </Stack>
       </Stack>
       <Divider sx={{ mb: 2 }} />
+
+      {/* Barra de Pesquisa e Filtros */}
+      <Stack direction="row" spacing={2} mb={3} alignItems="center">
+        <TextField
+          placeholder="Pesquisar em todas as colunas..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          size="small"
+          fullWidth
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon color="action" />
+              </InputAdornment>
+            ),
+          }}
+          sx={{ maxWidth: 400 }}
+        />
+        <Button
+          variant="outlined"
+          startIcon={<FilterListIcon />}
+          onClick={(e) => handleFilterClick(e, 'status')}
+          size="small"
+        >
+          Status: {statusFilter}
+        </Button>
+        {(searchTerm || statusFilter !== 'Todos') && (
+          <Button
+            variant="text"
+            size="small"
+            onClick={() => {
+              setSearchTerm('');
+              setStatusFilter('Todos');
+            }}
+          >
+            Limpar Filtros
+          </Button>
+        )}
+        <Typography variant="body2" color="text.secondary" ml="auto">
+          {filteredRequests.length} de {requests.length} solicitações
+        </Typography>
+      </Stack>
+
+      {/* Menu de Filtro */}
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleFilterClose}
+      >
+        <MenuItem onClick={() => handleStatusFilterSelect('Todos')}>Todos</MenuItem>
+        <MenuItem onClick={() => handleStatusFilterSelect('Pendente')}>Pendente</MenuItem>
+        <MenuItem onClick={() => handleStatusFilterSelect('Aprovado')}>Aprovado</MenuItem>
+        <MenuItem onClick={() => handleStatusFilterSelect('Reprovado')}>Reprovado</MenuItem>
+        <MenuItem onClick={() => handleStatusFilterSelect('Alterado')}>Alterado</MenuItem>
+      </Menu>
+
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
         {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
         {loading ? (
@@ -173,10 +278,15 @@ export default function AdminRequestsPanel() {
                 </tr>
               </thead>
               <tbody>
-                {requests.map(r => (
+                {filteredRequests.map(r => (
                   <tr key={r._id} style={{ 
                     borderBottom: '1px solid #e8e8e8', 
-                    background: r.status === 'Alterado' ? '#e3f2fd' : r.status === 'Aprovado' ? '#e8f5e9' : r.status === 'Reprovado' ? '#ffebee' : '#fff'
+                    background: 
+                      r.status === 'Alterado' ? '#e3f2fd' : 
+                      r.status === 'Aprovado' || r.status === 'Aprovado pela Gerência' ? '#e8f5e9' : 
+                      r.status === 'Reprovado' || r.status === 'Reprovado pela Gerência' ? '#ffebee' :
+                      r.status === 'Aguardando Gerência' ? '#fff3e0' :
+                      '#fff'
                   }}>
                     <td style={{ padding: 10, color: '#666', fontSize: 12, wordBreak: 'break-all' }}>{r._id.substring(0, 6)}...</td>
                     <td style={{ padding: 10, fontWeight: 500 }}>{r.requester_name}</td>
@@ -188,7 +298,12 @@ export default function AdminRequestsPanel() {
                     <td style={{ padding: 10, textAlign: 'center' }}>
                       <Chip
                         label={r.status}
-                        color={r.status === 'Alterado' ? 'info' : r.status === 'Aprovado' ? 'success' : r.status === 'Reprovado' ? 'error' : 'warning'}
+                        color={
+                          r.status === 'Alterado' ? 'info' : 
+                          r.status === 'Aprovado' || r.status === 'Aprovado pela Gerência' ? 'success' : 
+                          r.status === 'Reprovado' || r.status === 'Reprovado pela Gerência' ? 'error' : 
+                          'warning'
+                        }
                         size="small"
                         sx={{ fontWeight: 600, fontSize: 11 }}
                       />
@@ -196,7 +311,7 @@ export default function AdminRequestsPanel() {
                     <td style={{ padding: 10, fontSize: 12 }}>{new Date(r.created_at).toLocaleDateString('pt-BR')}</td>
                     <td style={{ padding: 10, wordBreak: 'break-word', fontSize: 12, maxWidth: 150 }}>{r.notes || '—'}</td>
                     <td style={{ padding: 10, textAlign: 'center' }}>
-                      {(r.status === 'Aprovado' || r.status === 'Reprovado') && (
+                      {(r.status === 'Aprovado' || r.status === 'Reprovado' || r.status === 'Aprovado pela Gerência' || r.status === 'Reprovado pela Gerência') && (
                         <Tooltip title="Marcar como Alterado">
                           <IconButton
                             size="small"
@@ -218,6 +333,11 @@ export default function AdminRequestsPanel() {
             {requests.length === 0 && (
               <Typography color="text.secondary" mt={3} mb={2} align="center">
                 Nenhuma solicitação registrada.
+              </Typography>
+            )}
+            {filteredRequests.length === 0 && requests.length > 0 && (
+              <Typography color="text.secondary" mt={3} mb={2} align="center">
+                Nenhuma solicitação encontrada com os filtros aplicados.
               </Typography>
             )}
           </Box>

@@ -6,6 +6,7 @@ import RequestForm from './components/RequestForm';
 import AdminPanel from './components/AdminPanel';
 import AdminRequestsPanel from './components/AdminRequestsPanel';
 import SupervisorPanel from './components/SupervisorPanel';
+import GerentePanel from './components/GerentePanel';
 import { parseClientesCsv } from './utils/parseCsv';
 import { parseProdutosCsv } from './utils/parseProdutosCsv';
 import theme from './mui-theme';
@@ -58,6 +59,8 @@ function AppContent() {
         navigate('/admin', { replace: true });
       } else if (user.tipo === 'supervisor') {
         navigate('/supervisor', { replace: true });
+      } else if (user.tipo === 'gerente') {
+        navigate('/gerente', { replace: true });
       } else {
         navigate('/vendedor', { replace: true });
       }
@@ -100,7 +103,12 @@ function AppContent() {
             !token || !user ? (
               <AuthForm onAuthSuccess={handleAuthSuccess} />
             ) : (
-              <Navigate to={user.email === 'admin@admin.com' ? '/admin' : user.tipo === 'supervisor' ? '/supervisor' : '/vendedor'} replace />
+              <Navigate to={
+                user.email === 'admin@admin.com' ? '/admin' : 
+                user.tipo === 'supervisor' ? '/supervisor' : 
+                user.tipo === 'gerente' ? '/gerente' :
+                '/vendedor'
+              } replace />
             )
           } />
 
@@ -137,6 +145,20 @@ function AppContent() {
                   <Button variant="outlined" color="secondary" onClick={handleLogout}>Sair</Button>
                 </Box>
                 <SupervisorPanel />
+              </>
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          } />
+
+          <Route path="/gerente" element={
+            token && user ? (
+              <>
+                <Box mb={2} display="flex" justifyContent="space-between" alignItems="center">
+                  <Typography variant="subtitle1">Bem-vindo, {user.name} (Gerente)!</Typography>
+                  <Button variant="outlined" color="secondary" onClick={handleLogout}>Sair</Button>
+                </Box>
+                <GerentePanel />
               </>
             ) : (
               <Navigate to="/login" replace />

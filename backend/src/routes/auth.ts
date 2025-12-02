@@ -63,6 +63,25 @@ router.post('/supervisor-register', requireAuth, async (req: AuthRequest, res) =
   res.status(201).json({ id: user._id, name: user.name, email: user.email, codigo_supervisor: user.codigo_supervisor });
 });
 
+// Registro de gerente pelo admin
+router.post('/gerente-register', requireAuth, async (req: AuthRequest, res) => {
+  // Só permite se o usuário logado for admin
+  if (!req.user || req.user.email !== 'admin@admin.com') {
+    return res.status(403).json({ error: 'Acesso negado. Apenas admin pode cadastrar gerentes.' });
+  }
+  const { name, email, password } = req.body;
+  if (!name || !email || !password) {
+    return res.status(400).json({ error: 'Preencha todos os campos.' });
+  }
+  const existing = await User.findOne({ email });
+  if (existing) {
+    return res.status(400).json({ error: 'E-mail já cadastrado.' });
+  }
+  const hash = await bcrypt.hash(password, 10);
+  const user = await User.create({ name, email, password: hash, tipo: 'gerente' });
+  res.status(201).json({ id: user._id, name: user.name, email: user.email, tipo: user.tipo });
+});
+
 // Buscar lista de usuários (apenas nomes para dropdown de login)
 router.get('/users', async (req, res) => {
   try {

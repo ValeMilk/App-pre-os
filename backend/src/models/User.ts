@@ -6,7 +6,7 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true }, // hashed
   vendedor_code: { type: String },
   codigo_supervisor: { type: String },
-  tipo: { type: String, enum: ['admin', 'vendedor', 'supervisor'], default: 'vendedor' },
+  tipo: { type: String, enum: ['admin', 'vendedor', 'supervisor', 'gerente'], default: 'vendedor' },
   created_at: { type: Date, default: Date.now }
 });
 
