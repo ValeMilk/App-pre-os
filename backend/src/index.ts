@@ -203,7 +203,7 @@ const PriceRequest = mongoose.model('PriceRequest', priceRequestSchema);
       if (!request) return res.status(404).json({ error: 'Solicitação não encontrada.' });
       
       const allowedStatuses = ['Aprovado', 'Reprovado', 'Aprovado pela Gerência', 'Reprovado pela Gerência'];
-      if (!allowedStatuses.includes(request.status)) {
+      if (!request.status || !allowedStatuses.includes(request.status)) {
         return res.status(400).json({ error: 'Apenas solicitações aprovadas ou reprovadas podem ser marcadas como alteradas.' });
       }
 
