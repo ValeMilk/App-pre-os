@@ -267,7 +267,7 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
           setPromocionalWarningMessage(`Preço final com desconto (R$ ${precoFinal.toFixed(2)}) está abaixo do promocional. Preço Promocional: R$ ${selectedProduct.promocional}`);
         } else {
           // Cliente não tem desconto e o preço solicitado está abaixo do promocional
-          setPromocionalWarningMessage(`Preço solicitado (R$ ${priceNum.toFixed(2)}) está abaixo do promocional. Preço Promocional: R$ ${selectedProduct.promocional}`);
+          setPromocionalWarningMessage(`Preço solicitado (R$ ${priceNum.toFixed(2)}) está abaixo do  preço Promocional: R$ ${selectedProduct.promocional}`);
         }
         setConfirmPromocionalDialogOpen(true);
         return;
