@@ -23,6 +23,7 @@ import {
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import { API_ENDPOINTS } from '../config/api';
+import { RequestsArraySchema } from '../schemas';
 
 const API_URL = API_ENDPOINTS.requests.base;
 
@@ -109,7 +110,16 @@ export default function SupervisorPanel() {
 
       const data = await response.json();
       console.log('📊 Dados recebidos do backend (SupervisorPanel):', data);
-      setRequests(data);
+      
+      // Validar com Zod
+      try {
+        const validatedRequests = RequestsArraySchema.parse(data);
+        setRequests(validatedRequests);
+      } catch (err) {
+        console.error('Erro ao validar solicitações:', err);
+        setError('Dados inválidos recebidos do servidor');
+        return;
+      }
       
       // Agrupar solicitações por subrede_batch_id
       const grouped: { [key: string]: Request[] } = {};
@@ -352,54 +362,66 @@ export default function SupervisorPanel() {
   const processedRequests = requests.filter(r => r.status !== 'Pending');
 
   return (
-    <Paper elevation={3} sx={{ p: { xs: 2, sm: 3, md: 4 }, width: '100%', overflowX: 'auto' }}>
+    <Paper elevation={3} sx={{ p: { xs: 0.5, sm: 2, md: 4 }, width: '100%', overflowX: 'auto' }}>
       <Box sx={{ 
         background: 'linear-gradient(135deg, #000000ff 0%, #0c0c0cff 100%)',
-        p: 3,
-        borderRadius: 2,
-        mb: 3,
+        p: { xs: 1.5, sm: 2.5, md: 3 },
+        borderRadius: { xs: 1, sm: 2 },
+        mb: { xs: 1.5, sm: 2.5, md: 3 },
         color: 'white'
       }}>
-        <Typography variant="h5" fontWeight={700} gutterBottom sx={{ fontSize: { xs: '1.2rem', sm: '1.5rem' } }}>
+        <Typography variant="h5" fontWeight={700} gutterBottom sx={{ fontSize: { xs: '1rem', sm: '1.3rem', md: '1.5rem' } }}>
           🎯 Painel do Supervisor
         </Typography>
-        <Typography variant="body2" sx={{ opacity: 0.9 }}>
+        <Typography variant="body2" sx={{ opacity: 0.9, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
           Aprovar ou reprovar solicitações de preços dos vendedores
         </Typography>
       </Box>
 
       {error && (
-        <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>
+        <Alert severity="error" onClose={() => setError(null)} sx={{ mb: { xs: 1, sm: 1.5, md: 2 }, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
           {error}
         </Alert>
       )}
 
       {success && (
-        <Alert severity="success" onClose={() => setSuccess(null)} sx={{ mb: 2 }}>
+        <Alert severity="success" onClose={() => setSuccess(null)} sx={{ mb: { xs: 1, sm: 1.5, md: 2 }, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
           {success}
         </Alert>
       )}
 
       {/* Solicitações Pendentes */}
-      <Box sx={{ mb: 4 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-          <Typography variant="h6" fontWeight={600} color="secondary.main">
+      <Box sx={{ mb: { xs: 2, sm: 3, md: 4 } }}>
+        <Box sx={{ 
+          display: 'flex', 
+          flexDirection: { xs: 'column', sm: 'row' },
+          alignItems: { xs: 'flex-start', sm: 'center' }, 
+          gap: { xs: 1, sm: 2 }, 
+          mb: 2 
+        }}>
+          <Typography variant="h6" fontWeight={600} color="secondary.main" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
             ⏳ Solicitações Pendentes
           </Typography>
           <Chip 
             label={pendingRequests.length} 
             color="warning" 
             size="small"
-            sx={{ fontWeight: 700, fontSize: '0.9rem' }}
+            sx={{ fontWeight: 700, fontSize: { xs: '0.75rem', sm: '0.9rem' } }}
           />
         </Box>
         {pendingRequests.length === 0 ? (
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
             Nenhuma solicitação pendente no momento.
           </Typography>
         ) : (
-          <TableContainer sx={{ overflowX: 'auto', maxWidth: '100%' }}>
-            <Table size="small" sx={{ width: '100%' }}>
+          <TableContainer sx={{ 
+            overflowX: 'auto', 
+            maxWidth: '100%',
+            borderRadius: { xs: 1, sm: 2 },
+            border: '1px solid #e0e0e0',
+            WebkitOverflowScrolling: 'touch'
+          }}>
+            <Table size="small" sx={{ width: '100%', minWidth: { xs: 800, md: '100%' } }}>
               <TableHead>
                 <TableRow>
                   <TableCell sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Vendedor</strong></TableCell>

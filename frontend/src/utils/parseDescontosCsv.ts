@@ -1,4 +1,4 @@
-import { Desconto } from '../types/Desconto';
+import { DescontoSchema, type Desconto } from '../schemas';
 
 export function parseDescontosCsv(text: string): Desconto[] {
   const lines = text.split('\n').filter(l => l.trim());
@@ -17,13 +17,21 @@ export function parseDescontosCsv(text: string): Desconto[] {
     const nome_produto = parts[3].trim();
     const desconto = parts[4].trim();
 
-    descontos.push({
+    const descontoObj = {
       rede: rede === '-' ? undefined : rede,
       subrede: subrede === '-' ? undefined : subrede,
       codigo_produto,
       nome_produto,
       desconto
-    });
+    };
+
+    // Validar com Zod
+    try {
+      const validated = DescontoSchema.parse(descontoObj);
+      descontos.push(validated);
+    } catch (err) {
+      console.warn(`Desconto inválido na linha ${i + 1}:`, err);
+    }
   }
 
   return descontos;

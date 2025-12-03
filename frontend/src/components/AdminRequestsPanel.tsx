@@ -8,6 +8,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import SearchIcon from '@mui/icons-material/Search';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import { API_ENDPOINTS } from '../config/api';
+import { RequestsArraySchema } from '../schemas';
 
 const API_URL = API_ENDPOINTS.requests.all;
 
@@ -35,8 +36,16 @@ export default function AdminRequestsPanel() {
         }
         if (!res.ok) throw new Error('Erro ao buscar solicitações');
         const data = await res.json();
-        setRequests(data);
-        setError(null);
+        
+        // Validar com Zod
+        try {
+          const validatedRequests = RequestsArraySchema.parse(data);
+          setRequests(validatedRequests);
+          setError(null);
+        } catch (err) {
+          console.error('Erro ao validar solicitações:', err);
+          setError('Dados inválidos recebidos do servidor');
+        }
       })
       .catch(() => setError('Erro ao buscar solicitações do servidor.'))
       .finally(() => setLoading(false));
@@ -148,8 +157,8 @@ export default function AdminRequestsPanel() {
 
   return (
     <Paper elevation={6} sx={{
-      p: 4,
-      borderRadius: 3,
+      p: { xs: 1.5, sm: 2.5, md: 4 },
+      borderRadius: { xs: 2, sm: 3 },
       bgcolor: '#feffffff',
       width: '100%',
       maxWidth: 'none',
@@ -158,30 +167,32 @@ export default function AdminRequestsPanel() {
       height: 'fit-content',
       minHeight: '85vh'
     }}>
-      <Stack direction="row" alignItems="center" spacing={2} mb={2} flexWrap="wrap">
-        <Avatar sx={{ bgcolor: '#1976d2', width: 48, height: 48 }}>
-          <TableChartIcon />
-        </Avatar>
-        <Box flex={1}>
-          <Typography variant="h5" fontWeight={700} color="primary.main">Central de Solicitações</Typography>
-          <Typography variant="body2" color="text.secondary">Todas as solicitações do sistema</Typography>
-        </Box>
-        <Stack direction="row" spacing={1}>
+      <Stack direction={{ xs: 'column', md: 'row' }} alignItems={{ xs: 'flex-start', md: 'center' }} spacing={2} mb={2} flexWrap="wrap">
+        <Stack direction="row" alignItems="center" spacing={2} flex={1} width={{ xs: '100%', md: 'auto' }}>
+          <Avatar sx={{ bgcolor: '#1976d2', width: { xs: 40, sm: 44, md: 48 }, height: { xs: 40, sm: 44, md: 48 } }}>
+            <TableChartIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
+          </Avatar>
+          <Box flex={1}>
+            <Typography variant="h5" fontWeight={700} color="primary.main" sx={{ fontSize: { xs: '1.1rem', sm: '1.3rem', md: '1.5rem' } }}>Central de Solicitações</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.85rem' } }}>Todas as solicitações do sistema</Typography>
+          </Box>
+        </Stack>
+        <Stack direction={{ xs: 'row', sm: 'row' }} spacing={1} width={{ xs: '100%', md: 'auto' }}>
           <Tooltip title="Atualizar solicitações">
             <Button 
               onClick={fetchRequests} 
               variant="outlined" 
               color="primary" 
               size="small"
-              startIcon={<RefreshIcon />} 
+              startIcon={<RefreshIcon sx={{ fontSize: { xs: 18, sm: 20 } }} />} 
               disabled={loading}
-              sx={{ fontWeight: 600 }}
+              sx={{ fontWeight: 600, fontSize: { xs: '0.75rem', sm: '0.85rem' }, flex: { xs: 1, sm: 'initial' } }}
             >
               {loading ? 'Atualizando...' : 'Atualizar'}
             </Button>
           </Tooltip>
           <Tooltip title="Exportar todas as solicitações para CSV">
-            <Button onClick={exportCsv} variant="contained" color="success" size="small" startIcon={<DownloadIcon />} sx={{ fontWeight: 600 }}>
+            <Button onClick={exportCsv} variant="contained" color="success" size="small" startIcon={<DownloadIcon sx={{ fontSize: { xs: 18, sm: 20 } }} />} sx={{ fontWeight: 600, fontSize: { xs: '0.75rem', sm: '0.85rem' }, flex: { xs: 1, sm: 'initial' } }}>
               Exportar
             </Button>
           </Tooltip>
@@ -190,7 +201,7 @@ export default function AdminRequestsPanel() {
       <Divider sx={{ mb: 2 }} />
 
       {/* Barra de Pesquisa e Filtros */}
-      <Stack direction="row" spacing={2} mb={3} alignItems="center">
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} mb={3} alignItems={{ xs: 'stretch', sm: 'center' }}>
         <TextField
           placeholder="Pesquisar em todas as colunas..."
           value={searchTerm}
@@ -204,13 +215,14 @@ export default function AdminRequestsPanel() {
               </InputAdornment>
             ),
           }}
-          sx={{ maxWidth: 400 }}
+          sx={{ maxWidth: { xs: '100%', sm: 400 } }}
         />
         <Button
           variant="outlined"
           startIcon={<FilterListIcon />}
           onClick={(e) => handleFilterClick(e, 'status')}
           size="small"
+          sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' }, whiteSpace: 'nowrap' }}
         >
           Status: {statusFilter}
         </Button>
@@ -222,11 +234,12 @@ export default function AdminRequestsPanel() {
               setSearchTerm('');
               setStatusFilter('Todos');
             }}
+            sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
           >
             Limpar Filtros
           </Button>
         )}
-        <Typography variant="body2" color="text.secondary" ml="auto">
+        <Typography variant="body2" color="text.secondary" sx={{ ml: { xs: 0, sm: 'auto' }, fontSize: { xs: '0.75rem', sm: '0.875rem' }, textAlign: { xs: 'center', sm: 'left' } }}>
           {filteredRequests.length} de {requests.length} solicitações
         </Typography>
       </Stack>
@@ -249,7 +262,15 @@ export default function AdminRequestsPanel() {
         {loading ? (
           <Typography color="text.secondary">Carregando solicitações...</Typography>
         ) : (
-          <Box sx={{ maxHeight: '65vh', overflow: 'auto', borderRadius: 2, border: '1px solid #e0e0e0', bgcolor: '#fafafa' }}>
+          <Box sx={{ 
+            maxHeight: '65vh', 
+            overflow: 'auto', 
+            overflowX: { xs: 'auto', md: 'auto' },
+            borderRadius: 2, 
+            border: '1px solid #e0e0e0', 
+            bgcolor: '#fafafa',
+            WebkitOverflowScrolling: 'touch' // suporte smooth scroll iOS
+          }}>
             <table style={{ width: '100%', minWidth: 1300, borderCollapse: 'collapse', fontSize: 14 }}>
               <colgroup>
                 <col style={{ width: '5%' }} />

@@ -1,13 +1,7 @@
 import Papa from 'papaparse'
+import { ProdutoSchema, type Produto } from '../schemas'
 
-export type Produto = {
-  id: string
-  codigo_produto: string
-  nome_produto: string
-  maximo?: string
-  minimo?: string
-  promocional?: string
-}
+export type { Produto }
 
 export function parseProdutosCsv(text: string): Produto[] {
   // Nova estrutura: CODIGO PRODUTO; ID LIVRE; PRODUTO; MAXIMO; MINIMO; PROMOCIONAL
@@ -24,5 +18,18 @@ export function parseProdutosCsv(text: string): Produto[] {
       minimo: r[4] ? String(r[4]).trim() : undefined,
       promocional: r[5] ? String(r[5]).trim() : undefined
     }))
-  return parsed
+  
+  // Validar com Zod e filtrar inválidos
+  const validated = parsed
+    .map((produto, index) => {
+      try {
+        return ProdutoSchema.parse(produto)
+      } catch (err) {
+        console.warn(`Produto inválido na linha ${index + 1}:`, err)
+        return null
+      }
+    })
+    .filter((p): p is Produto => p !== null)
+  
+  return validated
 }

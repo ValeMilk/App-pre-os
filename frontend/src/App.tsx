@@ -99,18 +99,31 @@ function AppContent() {
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: user && user.email === 'admin@admin.com' ? '#f3f3f5ff' : 'inherit' }}>
-      <AppBar position="static" color="default" elevation={2} sx={{ mb: 4 }}>
-        <Toolbar sx={{ justifyContent: 'space-between' }}>
-          <Typography variant="h5" fontWeight={600} color="primary.main">
+      <AppBar position="static" color="default" elevation={2} sx={{ mb: { xs: 1, sm: 2, md: 4 } }}>
+        <Toolbar sx={{ justifyContent: 'space-between', px: { xs: 0.5, sm: 1.5, md: 2 }, minHeight: { xs: 48, sm: 56, md: 64 } }}>
+          <Typography variant="h6" fontWeight={600} color="primary.main" sx={{ fontSize: { xs: '0.85rem', sm: '1rem', md: '1.25rem' } }}>
           💰Solicitação de Preços
           </Typography>
           {token && user && (
-            <Button variant="outlined" color="secondary" onClick={handleLogout} sx={{ fontWeight: 600, px: 3 }}>Sair</Button>
+            <Button variant="outlined" color="secondary" onClick={handleLogout} size="small" sx={{ fontWeight: 600, px: { xs: 1, sm: 1.5, md: 3 }, py: { xs: 0.5, sm: 0.75 }, fontSize: { xs: '0.7rem', sm: '0.8rem', md: '0.875rem' } }}>Sair</Button>
           )}
         </Toolbar>
       </AppBar>
-      <Container maxWidth={user && user.email === 'admin@admin.com' ? false : (user && (user.tipo === 'supervisor' || user.tipo === 'gerente') ? false : 'sm')} disableGutters={(user && user.email === 'admin@admin.com') || (user && (user.tipo === 'supervisor' || user.tipo === 'gerente'))} sx={user && user.email === 'admin@admin.com' ? { display: 'flex', justifyContent: 'flex-start', alignItems: 'flex-start', minHeight: '85vh', pl: 2 } : {}}>
-        {error && <Box sx={{ bgcolor: '#fff3cd', p: 2, borderRadius: 1, mb: 2 }}>{error}</Box>}
+      <Container 
+        maxWidth={user && user.email === 'admin@admin.com' ? false : (user && (user.tipo === 'supervisor' || user.tipo === 'gerente') ? false : 'md')} 
+        disableGutters={(user && user.email === 'admin@admin.com') || (user && (user.tipo === 'supervisor' || user.tipo === 'gerente'))} 
+        sx={user && user.email === 'admin@admin.com' ? { 
+          display: 'flex', 
+          justifyContent: 'flex-start', 
+          alignItems: 'flex-start', 
+          minHeight: '85vh', 
+          pl: { xs: 0.25, sm: 0.75, md: 2 }, 
+          pr: { xs: 0.25, sm: 0.5, md: 0 } 
+        } : { 
+          px: { xs: 0.25, sm: 0.75, md: 2 } 
+        }}
+      >
+        {error && <Box sx={{ bgcolor: '#fff3cd', p: { xs: 0.75, sm: 1.25, md: 2 }, borderRadius: 1, mb: { xs: 1, sm: 1.5, md: 2 }, fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' } }}>{error}</Box>}
         
         <Routes>
           <Route path="/login" element={

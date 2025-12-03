@@ -107,21 +107,21 @@ export default function AdminPanel() {
 
   return (
     <Paper elevation={6} sx={{
-      p: 4,
-      borderRadius: 6,
+      p: { xs: 2, sm: 3, md: 4 },
+      borderRadius: { xs: 3, sm: 4, md: 6 },
       bgcolor: '#ffffffff',
       width: '100%',
-      maxWidth: 480,
+      maxWidth: { xs: '100%', sm: 500, md: 600 },
       height: 'fit-content',
       boxShadow: '0 8px 32px 0 rgba(60,72,100,0.10)',
     }}>
-      <Typography variant="h5" fontWeight={700} color="primary.main" mb={3} textAlign="center">
+      <Typography variant="h5" fontWeight={700} color="primary.main" mb={3} textAlign="center" sx={{ fontSize: { xs: '1.25rem', sm: '1.35rem', md: '1.5rem' } }}>
         Cadastro de Usuários
       </Typography>
-      <Tabs value={tab} onChange={(_, v) => setTab(v)} centered variant="scrollable" scrollButtons="auto" sx={{ mb: 2 }}>
-        <Tab label="Vendedor" sx={{ minWidth: 140, fontSize: '0.80rem' }} />
-        <Tab label="Supervisor" sx={{ minWidth: 140, fontSize: '0.80rem' }} />
-        <Tab label="Gerente" sx={{ minWidth: 140, fontSize: '0.80rem' }} />
+      <Tabs value={tab} onChange={(_, v) => setTab(v)} variant="scrollable" scrollButtons="auto" sx={{ mb: 2 }} allowScrollButtonsMobile>
+        <Tab label="Vendedor" sx={{ minWidth: { xs: 100, sm: 120, md: 140 }, fontSize: { xs: '0.7rem', sm: '0.75rem', md: '0.80rem' } }} />
+        <Tab label="Supervisor" sx={{ minWidth: { xs: 100, sm: 120, md: 140 }, fontSize: { xs: '0.7rem', sm: '0.75rem', md: '0.80rem' } }} />
+        <Tab label="Gerente" sx={{ minWidth: { xs: 100, sm: 120, md: 140 }, fontSize: { xs: '0.7rem', sm: '0.75rem', md: '0.80rem' } }} />
       </Tabs>
       <Divider sx={{ mb: 5 }} />
         {tab === 0 && (

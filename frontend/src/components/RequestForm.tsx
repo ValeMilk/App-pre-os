@@ -3,6 +3,7 @@ import Papa from 'papaparse'
 import { Cliente } from '../utils/parseCsv'
 import { Produto } from '../utils/parseProdutosCsv'
 import { Desconto } from '../types/Desconto'
+import { RequestFormSchema, RequestsArraySchema } from '../schemas'
 import { Box, Button, TextField, Typography, Alert, Stack, Paper, Autocomplete, Divider, Slide, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, DialogContentText, Chip } from '@mui/material'
 import SendIcon from '@mui/icons-material/Send';
 import DownloadIcon from '@mui/icons-material/Download';
@@ -158,7 +159,15 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
         }
         if (!res.ok) throw new Error('Erro ao buscar solicitações');
         const data = await res.json();
-        setRequests(data);
+        
+        // Validar resposta com Zod
+        try {
+          const validatedRequests = RequestsArraySchema.parse(data);
+          setRequests(validatedRequests);
+        } catch (err) {
+          console.error('Erro ao validar solicitações:', err);
+          setError('Dados inválidos recebidos do servidor');
+        }
       })
       .catch(() => setError('Erro ao buscar solicitações do servidor.'))
       .finally(() => setLoading(false));
@@ -200,29 +209,35 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
     setError(null);
     setSuccess(null);
     
-    // Validação baseada no modo de seleção
-    if (selectionMode === 'cliente') {
-      if (!selectedCustomer) {
-        setError('Selecione um cliente válido.');
-        return;
-      }
-    } else {
-      if (!selectedSubrede) {
-        setError('Selecione uma subrede válida.');
-        return;
-      }
+    // Validação com Zod
+    const formData = {
+      customer_code: selectionMode === 'cliente' ? selectedCustomer?.codigo : undefined,
+      subrede: selectionMode === 'subrede' ? selectedSubrede : undefined,
+      product_id: selectedProduct?.id || '',
+      requested_price: price,
+      quantity: quantity,
+      notes: notes
+    };
+
+    const validationResult = RequestFormSchema.safeParse(formData);
+    
+    if (!validationResult.success) {
+      const firstError = validationResult.error.errors[0];
+      setError(firstError.message);
+      return;
     }
     
+    // Validação baseada no modo de seleção (backup manual)
+    if (selectionMode === 'cliente' && !selectedCustomer) {
+      setError('Selecione um cliente válido.');
+      return;
+    }
+    if (selectionMode === 'subrede' && !selectedSubrede) {
+      setError('Selecione uma subrede válida.');
+      return;
+    }
     if (!selectedProduct) {
       setError('Selecione um produto válido.');
-      return;
-    }
-    if (!price || isNaN(Number(price)) || Number(price) <= 0) {
-      setError('Informe um preço válido (número maior que zero).');
-      return;
-    }
-    if (!quantity || isNaN(Number(quantity)) || Number(quantity) <= 0) {
-      setError('Informe uma quantidade válida (número maior que zero).');
       return;
     }
 
@@ -561,23 +576,23 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
 
   // Renderização do componente
   return (
-    <Box sx={{ maxWidth: 480, mx: 'auto', p: { xs: 1, sm: 2 }, width: '100%' }}>
+    <Box sx={{ maxWidth: { xs: '100%', sm: 500, md: 600 }, mx: 'auto', p: { xs: 0, sm: 1, md: 2 }, width: '100%' }}>
       <Slide in direction="down">
         <Paper elevation={6} sx={{
-          p: { xs: 2, sm: 3 },
-          borderRadius: 4,
+          p: { xs: 1, sm: 2, md: 3 },
+          borderRadius: { xs: 1, sm: 2, md: 4 },
           bgcolor: '#fff',
-          mb: 3,
+          mb: { xs: 1.5, sm: 2.5, md: 3 },
           boxShadow: '0 8px 32px 0 rgba(60,72,100,0.10)'
         }}>
-          <Stack direction="row" alignItems="center" spacing={2} mb={2}>
-            <PersonIcon color="primary" sx={{ fontSize: 36 }} />
-            <Typography variant="h6" fontWeight={700} color="primary.main">Solicitação de Preço</Typography>
+          <Stack direction="row" alignItems="center" spacing={{ xs: 0.75, sm: 1.5, md: 2 }} mb={{ xs: 1.25, sm: 1.75, md: 2 }}>
+            <PersonIcon color="primary" sx={{ fontSize: { xs: 22, sm: 28, md: 36 } }} />
+            <Typography variant="h6" fontWeight={700} color="primary.main" sx={{ fontSize: { xs: '0.9rem', sm: '1.05rem', md: '1.25rem' } }}>Solicitação de Preço</Typography>
           </Stack>
-          <Divider sx={{ mb: 2 }} />
+          <Divider sx={{ mb: { xs: 1.25, sm: 1.75, md: 2 } }} />
           
           {/* Botões de Toggle */}
-          <Stack direction="row" spacing={1} mb={3}>
+          <Stack direction="row" spacing={{ xs: 0.5, sm: 1 }} mb={{ xs: 1.5, sm: 2.5, md: 3 }}>
             <Button
               variant={selectionMode === 'cliente' ? 'contained' : 'outlined'}
               onClick={() => {
@@ -586,7 +601,12 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
                 setSelectedCustomer(null);
               }}
               fullWidth
-              size="large"
+              size="small"
+              sx={{ 
+                fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' },
+                py: { xs: 0.75, sm: 1, md: 1.25 },
+                fontWeight: 600
+              }}
             >
               CLIENTE
             </Button>
@@ -598,16 +618,21 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
                 setSelectedSubrede(null);
               }}
               fullWidth
-              size="large"
+              size="small"
+              sx={{ 
+                fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' },
+                py: { xs: 0.75, sm: 1, md: 1.25 },
+                fontWeight: 600
+              }}
             >
               SUBREDE
             </Button>
           </Stack>
 
           <form onSubmit={submit} autoComplete="off">
-            <Stack spacing={2}>
-              {error && <Alert severity="error">{error}</Alert>}
-              {success && <Alert severity="success">{success}</Alert>}
+            <Stack spacing={{ xs: 1, sm: 1.5, md: 2 }}>
+              {error && <Alert severity="error" sx={{ fontSize: { xs: '0.85rem', sm: '0.875rem' } }}>{error}</Alert>}
+              {success && <Alert severity="success" sx={{ fontSize: { xs: '0.85rem', sm: '0.875rem' } }}>{success}</Alert>}
               
               {selectionMode === 'cliente' ? (
                 <Autocomplete
@@ -620,7 +645,21 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
                     setPrice('');
                   }}
                   renderInput={params => (
-                    <TextField {...params} label="Cliente" required placeholder="Buscar cliente..." size="medium" />
+                    <TextField 
+                      {...params} 
+                      label="Cliente" 
+                      required 
+                      placeholder="Buscar cliente..." 
+                      size="small"
+                      sx={{
+                        '& .MuiInputBase-root': {
+                          fontSize: { xs: '0.85rem', sm: '0.95rem', md: '1rem' }
+                        },
+                        '& .MuiInputLabel-root': {
+                          fontSize: { xs: '0.85rem', sm: '0.95rem', md: '1rem' }
+                        }
+                      }}
+                    />
                   )}
                   isOptionEqualToValue={(option, value) => option.codigo === value.codigo}
                   fullWidth
@@ -636,7 +675,21 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
                     setPrice('');
                   }}
                   renderInput={params => (
-                    <TextField {...params} label="Subrede" required placeholder="Selecionar subrede..." size="medium" />
+                    <TextField 
+                      {...params} 
+                      label="Subrede" 
+                      required 
+                      placeholder="Selecionar subrede..." 
+                      size="small"
+                      sx={{
+                        '& .MuiInputBase-root': {
+                          fontSize: { xs: '0.85rem', sm: '0.95rem', md: '1rem' }
+                        },
+                        '& .MuiInputLabel-root': {
+                          fontSize: { xs: '0.85rem', sm: '0.95rem', md: '1rem' }
+                        }
+                      }}
+                    />
                   )}
                   fullWidth
                 />
@@ -647,14 +700,28 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
                 value={selectedProduct}
                 onChange={(_, value) => setSelectedProduct(value)}
                 renderInput={params => (
-                  <TextField {...params} label="Produto" required placeholder="Buscar produto..." size="medium" />
+                  <TextField 
+                    {...params} 
+                    label="Produto" 
+                    required 
+                    placeholder="Buscar produto..." 
+                    size="small"
+                    sx={{
+                      '& .MuiInputBase-root': {
+                        fontSize: { xs: '0.85rem', sm: '0.95rem', md: '1rem' }
+                      },
+                      '& .MuiInputLabel-root': {
+                        fontSize: { xs: '0.85rem', sm: '0.95rem', md: '1rem' }
+                      }
+                    }}
+                  />
                 )}
                 isOptionEqualToValue={(option, value ) => option.id === value.id}
                 disabled={selectionMode === 'cliente' ? !selectedCustomer : !selectedSubrede}
                 fullWidth
               />
               {selectedProduct && selectedProduct.promocional && selectedProduct.maximo && (
-                <Alert severity="info" sx={{ fontSize: 13 }}>
+                <Alert severity="info" sx={{ fontSize: { xs: '0.75rem', sm: '0.8125rem' } }}>
                   Faixa de preço permitida: R$ {selectedProduct.minimo} até R$ {selectedProduct.maximo}
                 </Alert>
               )}
@@ -668,52 +735,61 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
                 inputProps={{ min: 0, step: 0.01 }}
                 disabled={selectionMode === 'cliente' ? !selectedCustomer : !selectedSubrede}
                 fullWidth
+                size="small"
+                sx={{
+                  '& .MuiInputBase-root': {
+                    fontSize: { xs: '0.85rem', sm: '0.95rem', md: '1rem' }
+                  },
+                  '& .MuiInputLabel-root': {
+                    fontSize: { xs: '0.85rem', sm: '0.95rem', md: '1rem' }
+                  }
+                }}
               />
               
               {/* Mostrar desconto aplicado em tempo real */}
               {descontoAplicavel && precoComDesconto && (
                 <Box sx={{ 
-                  p: 2, 
+                  p: { xs: 1.5, sm: 2 }, 
                   bgcolor: '#e8f5e9', 
-                  borderRadius: 2, 
+                  borderRadius: { xs: 1, sm: 2 }, 
                   border: '2px solid #4caf50',
                   animation: 'pulse 0.5s ease-in-out'
                 }}>
-                  <Stack direction="row" alignItems="center" spacing={1} mb={1}>
-                    <LocalOfferIcon color="success" />
-                    <Typography variant="h6" color="success.main" fontWeight={700}>
+                  <Stack direction="row" alignItems="center" spacing={1} mb={1} flexWrap="wrap">
+                    <LocalOfferIcon color="success" sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }} />
+                    <Typography variant="h6" color="success.main" fontWeight={700} sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
                       Desconto Aplicado!
                     </Typography>
                     <Chip 
                       label={`${precoComDesconto.percentual}%`} 
                       color="success" 
                       size="small" 
-                      sx={{ fontWeight: 700 }}
+                      sx={{ fontWeight: 700, fontSize: { xs: '0.75rem', sm: '0.8125rem' } }}
                     />
                   </Stack>
                   <Divider sx={{ mb: 1 }} />
                   <Stack spacing={0.5}>
                     <Box display="flex" justifyContent="space-between">
-                      <Typography variant="body2" color="text.secondary">Preço original:</Typography>
-                      <Typography variant="body2" fontWeight={600}>R$ {parseFloat(price.replace(',', '.')).toFixed(2)}</Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>Preço original:</Typography>
+                      <Typography variant="body2" fontWeight={600} sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>R$ {parseFloat(price.replace(',', '.')).toFixed(2)}</Typography>
                     </Box>
                     <Box display="flex" justifyContent="space-between">
-                      <Typography variant="body2" color="success.main">Desconto ({precoComDesconto.percentual}%):</Typography>
-                      <Typography variant="body2" color="success.main" fontWeight={600}>- R$ {precoComDesconto.valorDesconto.toFixed(2)}</Typography>
+                      <Typography variant="body2" color="success.main" sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>Desconto ({precoComDesconto.percentual}%):</Typography>
+                      <Typography variant="body2" color="success.main" fontWeight={600} sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>- R$ {precoComDesconto.valorDesconto.toFixed(2)}</Typography>
                     </Box>
                     <Divider />
                     <Box display="flex" justifyContent="space-between">
-                      <Typography variant="body1" fontWeight={700}>Preço final:</Typography>
-                      <Typography variant="h6" color="success.main" fontWeight={700}>R$ {precoComDesconto.precoFinal.toFixed(2)}</Typography>
+                      <Typography variant="body1" fontWeight={700} sx={{ fontSize: { xs: '0.9rem', sm: '1rem' } }}>Preço final:</Typography>
+                      <Typography variant="h6" color="success.main" fontWeight={700} sx={{ fontSize: { xs: '1.1rem', sm: '1.25rem' } }}>R$ {precoComDesconto.precoFinal.toFixed(2)}</Typography>
                     </Box>
                   </Stack>
                   {descontoAplicavel.rede && (
-                    <Typography variant="caption" color="text.secondary" display="block" mt={1}>
+                    <Typography variant="caption" color="text.secondary" display="block" mt={1} sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
                       💼 Desconto da rede: {descontoAplicavel.rede}
                     </Typography>
                   )}
                   {descontoAplicavel.subrede && (
-                    <Typography variant="caption" color="text.secondary" display="block" mt={1}>
+                    <Typography variant="caption" color="text.secondary" display="block" mt={1} sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
                       🏪 Desconto da subrede: {descontoAplicavel.subrede}
                     </Typography>
                   )}
@@ -730,28 +806,53 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
                 inputProps={{ min: 1, step: 1 }}
                 disabled={selectionMode === 'cliente' ? !selectedCustomer : !selectedSubrede}
                 fullWidth
+                size="small"
+                sx={{
+                  '& .MuiInputBase-root': {
+                    fontSize: { xs: '0.85rem', sm: '0.95rem', md: '1rem' }
+                  },
+                  '& .MuiInputLabel-root': {
+                    fontSize: { xs: '0.85rem', sm: '0.95rem', md: '1rem' }
+                  }
+                }}
               />
               <TextField
                 label="Justificativa"
                 value={notes}
                 onChange={e => setNotes(e.target.value)}
                 multiline
-                minRows={2}
+                minRows={{ xs: 2, sm: 3 }}
                 fullWidth
+                size="small"
+                sx={{
+                  '& .MuiInputBase-root': {
+                    fontSize: { xs: '0.85rem', sm: '0.95rem', md: '1rem' }
+                  },
+                  '& .MuiInputLabel-root': {
+                    fontSize: { xs: '0.85rem', sm: '0.95rem', md: '1rem' }
+                  }
+                }}
               />
               <Button
                 type="submit"
                 variant="contained"
                 color="primary"
                 size="large"
-                endIcon={<SendIcon />}
+                endIcon={<SendIcon sx={{ fontSize: { xs: '1.1rem', sm: '1.25rem' } }} />}
                 disabled={
                   (selectionMode === 'cliente' ? !selectedCustomer : !selectedSubrede) ||
                   !selectedProduct ||
                   !price || isNaN(Number(price)) || Number(price) <= 0 ||
                   !quantity || isNaN(Number(quantity)) || Number(quantity) <= 0 || loading
                 }
-                sx={{ fontWeight: 700, borderRadius: 2, py: 1.2, fontSize: 18 }}
+                fullWidth
+                sx={{ 
+                  fontWeight: 700, 
+                  borderRadius: { xs: 1.5, sm: 2 }, 
+                  py: { xs: 1.25, sm: 1.5 }, 
+                  fontSize: { xs: '0.85rem', sm: '1rem', md: '1.125rem' },
+                  minHeight: { xs: 48, sm: 52 }
+                }}
                 fullWidth
               >
                 {loading ? 'Enviando...' : 'Enviar solicitação'}
@@ -762,36 +863,36 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
       </Slide>
       <Slide in direction="up">
         <Paper elevation={3} sx={{
-          p: { xs: 1.5, sm: 2 },
-          borderRadius: 4,
+          p: { xs: 1.5, sm: 2, md: 3 },
+          borderRadius: { xs: 2, sm: 3, md: 4 },
           bgcolor: '#f7fafc',
           mb: 2,
           boxShadow: '0 4px 16px 0 rgba(60,72,100,0.07)'
         }}>
-          <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
+          <Stack direction="row" justifyContent="space-between" alignItems="center" mb={{ xs: 1.5, sm: 2 }} flexWrap="wrap" gap={1}>
             <Stack direction="row" alignItems="center" spacing={1}>
-              <ShoppingCartIcon color="primary" />
-              <Typography variant="subtitle1" fontWeight={700} color="primary.main">Minhas Solicitações</Typography>
+              <ShoppingCartIcon color="primary" sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }} />
+              <Typography variant="subtitle1" fontWeight={700} color="primary.main" sx={{ fontSize: { xs: '0.9rem', sm: '1rem' } }}>Minhas Solicitações</Typography>
             </Stack>
-            <IconButton onClick={exportCsv} color="success" size="large">
-              <DownloadIcon />
+            <IconButton onClick={exportCsv} color="success" size="small" sx={{ p: { xs: 0.5, sm: 1 } }}>
+              <DownloadIcon sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }} />
             </IconButton>
           </Stack>
           {loading ? (
             <Typography color="text.secondary">Carregando solicitações...</Typography>
           ) : (
-            <Stack spacing={1}>
-              {requests.length === 0 && <Typography color="text.secondary">Nenhuma solicitação registrada.</Typography>}
+            <Stack spacing={{ xs: 1, sm: 1.5 }}>
+              {requests.length === 0 && <Typography color="text.secondary" sx={{ fontSize: { xs: '0.85rem', sm: '0.875rem' } }}>Nenhuma solicitação registrada.</Typography>}
               {requests.map(r => (
                 <Box key={r._id || r.id} sx={{
-                  p: 1.5,
+                  p: { xs: 1, sm: 1.5 },
                   border: 
                     r.status === 'Alterado' ? '2px solid #2196f3' : 
                     r.status === 'Aprovado' || r.status === 'Aprovado pela Gerência' ? '2px solid #4caf50' : 
                     r.status === 'Reprovado' || r.status === 'Reprovado pela Gerência' ? '2px solid #f44336' :
                     r.status === 'Aguardando Gerência' ? '2px solid #ff9800' :
                     '1px solid #e3e6f0',
-                  borderRadius: 2,
+                  borderRadius: { xs: 1, sm: 2 },
                   mb: 1,
                   bgcolor: 
                     r.status === 'Alterado' ? '#bbdefb' : 
@@ -801,44 +902,44 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
                     '#fff',
                   boxShadow: '0 2px 8px 0 rgba(60,72,100,0.04)'
                 }}>
-                  <Stack direction="row" justifyContent="space-between" alignItems="center">
-                    <Typography variant="subtitle2" fontWeight={600} color="primary.main">
+                  <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={{ xs: 0.5, sm: 0 }}>
+                    <Typography variant="subtitle2" fontWeight={600} color="primary.main" sx={{ fontSize: { xs: '0.85rem', sm: '0.875rem' } }}>
                       {r.customer_name}
                     </Typography>
                     {r.status === 'Alterado' && (
-                      <Typography variant="caption" sx={{ bgcolor: '#2196f3', color: 'white', px: 1, py: 0.5, borderRadius: 1, fontWeight: 600 }}>
+                      <Typography variant="caption" sx={{ bgcolor: '#2196f3', color: 'white', px: { xs: 0.75, sm: 1 }, py: { xs: 0.4, sm: 0.5 }, borderRadius: 1, fontWeight: 600, fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>
                         ✓ ALTERADO
                       </Typography>
                     )}
                     {(r.status === 'Aprovado' || r.status === 'Aprovado pela Gerência') && (
-                      <Typography variant="caption" sx={{ bgcolor: '#4caf50', color: 'white', px: 1, py: 0.5, borderRadius: 1, fontWeight: 600 }}>
+                      <Typography variant="caption" sx={{ bgcolor: '#4caf50', color: 'white', px: { xs: 0.75, sm: 1 }, py: { xs: 0.4, sm: 0.5 }, borderRadius: 1, fontWeight: 600, fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>
                         ✓ APROVADO
                       </Typography>
                     )}
                     {(r.status === 'Reprovado' || r.status === 'Reprovado pela Gerência') && (
-                      <Typography variant="caption" sx={{ bgcolor: '#f44336', color: 'white', px: 1, py: 0.5, borderRadius: 1, fontWeight: 600 }}>
+                      <Typography variant="caption" sx={{ bgcolor: '#f44336', color: 'white', px: { xs: 0.75, sm: 1 }, py: { xs: 0.4, sm: 0.5 }, borderRadius: 1, fontWeight: 600, fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>
                         ✗ REPROVADO
                       </Typography>
                     )}
                     {r.status === 'Aguardando Gerência' && (
-                      <Typography variant="caption" sx={{ bgcolor: '#ff9800', color: 'white', px: 1, py: 0.5, borderRadius: 1, fontWeight: 600 }}>
+                      <Typography variant="caption" sx={{ bgcolor: '#ff9800', color: 'white', px: { xs: 0.75, sm: 1 }, py: { xs: 0.4, sm: 0.5 }, borderRadius: 1, fontWeight: 600, fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>
                         ⏳ AGUARDANDO GERÊNCIA
                       </Typography>
                     )}
                     {r.status === 'Pending' && (
-                      <Typography variant="caption" sx={{ bgcolor: '#9e9e9e', color: 'white', px: 1, py: 0.5, borderRadius: 1, fontWeight: 600 }}>
+                      <Typography variant="caption" sx={{ bgcolor: '#9e9e9e', color: 'white', px: { xs: 0.75, sm: 1 }, py: { xs: 0.4, sm: 0.5 }, borderRadius: 1, fontWeight: 600, fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>
                         ⏱ PENDENTE
                       </Typography>
                     )}
                   </Stack>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mt: { xs: 0.5, sm: 0 } }}>
                     Produto: <b>{r.product_name || r.product_id}</b> — Preço: <b>R$ {Number(r.requested_price).toFixed(2)}</b> — Qtd: <b>{r.quantity || '—'}</b>
                   </Typography>
-                  <Typography variant="caption" color="text.secondary">
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
                     {new Date(r.created_at).toLocaleString()} {r.notes && `— ${r.notes}`}
                   </Typography>
                   {r.status === 'Reprovado' && r.approved_by && (
-                    <Typography variant="caption" sx={{ display: 'block', mt: 0.5, color: '#d32f2f', fontWeight: 600 }}>
+                    <Typography variant="caption" sx={{ display: 'block', mt: 0.5, color: '#d32f2f', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
                       Motivo: {r.notes}
                     </Typography>
                   )}

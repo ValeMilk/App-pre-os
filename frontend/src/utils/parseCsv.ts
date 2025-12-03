@@ -1,15 +1,7 @@
 import Papa from 'papaparse'
+import { ClienteSchema, ClientesArraySchema, type Cliente } from '../schemas'
 
-export type Cliente = {
-  rede?: string
-  subrede?: string
-  codigo: string
-  nome_fantasia: string
-  vendedor_code?: string
-  vendedor_name?: string
-  supervisor_code?: string
-  supervisor_name?: string
-}
+export type { Cliente }
 
 export function parseClientesCsv(text: string): Cliente[] {
   // Nova estrutura: REDE; SUBREDE; CODIGO CLIENTE; NOME CLIENTE; CODIGO VENDEDOR; NOME VENDEDOR; CODIGO SUPERVISOR; NOME SUPERVISOR
@@ -28,5 +20,18 @@ export function parseClientesCsv(text: string): Cliente[] {
       supervisor_code: r[6] ? String(r[6]).replace(/\"/g, '').trim() : undefined,
       supervisor_name: r[7] ? String(r[7]).replace(/\"/g, '').trim() : undefined
     }))
-  return parsed
+  
+  // Validar com Zod e filtrar inválidos
+  const validated = parsed
+    .map((cliente, index) => {
+      try {
+        return ClienteSchema.parse(cliente)
+      } catch (err) {
+        console.warn(`Cliente inválido na linha ${index + 1}:`, err)
+        return null
+      }
+    })
+    .filter((c): c is Cliente => c !== null)
+  
+  return validated
 }
