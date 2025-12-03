@@ -91,7 +91,7 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
         return redeMatch && subredeMatch;
       }
       
-      // CASO 2: Desconto especifica APENAS REDE (sem SUBREDE) -> cliente deve ter essa REDE
+      // CASO 2: Desconto especifica APENAS REDE (sem SUBREDE) -> cliente deve ter essa REDE (pode ter ou não SUBREDE)
       if (descontoTemRede && !descontoTemSubrede) {
         return cliente.rede && d.rede.trim() === cliente.rede.trim();
       }
@@ -316,12 +316,13 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
         return match;
       }
       
-      // CASO 2: Desconto especifica APENAS REDE (sem SUBREDE) -> cliente deve ter essa REDE e NÃO TER SUBREDE
+      // CASO 2: Desconto especifica APENAS REDE (sem SUBREDE) -> cliente deve ter essa REDE (pode ter ou não SUBREDE)
       if (descontoTemRede && !descontoTemSubrede) {
         const redeMatch = cliente.rede && d.rede.trim() === cliente.rede.trim();
         console.log('🔍 Verificando por REDE apenas:', {
           descontoRede: d.rede,
           clienteRede: cliente.rede,
+          clienteSubrede: cliente.subrede,
           match: redeMatch
         });
         return redeMatch;

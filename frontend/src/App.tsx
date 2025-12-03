@@ -187,7 +187,47 @@ function AppContent() {
                   <Button variant="outlined" color="secondary" onClick={handleLogout}>Sair</Button>
                 </Box>
                 <RequestForm
-                  clientes={clientes.filter(c => !user.vendedor_code || !c.vendedor_code || c.vendedor_code === user.vendedor_code)}
+                  clientes={(() => {
+                    // Encontrar o cliente específico MERCADINHO PITOMBEIRA
+                    const pitombeira = clientes.find(c => c.codigo === '12132');
+                    console.log('🎯 MERCADINHO PITOMBEIRA encontrado?', !!pitombeira);
+                    if (pitombeira) {
+                      console.log('🎯 PITOMBEIRA:', {
+                        codigo: pitombeira.codigo,
+                        nome: pitombeira.nome_fantasia,
+                        vendedor_code: `"${pitombeira.vendedor_code}"`,
+                        matchesUser: pitombeira.vendedor_code === user.vendedor_code
+                      });
+                    } else {
+                      console.log('❌ Cliente 12132 NÃO FOI PARSEADO DO CSV!');
+                      // Listar todos os códigos próximos ao 12132
+                      const proximos = clientes.filter(c => {
+                        const cod = parseInt(c.codigo);
+                        return cod >= 12120 && cod <= 12145;
+                      }).map(c => ({ codigo: c.codigo, nome: c.nome_fantasia }));
+                      console.log('Clientes próximos de 12132:', proximos);
+                    }
+                    
+                    // Listar TODOS os clientes com vendedor_code 11617
+                    const todos11617 = clientes.filter(c => c.vendedor_code === '11617');
+                    console.log(`📋 Todos os ${todos11617.length} clientes com vendedor_code "11617":`, 
+                      todos11617.map(c => ({ codigo: c.codigo, nome: c.nome_fantasia }))
+                    );
+                    
+                    const filtered = clientes.filter(c => {
+                      if (!user.vendedor_code) return true;
+                      if (!c.vendedor_code) return false;
+                      return c.vendedor_code === user.vendedor_code;
+                    });
+                    
+                    console.log('🔍 RESUMO:', {
+                      totalClientes: clientes.length,
+                      userVendedorCode: `"${user.vendedor_code}"`,
+                      clientesFiltrados: filtered.length,
+                      deveSerNoMinimo: 56
+                    });
+                    return filtered;
+                  })()}
                   produtos={produtos}
                   descontos={descontos}
                   onClientesLoaded={setClientes}
