@@ -54,7 +54,9 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
   const [success, setSuccess] = useState<string | null>(null)
   const [loading, setLoading] = useState(false);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [confirmPromocionalDialogOpen, setConfirmPromocionalDialogOpen] = useState(false);
   const [pendingSubmit, setPendingSubmit] = useState(false);
+  const [promocionalWarningMessage, setPromocionalWarningMessage] = useState('');
 
   // Calcular desconto aplicável em tempo real
   const descontoAplicavel = useMemo(() => {
@@ -258,15 +260,16 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
         }
       }
 
-      // Se preço FINAL (com ou sem desconto) abaixo do promocional, bloqueia completamente
+      // Se preço FINAL (com ou sem desconto) abaixo do promocional, bloqueia e mostra dialog informativo
       if (precoFinal < promocionalPrice) {
         if (temDesconto) {
           // Cliente tem desconto mas o preço final ainda está abaixo do promocional
-          setError(`Preço final com desconto (R$ ${precoFinal.toFixed(2)}) está abaixo do promocional. Preço Promocional: R$ ${selectedProduct.promocional}`);
+          setPromocionalWarningMessage(`Preço final com desconto (R$ ${precoFinal.toFixed(2)}) está abaixo do promocional. Preço Promocional: R$ ${selectedProduct.promocional}`);
         } else {
           // Cliente não tem desconto e o preço solicitado está abaixo do promocional
-          setError(`Preço solicitado (R$ ${priceNum.toFixed(2)}) está abaixo do promocional. Preço Promocional: R$ ${selectedProduct.promocional}`);
+          setPromocionalWarningMessage(`Preço solicitado (R$ ${priceNum.toFixed(2)}) está abaixo do promocional. Preço Promocional: R$ ${selectedProduct.promocional}`);
         }
+        setConfirmPromocionalDialogOpen(true);
         return;
       }
 
@@ -516,6 +519,11 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
   const handleCancelBelowMinPrice = () => {
     setConfirmDialogOpen(false);
     setPendingSubmit(false);
+  };
+
+  const handleClosePromocionalDialog = () => {
+    setConfirmPromocionalDialogOpen(false);
+    setPromocionalWarningMessage('');
   };
 
   // Exporta solicitações para CSV
@@ -875,6 +883,37 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
             autoFocus
           >
             Confirmar e Enviar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog de Aviso para Preço Abaixo do Promocional (Bloqueio) */}
+      <Dialog
+        open={confirmPromocionalDialogOpen}
+        onClose={handleClosePromocionalDialog}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <WarningIcon color="error" />
+          Preço Abaixo do Promocional - Bloqueado
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            {promocionalWarningMessage}
+          </DialogContentText>
+          <DialogContentText sx={{ mt: 2, fontWeight: 600, color: 'error.main' }}>
+            Esta solicitação não pode ser enviada. Por favor, ajuste o preço para um valor igual ou acima do promocional.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={handleClosePromocionalDialog} 
+            variant="contained" 
+            color="primary"
+            autoFocus
+          >
+            Entendido
           </Button>
         </DialogActions>
       </Dialog>

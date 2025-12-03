@@ -102,7 +102,7 @@ function AppContent() {
       <AppBar position="static" color="default" elevation={2} sx={{ mb: 4 }}>
         <Toolbar sx={{ justifyContent: 'space-between' }}>
           <Typography variant="h5" fontWeight={700} color="primary.main">
-            Solicitação de Preços - Valemilk
+            Solicitação de Preços
           </Typography>
           {token && user && (
             <Button variant="outlined" color="secondary" onClick={handleLogout} sx={{ fontWeight: 600, px: 3 }}>Sair</Button>
@@ -156,7 +156,6 @@ function AppContent() {
               <Box sx={{ width: '100%', maxWidth: { xs: '100%', sm: '100%', md: 1400 }, mx: 'auto', px: { xs: 1, sm: 2 } }}>
                 <Box mb={2} display="flex" justifyContent="space-between" alignItems="center">
                   <Typography variant="subtitle1">Bem-vindo, {user.name} (Supervisor)!</Typography>
-                  <Button variant="outlined" color="secondary" onClick={handleLogout}>Sair</Button>
                 </Box>
                 <SupervisorPanel />
               </Box>
@@ -170,7 +169,6 @@ function AppContent() {
               <Box sx={{ width: '100%', maxWidth: { xs: '100%', sm: '100%', md: 1400 }, mx: 'auto', px: { xs: 1, sm: 2 } }}>
                 <Box mb={2} display="flex" justifyContent="space-between" alignItems="center">
                   <Typography variant="subtitle1">Bem-vindo, {user.name} (Gerente)!</Typography>
-                  <Button variant="outlined" color="secondary" onClick={handleLogout}>Sair</Button>
                 </Box>
                 <GerentePanel />
               </Box>
@@ -184,7 +182,6 @@ function AppContent() {
               <>
                 <Box mb={2} display="flex" justifyContent="space-between" alignItems="center">
                   <Typography variant="subtitle1">Bem-vindo, {user.name}!</Typography>
-                  <Button variant="outlined" color="secondary" onClick={handleLogout}>Sair</Button>
                 </Box>
                 <RequestForm
                   clientes={(() => {
