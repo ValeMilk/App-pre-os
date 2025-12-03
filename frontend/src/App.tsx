@@ -98,11 +98,11 @@ function AppContent() {
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: user && user.email === 'admin@admin.com' ? '#f4f6fa' : 'inherit' }}>
+    <Box sx={{ minHeight: '100vh', bgcolor: user && user.email === 'admin@admin.com' ? '#f3f3f5ff' : 'inherit' }}>
       <AppBar position="static" color="default" elevation={2} sx={{ mb: 4 }}>
         <Toolbar sx={{ justifyContent: 'space-between' }}>
-          <Typography variant="h5" fontWeight={700} color="primary.main">
-            Solicitação de Preços
+          <Typography variant="h5" fontWeight={600} color="primary.main">
+          💰Solicitação de Preços
           </Typography>
           {token && user && (
             <Button variant="outlined" color="secondary" onClick={handleLogout} sx={{ fontWeight: 600, px: 3 }}>Sair</Button>
