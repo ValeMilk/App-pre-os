@@ -9,14 +9,17 @@ import SupervisorPanel from './components/SupervisorPanel';
 import GerentePanel from './components/GerentePanel';
 import { parseClientesCsv } from './utils/parseCsv';
 import { parseProdutosCsv } from './utils/parseProdutosCsv';
+import { parseDescontosCsv } from './utils/parseDescontosCsv';
 import theme from './mui-theme';
 import { Cliente } from './types/Cliente';
 import { Produto } from './types/Produto';
+import { Desconto } from './types/Desconto';
 
 function AppContent() {
   const navigate = useNavigate();
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [produtos, setProdutos] = useState<Produto[]>([])
+  const [descontos, setDescontos] = useState<Desconto[]>([])
   const [error, setError] = useState<string | null>(null)
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('token'));
   const [user, setUser] = useState<{ id: string; name: string; email: string; vendedor_code?: string; tipo?: string } | null>(() => {
@@ -46,6 +49,17 @@ function AppContent() {
       })
       .catch(() => {
         setError('Coloque `produtos.csv` na pasta `frontend/public`.')
+      })
+    fetch('/descontos.csv')
+      .then(async res => {
+        if (!res.ok) throw new Error('Arquivo `descontos.csv` não encontrado em /public')
+        const text = await res.text()
+        const parsed = parseDescontosCsv(text)
+        setDescontos(parsed)
+        console.log('Descontos carregados:', parsed)
+      })
+      .catch(() => {
+        console.warn('Arquivo descontos.csv não encontrado. Descontos não serão aplicados.')
       })
   }, [user])
 
@@ -95,7 +109,7 @@ function AppContent() {
           )}
         </Toolbar>
       </AppBar>
-      <Container maxWidth={user && user.email === 'admin@admin.com' ? false : 'sm'} disableGutters={user && user.email === 'admin@admin.com'} sx={user && user.email === 'admin@admin.com' ? { display: 'flex', justifyContent: 'flex-start', alignItems: 'flex-start', minHeight: '85vh', pl: 2 } : {}}>
+      <Container maxWidth={user && user.email === 'admin@admin.com' ? false : (user && (user.tipo === 'supervisor' || user.tipo === 'gerente') ? false : 'sm')} disableGutters={(user && user.email === 'admin@admin.com') || (user && (user.tipo === 'supervisor' || user.tipo === 'gerente'))} sx={user && user.email === 'admin@admin.com' ? { display: 'flex', justifyContent: 'flex-start', alignItems: 'flex-start', minHeight: '85vh', pl: 2 } : {}}>
         {error && <Box sx={{ bgcolor: '#fff3cd', p: 2, borderRadius: 1, mb: 2 }}>{error}</Box>}
         
         <Routes>
@@ -139,13 +153,13 @@ function AppContent() {
 
           <Route path="/supervisor" element={
             token && user ? (
-              <>
+              <Box sx={{ width: '100%', maxWidth: { xs: '100%', sm: '100%', md: 1400 }, mx: 'auto', px: { xs: 1, sm: 2 } }}>
                 <Box mb={2} display="flex" justifyContent="space-between" alignItems="center">
                   <Typography variant="subtitle1">Bem-vindo, {user.name} (Supervisor)!</Typography>
                   <Button variant="outlined" color="secondary" onClick={handleLogout}>Sair</Button>
                 </Box>
                 <SupervisorPanel />
-              </>
+              </Box>
             ) : (
               <Navigate to="/login" replace />
             )
@@ -153,13 +167,13 @@ function AppContent() {
 
           <Route path="/gerente" element={
             token && user ? (
-              <>
+              <Box sx={{ width: '100%', maxWidth: { xs: '100%', sm: '100%', md: 1400 }, mx: 'auto', px: { xs: 1, sm: 2 } }}>
                 <Box mb={2} display="flex" justifyContent="space-between" alignItems="center">
                   <Typography variant="subtitle1">Bem-vindo, {user.name} (Gerente)!</Typography>
                   <Button variant="outlined" color="secondary" onClick={handleLogout}>Sair</Button>
                 </Box>
                 <GerentePanel />
-              </>
+              </Box>
             ) : (
               <Navigate to="/login" replace />
             )
@@ -175,6 +189,7 @@ function AppContent() {
                 <RequestForm
                   clientes={clientes.filter(c => !user.vendedor_code || !c.vendedor_code || c.vendedor_code === user.vendedor_code)}
                   produtos={produtos}
+                  descontos={descontos}
                   onClientesLoaded={setClientes}
                 />
               </>

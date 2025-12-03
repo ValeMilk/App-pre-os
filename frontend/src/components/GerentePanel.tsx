@@ -47,6 +47,8 @@ interface Request {
   approved_at?: string;
   subrede_batch_id?: string;
   subrede_name?: string;
+  discount_percent?: string;
+  discounted_price?: string;
 }
 
 interface GroupedRequest {
@@ -65,6 +67,8 @@ interface GroupedRequest {
   notes: string;
   created_at: string;
   clientCount: number;
+  discount_percent?: string;
+  discounted_price?: string;
 }
 
 export default function GerentePanel() {
@@ -107,6 +111,7 @@ export default function GerentePanel() {
       }
 
       const data = await response.json();
+      console.log('📊 Dados recebidos do backend (GerentePanel):', data);
       
       // Separar pendentes e processadas
       const pending = data.filter((r: Request) => r.status === 'Aguardando Gerência');
@@ -146,7 +151,9 @@ export default function GerentePanel() {
           status: firstReq.status,
           notes: firstReq.notes || '',
           created_at: firstReq.created_at,
-          clientCount: reqs.length
+          clientCount: reqs.length,
+          discount_percent: firstReq.discount_percent,
+          discounted_price: firstReq.discounted_price
         };
       });
       
@@ -182,7 +189,9 @@ export default function GerentePanel() {
           status: firstReq.status,
           notes: firstReq.notes || '',
           created_at: firstReq.created_at,
-          clientCount: reqs.length
+          clientCount: reqs.length,
+          discount_percent: firstReq.discount_percent,
+          discounted_price: firstReq.discounted_price
         };
       });
       
@@ -329,13 +338,21 @@ export default function GerentePanel() {
   };
 
   return (
-    <Paper elevation={3} sx={{ p: 4 }}>
-      <Typography variant="h5" fontWeight={700} color="primary.main" gutterBottom>
-        Painel da Gerência — Aprovar Preços Especiais
-      </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        Solicitações de preços abaixo do mínimo que requerem aprovação da gerência.
-      </Typography>
+    <Paper elevation={3} sx={{ p: { xs: 2, sm: 3, md: 4 }, width: '100%', overflowX: 'auto' }}>
+      <Box sx={{ 
+        background: 'linear-gradient(135deg, #0898f8ff 0%, #63acffff 100%)',
+        p: 3,
+        borderRadius: 2,
+        mb: 3,
+        color: 'white'
+      }}>
+        <Typography variant="h5" fontWeight={700} gutterBottom sx={{ fontSize: { xs: '1.2rem', sm: '1.5rem' } }}>
+          👔 Painel do Gerente
+        </Typography>
+        <Typography variant="body2" sx={{ opacity: 0.9 }}>
+          Aprovar preços especiais abaixo do mínimo estabelecido
+        </Typography>
+      </Box>
 
       {error && (
         <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>
@@ -349,25 +366,39 @@ export default function GerentePanel() {
         </Alert>
       )}
 
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+        <Typography variant="h6" fontWeight={600} color="error.main">
+          🕐 Aguardando Aprovação
+        </Typography>
+        <Chip 
+          label={requests.length} 
+          color="error" 
+          size="small"
+          sx={{ fontWeight: 700, fontSize: '0.9rem' }}
+        />
+      </Box>
+
       {requests.length === 0 ? (
-        <Alert severity="info">
-          Nenhuma solicitação aguardando aprovação da gerência no momento.
+        <Alert severity="success">
+          ✅ Nenhuma solicitação aguardando aprovação da gerência no momento.
         </Alert>
       ) : (
-        <TableContainer>
-          <Table size="small">
+        <TableContainer sx={{ overflowX: 'auto', maxWidth: '100%' }}>
+          <Table size="small" sx={{ minWidth: 700 }}>
             <TableHead>
               <TableRow sx={{ bgcolor: '#f5f5f5' }}>
-                <TableCell><strong>Vendedor</strong></TableCell>
-                <TableCell><strong>Cliente</strong></TableCell>
-                <TableCell><strong>Produto</strong></TableCell>
-                <TableCell align="right"><strong>Preço Solicitado</strong></TableCell>
-                <TableCell align="right"><strong>Preço Mínimo</strong></TableCell>
-                <TableCell align="right"><strong>Preço Promocional</strong></TableCell>
-                <TableCell align="center"><strong>Qtd.</strong></TableCell>
-                <TableCell><strong>Justificativa</strong></TableCell>
-                <TableCell><strong>Data</strong></TableCell>
-                <TableCell align="center"><strong>Ações</strong></TableCell>
+                <TableCell sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Vendedor</strong></TableCell>
+                <TableCell sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Cliente</strong></TableCell>
+                <TableCell sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Produto</strong></TableCell>
+                <TableCell align="right" sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Preço Solicitado</strong></TableCell>
+                <TableCell align="center" sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>% Desc.</strong></TableCell>
+                <TableCell align="right" sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Preço c/ Desc.</strong></TableCell>
+                <TableCell align="right" sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Preço Mínimo</strong></TableCell>
+                <TableCell align="right" sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Preço Promocional</strong></TableCell>
+                <TableCell align="center" sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Qtd.</strong></TableCell>
+                <TableCell sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Justificativa</strong></TableCell>
+                <TableCell sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Data</strong></TableCell>
+                <TableCell align="center" sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Ações</strong></TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -396,6 +427,20 @@ export default function GerentePanel() {
                     <strong style={{ color: '#d32f2f' }}>
                       {group.currency} {group.requested_price}
                     </strong>
+                  </TableCell>
+                  <TableCell align="center">
+                    {group.discount_percent ? (
+                      <Chip label={`${group.discount_percent}%`} size="small" color="success" />
+                    ) : (
+                      <Typography variant="caption" color="text.secondary">—</Typography>
+                    )}
+                  </TableCell>
+                  <TableCell align="right">
+                    {group.discounted_price ? (
+                      <strong style={{ color: '#2e7d32' }}>{group.currency} {group.discounted_price}</strong>
+                    ) : (
+                      <Typography variant="caption" color="text.secondary">—</Typography>
+                    )}
                   </TableCell>
                   <TableCell align="right">
                     <Typography variant="body2" color="text.secondary">
@@ -468,6 +513,20 @@ export default function GerentePanel() {
                       {req.currency} {req.requested_price}
                     </strong>
                   </TableCell>
+                  <TableCell align="center">
+                    {req.discount_percent ? (
+                      <Chip label={`${req.discount_percent}%`} size="small" color="success" />
+                    ) : (
+                      <Typography variant="caption" color="text.secondary">—</Typography>
+                    )}
+                  </TableCell>
+                  <TableCell align="right">
+                    {req.discounted_price ? (
+                      <strong style={{ color: '#2e7d32' }}>{req.currency} {req.discounted_price}</strong>
+                    ) : (
+                      <Typography variant="caption" color="text.secondary">—</Typography>
+                    )}
+                  </TableCell>
                   <TableCell align="right">
                     <Typography variant="body2" color="text.secondary">
                       R$ {req.product_minimo || '—'}
@@ -517,22 +576,33 @@ export default function GerentePanel() {
       {/* Histórico de Solicitações Processadas */}
       {allRequests.length > 0 && (
         <Box sx={{ mt: 6 }}>
-          <Typography variant="h6" fontWeight={600} color="text.primary" gutterBottom>
-            Histórico — Solicitações Processadas pela Gerência
-          </Typography>
-          <TableContainer>
-            <Table size="small">
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+            <Typography variant="h6" fontWeight={600} color="text.primary">
+              📊 Histórico de Decisões
+            </Typography>
+            <Chip 
+              label={allRequests.length} 
+              color="default" 
+              size="small"
+              variant="outlined"
+              sx={{ fontWeight: 600 }}
+            />
+          </Box>
+          <TableContainer sx={{ overflowX: 'auto', maxWidth: '100%' }}>
+            <Table size="small" sx={{ minWidth: 700 }}>
               <TableHead>
                 <TableRow sx={{ bgcolor: '#f5f5f5' }}>
-                  <TableCell><strong>Vendedor</strong></TableCell>
-                  <TableCell><strong>Cliente</strong></TableCell>
-                  <TableCell><strong>Produto</strong></TableCell>
-                  <TableCell align="right"><strong>Preço Solicitado</strong></TableCell>
-                  <TableCell align="right"><strong>Preço Mínimo</strong></TableCell>
-                  <TableCell align="center"><strong>Qtd.</strong></TableCell>
-                  <TableCell><strong>Status</strong></TableCell>
-                  <TableCell><strong>Observações</strong></TableCell>
-                  <TableCell><strong>Data Aprovação/Reprovação</strong></TableCell>
+                  <TableCell sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Vendedor</strong></TableCell>
+                  <TableCell sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Cliente</strong></TableCell>
+                  <TableCell sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Produto</strong></TableCell>
+                  <TableCell align="right" sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Preço Solicitado</strong></TableCell>
+                  <TableCell align="center" sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>% Desc.</strong></TableCell>
+                  <TableCell align="right" sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Preço c/ Desc.</strong></TableCell>
+                  <TableCell align="right" sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Preço Mínimo</strong></TableCell>
+                  <TableCell align="center" sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Qtd.</strong></TableCell>
+                  <TableCell sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Status</strong></TableCell>
+                  <TableCell sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Observações</strong></TableCell>
+                  <TableCell sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Data Aprovação/Reprovação</strong></TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -552,9 +622,7 @@ export default function GerentePanel() {
                       <TableCell>
                         <strong>SUBREDE: {group.subrede_name}</strong>
                         <br />
-                        <Typography variant="caption" color="primary.main">
-                          {group.clientCount} clientes
-                        </Typography>
+                       
                       </TableCell>
                       <TableCell>
                         {group.product_name || group.product_id}
@@ -564,9 +632,25 @@ export default function GerentePanel() {
                         </Typography>
                       </TableCell>
                       <TableCell align="right">
-                        <strong>
+                        <strong style={{ color: '#d32f2f' }}>
                           {group.currency} {group.requested_price}
                         </strong>
+                      </TableCell>
+                      <TableCell align="center">
+                        {group.discount_percent ? (
+                          <Chip label={`${group.discount_percent}%`} size="small" color="success" />
+                        ) : (
+                          <span>—</span>
+                        )}
+                      </TableCell>
+                      <TableCell align="right">
+                        {group.discounted_price ? (
+                          <strong style={{ color: '#2e7d32' }}>
+                            {group.currency} {group.discounted_price}
+                          </strong>
+                        ) : (
+                          <span>—</span>
+                        )}
                       </TableCell>
                       <TableCell align="right">
                         <Typography variant="body2" color="text.secondary">
@@ -622,9 +706,25 @@ export default function GerentePanel() {
                         </Typography>
                       </TableCell>
                       <TableCell align="right">
-                        <strong>
+                        <strong style={{ color: '#d32f2f' }}>
                           {req.currency} {req.requested_price}
                         </strong>
+                      </TableCell>
+                      <TableCell align="center">
+                        {req.discount_percent ? (
+                          <Chip label={`${req.discount_percent}%`} size="small" color="success" />
+                        ) : (
+                          <span>—</span>
+                        )}
+                      </TableCell>
+                      <TableCell align="right">
+                        {req.discounted_price ? (
+                          <strong style={{ color: '#2e7d32' }}>
+                            {req.currency} {req.discounted_price}
+                          </strong>
+                        ) : (
+                          <span>—</span>
+                        )}
                       </TableCell>
                       <TableCell align="right">
                         <Typography variant="body2" color="text.secondary">

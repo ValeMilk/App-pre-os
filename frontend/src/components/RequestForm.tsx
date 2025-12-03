@@ -1,17 +1,20 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import Papa from 'papaparse'
 import { Cliente } from '../utils/parseCsv'
 import { Produto } from '../utils/parseProdutosCsv'
-import { Box, Button, TextField, Typography, Alert, Stack, Paper, Autocomplete, Divider, Slide, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, DialogContentText } from '@mui/material'
+import { Desconto } from '../types/Desconto'
+import { Box, Button, TextField, Typography, Alert, Stack, Paper, Autocomplete, Divider, Slide, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, DialogContentText, Chip } from '@mui/material'
 import SendIcon from '@mui/icons-material/Send';
 import DownloadIcon from '@mui/icons-material/Download';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import PersonIcon from '@mui/icons-material/Person';
 import WarningIcon from '@mui/icons-material/Warning';
+import LocalOfferIcon from '@mui/icons-material/LocalOffer';
 
 type Props = {
   clientes: Cliente[]
   produtos: Produto[]
+  descontos: Desconto[]
   onClientesLoaded: (c: Cliente[]) => void
 }
 
@@ -36,7 +39,7 @@ type PriceRequest = {
 import { API_ENDPOINTS } from '../config/api';
 const API_URL = API_ENDPOINTS.requests.base;
 
-export default function RequestForm({ clientes, produtos, onClientesLoaded }: Props) {
+export default function RequestForm({ clientes, produtos, descontos, onClientesLoaded }: Props) {
   const token = localStorage.getItem('token');
   // Estados do formulário e feedback
   const [selectionMode, setSelectionMode] = useState<'cliente' | 'subrede'>('cliente');
@@ -53,8 +56,82 @@ export default function RequestForm({ clientes, produtos, onClientesLoaded }: Pr
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [pendingSubmit, setPendingSubmit] = useState(false);
 
+  // Calcular desconto aplicável em tempo real
+  const descontoAplicavel = useMemo(() => {
+    if (!selectedCustomer && !selectedSubrede) return null;
+    if (!selectedProduct) return null;
+
+    // Usar cliente selecionado ou primeiro cliente da subrede
+    let cliente: Cliente | undefined;
+    if (selectionMode === 'cliente') {
+      cliente = selectedCustomer;
+    } else if (selectionMode === 'subrede' && selectedSubrede) {
+      const clientesDaSubrede = clientes.filter(c => c.subrede && c.subrede.trim() === selectedSubrede);
+      cliente = clientesDaSubrede[0];
+    }
+
+    if (!cliente) return null;
+
+    // Buscar desconto aplicável usando a MESMA lógica da função calcularDesconto
+    const desconto = descontos.find(d => {
+      const produtoMatch = d.codigo_produto === selectedProduct.codigo_produto;
+      
+      if (!produtoMatch) return false;
+      
+      // Verificar se desconto tem REDE especificada (não "-" e não vazio)
+      const descontoTemRede = d.rede && d.rede !== '-' && d.rede.trim() !== '';
+      
+      // Verificar se desconto tem SUBREDE especificada (não "-" e não vazio)
+      const descontoTemSubrede = d.subrede && d.subrede !== '-' && d.subrede.trim() !== '';
+      
+      // CASO 1: Desconto especifica REDE + SUBREDE -> cliente deve ter AMBOS
+      if (descontoTemRede && descontoTemSubrede) {
+        const redeMatch = cliente.rede && d.rede.trim() === cliente.rede.trim();
+        const subredeMatch = cliente.subrede && d.subrede.trim() === cliente.subrede.trim();
+        return redeMatch && subredeMatch;
+      }
+      
+      // CASO 2: Desconto especifica APENAS REDE (sem SUBREDE) -> cliente deve ter essa REDE
+      if (descontoTemRede && !descontoTemSubrede) {
+        return cliente.rede && d.rede.trim() === cliente.rede.trim();
+      }
+      
+      // CASO 3: Desconto especifica APENAS SUBREDE (sem REDE) -> cliente deve ter essa SUBREDE
+      if (!descontoTemRede && descontoTemSubrede) {
+        return cliente.subrede && d.subrede.trim() === cliente.subrede.trim();
+      }
+      
+      // Se desconto não especifica nem REDE nem SUBREDE, não aplica
+      return false;
+    });
+
+    return desconto;
+  }, [selectedCustomer, selectedSubrede, selectedProduct, descontos, clientes, selectionMode]);
+
+  // Calcular preço com desconto
+  const precoComDesconto = useMemo(() => {
+    if (!price || !descontoAplicavel) return null;
+
+    const precoDigitado = parseFloat(price.replace(',', '.'));
+    if (isNaN(precoDigitado)) return null;
+
+    // Extrair percentual do desconto (ex: "5,00%" -> 5)
+    const percentualStr = descontoAplicavel.desconto.replace('%', '').replace(',', '.');
+    const percentual = parseFloat(percentualStr);
+    if (isNaN(percentual)) return null;
+
+    const valorDesconto = precoDigitado * (percentual / 100);
+    const precoFinal = precoDigitado - valorDesconto;
+
+    return {
+      percentual,
+      valorDesconto,
+      precoFinal
+    };
+  }, [price, descontoAplicavel]);
+
   // Extrair lista única de subredes
-  const subredes = React.useMemo(() => {
+  const subredes = useMemo(() => {
     const uniqueSubredes = new Set<string>();
     clientes.forEach(c => {
       if (c.subrede && c.subrede.trim()) {
@@ -160,14 +237,41 @@ export default function RequestForm({ clientes, produtos, onClientesLoaded }: Pr
         return;
       }
 
-      // Se preço abaixo do promocional, bloqueia completamente
-      if (priceNum < promocionalPrice) {
-        setError(`Preço abaixo do promocional não é permitido. Preço Promocional: R$ ${selectedProduct.promocional}`);
+      // Calcular desconto para validação
+      let precoFinal = priceNum;
+      let temDesconto = false;
+      if (selectionMode === 'cliente' && selectedCustomer) {
+        const descontoInfo = calcularDesconto(selectedCustomer, selectedProduct, price);
+        if (descontoInfo) {
+          precoFinal = parseFloat(descontoInfo.discounted_price);
+          temDesconto = true;
+        }
+      } else if (selectionMode === 'subrede' && selectedSubrede) {
+        // Para subrede, pegar qualquer cliente da subrede para verificar desconto
+        const clientesDaSubrede = clientes.filter(c => c.subrede && c.subrede.trim() === selectedSubrede);
+        if (clientesDaSubrede.length > 0) {
+          const descontoInfo = calcularDesconto(clientesDaSubrede[0], selectedProduct, price);
+          if (descontoInfo) {
+            precoFinal = parseFloat(descontoInfo.discounted_price);
+            temDesconto = true;
+          }
+        }
+      }
+
+      // Se preço FINAL (com ou sem desconto) abaixo do promocional, bloqueia completamente
+      if (precoFinal < promocionalPrice) {
+        if (temDesconto) {
+          // Cliente tem desconto mas o preço final ainda está abaixo do promocional
+          setError(`Preço final com desconto (R$ ${precoFinal.toFixed(2)}) está abaixo do promocional. Preço Promocional: R$ ${selectedProduct.promocional}`);
+        } else {
+          // Cliente não tem desconto e o preço solicitado está abaixo do promocional
+          setError(`Preço solicitado (R$ ${priceNum.toFixed(2)}) está abaixo do promocional. Preço Promocional: R$ ${selectedProduct.promocional}`);
+        }
         return;
       }
 
-      // Se preço abaixo do mínimo (mas acima do promocional), solicita confirmação
-      if (priceNum < minPrice && !pendingSubmit) {
+      // Se preço FINAL (com desconto) abaixo do mínimo (mas acima do promocional), solicita confirmação
+      if (precoFinal < minPrice && !pendingSubmit) {
         setConfirmDialogOpen(true);
         return;
       }
@@ -175,6 +279,91 @@ export default function RequestForm({ clientes, produtos, onClientesLoaded }: Pr
 
     // Prosseguir com o envio
     await processSubmit();
+  }
+
+  // Função para calcular desconto baseado em REDE/SUBREDE + PRODUTO
+  function calcularDesconto(cliente: Cliente, produto: Produto, precoSolicitado: string): { discount_percent: string, discounted_price: string } | null {
+    console.log('🔍 Calculando desconto:', {
+      cliente: { rede: cliente.rede, subrede: cliente.subrede, codigo: cliente.codigo },
+      produto: produto.codigo_produto,
+      totalDescontos: descontos.length
+    });
+
+    // Buscar desconto aplicável
+    const descontoAplicavel = descontos.find(d => {
+      const produtoMatch = d.codigo_produto === produto.codigo_produto;
+      
+      if (!produtoMatch) return false;
+      
+      // Verificar se desconto tem REDE especificada (não "-" e não vazio)
+      const descontoTemRede = d.rede && d.rede !== '-' && d.rede.trim() !== '';
+      
+      // Verificar se desconto tem SUBREDE especificada (não "-" e não vazio)
+      const descontoTemSubrede = d.subrede && d.subrede !== '-' && d.subrede.trim() !== '';
+      
+      // CASO 1: Desconto especifica REDE + SUBREDE -> cliente deve ter AMBOS
+      if (descontoTemRede && descontoTemSubrede) {
+        const redeMatch = cliente.rede && d.rede.trim() === cliente.rede.trim();
+        const subredeMatch = cliente.subrede && d.subrede.trim() === cliente.subrede.trim();
+        const match = redeMatch && subredeMatch;
+        console.log('🔍 Verificando por REDE + SUBREDE:', {
+          descontoRede: d.rede,
+          descontoSubrede: d.subrede,
+          clienteRede: cliente.rede,
+          clienteSubrede: cliente.subrede,
+          match: match
+        });
+        return match;
+      }
+      
+      // CASO 2: Desconto especifica APENAS REDE (sem SUBREDE) -> cliente deve ter essa REDE e NÃO TER SUBREDE
+      if (descontoTemRede && !descontoTemSubrede) {
+        const redeMatch = cliente.rede && d.rede.trim() === cliente.rede.trim();
+        console.log('🔍 Verificando por REDE apenas:', {
+          descontoRede: d.rede,
+          clienteRede: cliente.rede,
+          match: redeMatch
+        });
+        return redeMatch;
+      }
+      
+      // CASO 3: Desconto especifica APENAS SUBREDE (sem REDE) -> cliente deve ter essa SUBREDE
+      if (!descontoTemRede && descontoTemSubrede) {
+        const subredeMatch = cliente.subrede && d.subrede.trim() === cliente.subrede.trim();
+        console.log('🔍 Verificando por SUBREDE apenas:', {
+          descontoSubrede: d.subrede,
+          clienteSubrede: cliente.subrede,
+          match: subredeMatch
+        });
+        return subredeMatch;
+      }
+      
+      // Se desconto não especifica nem REDE nem SUBREDE, não aplica
+      return false;
+    });
+
+    if (!descontoAplicavel) {
+      console.log('❌ Nenhum desconto encontrado');
+      return null;
+    }
+
+    console.log('✅ Desconto encontrado:', descontoAplicavel);
+
+    // Extrair percentual de desconto (ex: "5,00%" -> 5.00)
+    const percentualStr = descontoAplicavel.desconto.replace('%', '').replace(',', '.');
+    const percentual = parseFloat(percentualStr);
+
+    if (isNaN(percentual) || percentual <= 0) return null;
+
+    // Calcular preço com desconto
+    const precoOriginal = parseFloat(precoSolicitado.replace(',', '.'));
+    const valorDesconto = precoOriginal * (percentual / 100);
+    const precoComDesconto = precoOriginal - valorDesconto;
+
+    return {
+      discount_percent: percentual.toFixed(2),
+      discounted_price: precoComDesconto.toFixed(2)
+    };
   }
 
   async function processSubmit() {
@@ -185,6 +374,8 @@ export default function RequestForm({ clientes, produtos, onClientesLoaded }: Pr
     try {
       if (selectionMode === 'cliente') {
         // Modo individual: envia 1 solicitação para o cliente selecionado
+        const descontoInfo = calcularDesconto(selectedCustomer!, selectedProduct!, price);
+        
         const req = {
           requester_name: 'Vendedor (frontend)',
           requester_id: '',
@@ -201,7 +392,11 @@ export default function RequestForm({ clientes, produtos, onClientesLoaded }: Pr
           status: 'Pending',
           notes,
           codigo_supervisor: selectedCustomer!.supervisor_code,
-          nome_supervisor: selectedCustomer!.supervisor_name
+          nome_supervisor: selectedCustomer!.supervisor_name,
+          ...(descontoInfo && {
+            discount_percent: descontoInfo.discount_percent,
+            discounted_price: descontoInfo.discounted_price
+          })
         };
 
         const res = await fetch(API_URL, {
@@ -240,6 +435,8 @@ export default function RequestForm({ clientes, produtos, onClientesLoaded }: Pr
 
         for (const cliente of clientesDaSubrede) {
           try {
+            const descontoInfo = calcularDesconto(cliente, selectedProduct!, price);
+            
             const req = {
               requester_name: 'Vendedor (frontend)',
               requester_id: '',
@@ -258,7 +455,11 @@ export default function RequestForm({ clientes, produtos, onClientesLoaded }: Pr
               codigo_supervisor: cliente.supervisor_code,
               nome_supervisor: cliente.supervisor_name,
               subrede_batch_id: subrede_batch_id,
-              subrede_name: selectedSubrede
+              subrede_name: selectedSubrede,
+              ...(descontoInfo && {
+                discount_percent: descontoInfo.discount_percent,
+                discounted_price: descontoInfo.discounted_price
+              })
             };
 
             const res = await fetch(API_URL, {
@@ -459,6 +660,57 @@ export default function RequestForm({ clientes, produtos, onClientesLoaded }: Pr
                 disabled={selectionMode === 'cliente' ? !selectedCustomer : !selectedSubrede}
                 fullWidth
               />
+              
+              {/* Mostrar desconto aplicado em tempo real */}
+              {descontoAplicavel && precoComDesconto && (
+                <Box sx={{ 
+                  p: 2, 
+                  bgcolor: '#e8f5e9', 
+                  borderRadius: 2, 
+                  border: '2px solid #4caf50',
+                  animation: 'pulse 0.5s ease-in-out'
+                }}>
+                  <Stack direction="row" alignItems="center" spacing={1} mb={1}>
+                    <LocalOfferIcon color="success" />
+                    <Typography variant="h6" color="success.main" fontWeight={700}>
+                      Desconto Aplicado!
+                    </Typography>
+                    <Chip 
+                      label={`${precoComDesconto.percentual}%`} 
+                      color="success" 
+                      size="small" 
+                      sx={{ fontWeight: 700 }}
+                    />
+                  </Stack>
+                  <Divider sx={{ mb: 1 }} />
+                  <Stack spacing={0.5}>
+                    <Box display="flex" justifyContent="space-between">
+                      <Typography variant="body2" color="text.secondary">Preço original:</Typography>
+                      <Typography variant="body2" fontWeight={600}>R$ {parseFloat(price.replace(',', '.')).toFixed(2)}</Typography>
+                    </Box>
+                    <Box display="flex" justifyContent="space-between">
+                      <Typography variant="body2" color="success.main">Desconto ({precoComDesconto.percentual}%):</Typography>
+                      <Typography variant="body2" color="success.main" fontWeight={600}>- R$ {precoComDesconto.valorDesconto.toFixed(2)}</Typography>
+                    </Box>
+                    <Divider />
+                    <Box display="flex" justifyContent="space-between">
+                      <Typography variant="body1" fontWeight={700}>Preço final:</Typography>
+                      <Typography variant="h6" color="success.main" fontWeight={700}>R$ {precoComDesconto.precoFinal.toFixed(2)}</Typography>
+                    </Box>
+                  </Stack>
+                  {descontoAplicavel.rede && (
+                    <Typography variant="caption" color="text.secondary" display="block" mt={1}>
+                      💼 Desconto da rede: {descontoAplicavel.rede}
+                    </Typography>
+                  )}
+                  {descontoAplicavel.subrede && (
+                    <Typography variant="caption" color="text.secondary" display="block" mt={1}>
+                      🏪 Desconto da subrede: {descontoAplicavel.subrede}
+                    </Typography>
+                  )}
+                </Box>
+              )}
+
               <TextField
                 label="Quantidade"
                 value={quantity}

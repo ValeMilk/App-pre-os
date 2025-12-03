@@ -88,7 +88,9 @@ const priceRequestSchema = new mongoose.Schema({
   codigo_supervisor: String,
   nome_supervisor: String,
   subrede_batch_id: String,
-  subrede_name: String
+  subrede_name: String,
+  discount_percent: String,
+  discounted_price: String
 });
 const PriceRequest = mongoose.model('PriceRequest', priceRequestSchema);
 

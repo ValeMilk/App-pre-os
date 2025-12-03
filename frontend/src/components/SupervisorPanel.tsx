@@ -47,6 +47,8 @@ interface Request {
   approved_at?: string;
   subrede_batch_id?: string;
   subrede_name?: string;
+  discount_percent?: string;
+  discounted_price?: string;
 }
 
 interface GroupedRequest {
@@ -66,6 +68,8 @@ interface GroupedRequest {
   notes: string;
   created_at: string;
   clientCount: number;
+  discount_percent?: string;
+  discounted_price?: string;
 }
 
 export default function SupervisorPanel() {
@@ -104,6 +108,7 @@ export default function SupervisorPanel() {
       }
 
       const data = await response.json();
+      console.log('📊 Dados recebidos do backend (SupervisorPanel):', data);
       setRequests(data);
       
       // Agrupar solicitações por subrede_batch_id
@@ -140,7 +145,9 @@ export default function SupervisorPanel() {
           status: firstReq.status,
           notes: firstReq.notes || '',
           created_at: firstReq.created_at,
-          clientCount: reqs.length
+          clientCount: reqs.length,
+          discount_percent: firstReq.discount_percent,
+          discounted_price: firstReq.discounted_price
         };
       });
       
@@ -345,10 +352,21 @@ export default function SupervisorPanel() {
   const processedRequests = requests.filter(r => r.status !== 'Pending');
 
   return (
-    <Paper elevation={3} sx={{ p: 4 }}>
-      <Typography variant="h5" fontWeight={700} color="primary.main" gutterBottom>
-        Painel do Supervisor — Aprovar/Reprovar Solicitações
-      </Typography>
+    <Paper elevation={3} sx={{ p: { xs: 2, sm: 3, md: 4 }, width: '100%', overflowX: 'auto' }}>
+      <Box sx={{ 
+        background: 'linear-gradient(135deg, #000000ff 0%, #0c0c0cff 100%)',
+        p: 3,
+        borderRadius: 2,
+        mb: 3,
+        color: 'white'
+      }}>
+        <Typography variant="h5" fontWeight={700} gutterBottom sx={{ fontSize: { xs: '1.2rem', sm: '1.5rem' } }}>
+          🎯 Painel do Supervisor
+        </Typography>
+        <Typography variant="body2" sx={{ opacity: 0.9 }}>
+          Aprovar ou reprovar solicitações de preços dos vendedores
+        </Typography>
+      </Box>
 
       {error && (
         <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>
@@ -364,26 +382,36 @@ export default function SupervisorPanel() {
 
       {/* Solicitações Pendentes */}
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h6" fontWeight={600} color="secondary.main" gutterBottom>
-          Solicitações Pendentes ({pendingRequests.length})
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+          <Typography variant="h6" fontWeight={600} color="secondary.main">
+            ⏳ Solicitações Pendentes
+          </Typography>
+          <Chip 
+            label={pendingRequests.length} 
+            color="warning" 
+            size="small"
+            sx={{ fontWeight: 700, fontSize: '0.9rem' }}
+          />
+        </Box>
         {pendingRequests.length === 0 ? (
           <Typography variant="body2" color="text.secondary">
             Nenhuma solicitação pendente no momento.
           </Typography>
         ) : (
-          <TableContainer>
-            <Table size="small">
+          <TableContainer sx={{ overflowX: 'auto', maxWidth: '100%' }}>
+            <Table size="small" sx={{ width: '100%' }}>
               <TableHead>
                 <TableRow>
-                  <TableCell><strong>Vendedor</strong></TableCell>
-                  <TableCell><strong>Cliente</strong></TableCell>
-                  <TableCell><strong>Produto</strong></TableCell>
-                  <TableCell align="right"><strong>Preço</strong></TableCell>
-                  <TableCell align="center"><strong>Qtd.</strong></TableCell>
-                  <TableCell><strong>Justificativa</strong></TableCell>
-                  <TableCell><strong>Data</strong></TableCell>
-                  <TableCell align="center"><strong>Ações</strong></TableCell>
+                  <TableCell sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Vendedor</strong></TableCell>
+                  <TableCell sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Cliente</strong></TableCell>
+                  <TableCell sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Produto</strong></TableCell>
+                  <TableCell align="right" sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Preço Solicitado</strong></TableCell>
+                  <TableCell align="center" sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>% Desc.</strong></TableCell>
+                  <TableCell align="right" sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Preço c/ Desc.</strong></TableCell>
+                  <TableCell align="center" sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Qtd.</strong></TableCell>
+                  <TableCell sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Justificativa</strong></TableCell>
+                  <TableCell sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Data</strong></TableCell>
+                  <TableCell align="center" sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Ações</strong></TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -404,6 +432,20 @@ export default function SupervisorPanel() {
                     </TableCell>
                     <TableCell align="right">
                       <strong>{group.currency} {group.requested_price}</strong>
+                    </TableCell>
+                    <TableCell align="center">
+                      {group.discount_percent ? (
+                        <Chip label={`${group.discount_percent}%`} size="small" color="success" />
+                      ) : (
+                        <Typography variant="caption" color="text.secondary">—</Typography>
+                      )}
+                    </TableCell>
+                    <TableCell align="right">
+                      {group.discounted_price ? (
+                        <strong style={{ color: '#2e7d32' }}>{group.currency} {group.discounted_price}</strong>
+                      ) : (
+                        <Typography variant="caption" color="text.secondary">—</Typography>
+                      )}
                     </TableCell>
                     <TableCell align="center">
                       <strong>{group.quantity || '—'}</strong>
@@ -486,6 +528,20 @@ export default function SupervisorPanel() {
                       <strong>{req.currency} {req.requested_price}</strong>
                     </TableCell>
                     <TableCell align="center">
+                      {req.discount_percent ? (
+                        <Chip label={`${req.discount_percent}%`} size="small" color="success" />
+                      ) : (
+                        <Typography variant="caption" color="text.secondary">—</Typography>
+                      )}
+                    </TableCell>
+                    <TableCell align="right">
+                      {req.discounted_price ? (
+                        <strong style={{ color: '#2e7d32' }}>{req.currency} {req.discounted_price}</strong>
+                      ) : (
+                        <Typography variant="caption" color="text.secondary">—</Typography>
+                      )}
+                    </TableCell>
+                    <TableCell align="center">
                       <strong>{req.quantity || '—'}</strong>
                     </TableCell>
                     <TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -551,27 +607,38 @@ export default function SupervisorPanel() {
 
       {/* Histórico Processado */}
       <Box>
-        <Typography variant="h6" fontWeight={600} color="text.secondary" gutterBottom>
-          Histórico Processado ({processedRequests.length})
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+          <Typography variant="h6" fontWeight={600} color="text.secondary" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
+            📋 Histórico Processado
+          </Typography>
+          <Chip 
+            label={processedRequests.length} 
+            color="default" 
+            size="small"
+            variant="outlined"
+            sx={{ fontWeight: 600 }}
+          />
+        </Box>
         {processedRequests.length === 0 ? (
           <Typography variant="body2" color="text.secondary">
             Nenhuma solicitação processada ainda.
           </Typography>
         ) : (
-          <TableContainer>
-            <Table size="small">
+          <TableContainer sx={{ overflowX: 'auto', maxWidth: '100%' }}>
+            <Table size="small" sx={{ minWidth: 650 }}>
               <TableHead>
                 <TableRow>
-                  <TableCell><strong>Vendedor</strong></TableCell>
-                  <TableCell><strong>Cliente</strong></TableCell>
-                  <TableCell><strong>Produto</strong></TableCell>
-                  <TableCell align="right"><strong>Preço</strong></TableCell>
-                  <TableCell align="center"><strong>Qtd.</strong></TableCell>
-                  <TableCell align="center"><strong>Status</strong></TableCell>
-                  <TableCell><strong>Justificativa</strong></TableCell>
-                  <TableCell><strong>Aprovado por</strong></TableCell>
-                  <TableCell><strong>Data Aprovação</strong></TableCell>
+                  <TableCell sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Vendedor</strong></TableCell>
+                  <TableCell sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Cliente</strong></TableCell>
+                  <TableCell sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Produto</strong></TableCell>
+                  <TableCell align="right" sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Preço Solicitado</strong></TableCell>
+                  <TableCell align="center" sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>% Desc.</strong></TableCell>
+                  <TableCell align="right" sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Preço c/ Desc.</strong></TableCell>
+                  <TableCell align="center" sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Qtd.</strong></TableCell>
+                  <TableCell align="center" sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Status</strong></TableCell>
+                  <TableCell sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Justificativa</strong></TableCell>
+                  <TableCell sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Aprovado por</strong></TableCell>
+                  <TableCell sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Data Aprovação</strong></TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -586,7 +653,25 @@ export default function SupervisorPanel() {
                     <TableCell>{req.customer_name || req.customer_code}</TableCell>
                     <TableCell>{req.product_name || req.product_id}</TableCell>
                     <TableCell align="right">
-                      {req.currency} {req.requested_price}
+                      <strong style={{ color: '#d32f2f' }}>
+                        {req.currency} {req.requested_price}
+                      </strong>
+                    </TableCell>
+                    <TableCell align="center">
+                      {req.discount_percent ? (
+                        <Chip label={`${req.discount_percent}%`} size="small" color="success" />
+                      ) : (
+                        <span>—</span>
+                      )}
+                    </TableCell>
+                    <TableCell align="right">
+                      {req.discounted_price ? (
+                        <strong style={{ color: '#2e7d32' }}>
+                          {req.currency} {req.discounted_price}
+                        </strong>
+                      ) : (
+                        <span>—</span>
+                      )}
                     </TableCell>
                     <TableCell align="center">
                       {req.quantity || '—'}
