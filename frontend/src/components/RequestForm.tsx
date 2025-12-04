@@ -1016,7 +1016,7 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
                       size="small"
                       startIcon={<CancelIcon />}
                       onClick={() => handleOpenCancelDialog(r._id || r.id)}
-                      sx={{ mt: 0, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}
+                      sx={{ mt: 5, fontSize: { xs: '0.75rem', sm: '0.75rem' } }}
                     >
                       Solicitar Cancelamento
                     </Button>
