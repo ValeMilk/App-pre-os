@@ -91,7 +91,10 @@ const priceRequestSchema = new mongoose.Schema({
   subrede_name: String,
   discount_percent: String,
   discounted_price: String,
-  supervisor_notes: String
+  supervisor_notes: String,
+  cancellation_requested: { type: Boolean, default: false },
+  cancellation_reason: String,
+  cancellation_requested_at: Date
 });
 const PriceRequest = mongoose.model('PriceRequest', priceRequestSchema);
 
@@ -428,6 +431,94 @@ const PriceRequest = mongoose.model('PriceRequest', priceRequestSchema);
       res.json({ message: `${result.modifiedCount} solicitações reprovadas pela gerência`, count: result.modifiedCount });
     } catch (err) {
       res.status(500).json({ error: 'Erro ao reprovar lote pela gerência', details: err });
+    }
+  });
+
+  // Solicitar cancelamento (vendedor)
+  app.post('/api/requests/:id/request-cancel', requireAuth, async (req: AuthRequest, res: Response) => {
+    try {
+      const tipo = req.user?.tipo;
+      if (tipo !== 'vendedor') {
+        return res.status(403).json({ error: 'Acesso permitido apenas para vendedores.' });
+      }
+      const { cancellation_reason } = req.body;
+      if (!cancellation_reason || !cancellation_reason.trim()) {
+        return res.status(400).json({ error: 'Motivo do cancelamento é obrigatório.' });
+      }
+      
+      const request = await PriceRequest.findById(req.params.id);
+      if (!request) {
+        return res.status(404).json({ error: 'Solicitação não encontrada.' });
+      }
+      
+      // Verificar se o vendedor é dono da solicitação
+      if (request.requester_id !== req.user?.userId) {
+        console.log('❌ Cancelamento negado:', {
+          requester_id: request.requester_id,
+          user_userId: req.user?.userId
+        });
+        return res.status(403).json({ error: 'Você só pode solicitar cancelamento das suas próprias solicitações.' });
+      }
+      
+      // Verificar se já não está cancelada
+      if (request.status === 'Cancelado') {
+        return res.status(400).json({ error: 'Esta solicitação já está cancelada.' });
+      }
+      
+      // Marcar como solicitação de cancelamento pendente
+      request.cancellation_requested = true;
+      request.cancellation_reason = cancellation_reason;
+      request.cancellation_requested_at = new Date();
+      await request.save();
+      
+      res.json({ message: 'Solicitação de cancelamento enviada para aprovação do admin.' });
+    } catch (err) {
+      res.status(500).json({ error: 'Erro ao solicitar cancelamento', details: err });
+    }
+  });
+
+  // Listar solicitações de cancelamento pendentes (admin apenas)
+  app.get('/api/requests/cancellation-requests', requireAuth, async (req: AuthRequest, res: Response) => {
+    try {
+      if (!req.user || req.user.email !== 'admin@admin.com') {
+        return res.status(403).json({ error: 'Acesso negado. Apenas admin pode ver solicitações de cancelamento.' });
+      }
+      
+      const requests = await PriceRequest.find({ 
+        cancellation_requested: true,
+        status: { $ne: 'Cancelado' }
+      }).sort({ cancellation_requested_at: -1 });
+      
+      res.json(requests);
+    } catch (err) {
+      res.status(500).json({ error: 'Erro ao buscar solicitações de cancelamento', details: err });
+    }
+  });
+
+  // Aprovar cancelamento (admin apenas)
+  app.patch('/api/requests/:id/approve-cancel', requireAuth, async (req: AuthRequest, res: Response) => {
+    try {
+      if (!req.user || req.user.email !== 'admin@admin.com') {
+        return res.status(403).json({ error: 'Acesso negado. Apenas admin pode aprovar cancelamentos.' });
+      }
+      
+      const request = await PriceRequest.findById(req.params.id);
+      if (!request) {
+        return res.status(404).json({ error: 'Solicitação não encontrada.' });
+      }
+      
+      if (!request.cancellation_requested) {
+        return res.status(400).json({ error: 'Esta solicitação não tem cancelamento pendente.' });
+      }
+      
+      request.status = 'Cancelado';
+      request.approved_by = req.user?.name || 'Admin';
+      request.approved_at = new Date();
+      await request.save();
+      
+      res.json({ message: 'Cancelamento aprovado com sucesso.' });
+    } catch (err) {
+      res.status(500).json({ error: 'Erro ao aprovar cancelamento', details: err });
     }
   });
 

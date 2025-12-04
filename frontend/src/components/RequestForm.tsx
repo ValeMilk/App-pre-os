@@ -11,6 +11,7 @@ import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import PersonIcon from '@mui/icons-material/Person';
 import WarningIcon from '@mui/icons-material/Warning';
 import LocalOfferIcon from '@mui/icons-material/LocalOffer';
+import CancelIcon from '@mui/icons-material/Cancel';
 
 type Props = {
   clientes: Cliente[]
@@ -58,6 +59,9 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
   const [confirmPromocionalDialogOpen, setConfirmPromocionalDialogOpen] = useState(false);
   const [pendingSubmit, setPendingSubmit] = useState(false);
   const [promocionalWarningMessage, setPromocionalWarningMessage] = useState('');
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [cancellationReason, setCancellationReason] = useState('');
+  const [selectedRequestForCancel, setSelectedRequestForCancel] = useState<string | null>(null);
 
   // Calcular desconto aplicável em tempo real
   const descontoAplicavel = useMemo(() => {
@@ -548,6 +552,55 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
     setPromocionalWarningMessage('');
   };
 
+  // Abrir dialog de cancelamento
+  const handleOpenCancelDialog = (requestId: string) => {
+    setSelectedRequestForCancel(requestId);
+    setCancellationReason('');
+    setCancelDialogOpen(true);
+  };
+
+  // Cancelar solicitação de cancelamento
+  const handleCloseCancelDialog = () => {
+    setCancelDialogOpen(false);
+    setCancellationReason('');
+    setSelectedRequestForCancel(null);
+  };
+
+  // Confirmar solicitação de cancelamento
+  const handleConfirmCancellation = async () => {
+    if (!selectedRequestForCancel) return;
+    if (!cancellationReason.trim()) {
+      setError('Por favor, informe o motivo do cancelamento.');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/${selectedRequestForCancel}/request-cancel`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ cancellation_reason: cancellationReason })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erro ao solicitar cancelamento');
+      }
+
+      setSuccess('Solicitação de cancelamento enviada para aprovação do admin!');
+      setTimeout(() => setSuccess(null), 3000);
+      setCancelDialogOpen(false);
+      setCancellationReason('');
+      setSelectedRequestForCancel(null);
+      fetchRequests(); // Atualizar lista
+    } catch (err: any) {
+      setError(err.message || 'Erro ao solicitar cancelamento');
+      console.error('[RequestForm] Erro ao solicitar cancelamento:', err);
+    }
+  };
+
   // Exporta solicitações para CSV
   function exportCsv() {
     if (requests.length === 0) {
@@ -893,6 +946,7 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
                 <Box key={r._id || r.id} sx={{
                   p: { xs: 1, sm: 1.5 },
                   border: 
+                    r.status === 'Cancelado' ? '2px solid #000' :
                     r.status === 'Alterado' ? '2px solid #2196f3' : 
                     r.status === 'Aprovado' || r.status === 'Aprovado pela Gerência' ? '2px solid #4caf50' : 
                     r.status === 'Reprovado' || r.status === 'Reprovado pela Gerência' ? '2px solid #f44336' :
@@ -901,6 +955,7 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
                   borderRadius: { xs: 1, sm: 2 },
                   mb: 1,
                   bgcolor: 
+                    r.status === 'Cancelado' ? '#000' :
                     r.status === 'Alterado' ? '#bbdefb' : 
                     r.status === 'Aprovado' || r.status === 'Aprovado pela Gerência' ? '#c8e6c9' : 
                     r.status === 'Reprovado' || r.status === 'Reprovado pela Gerência' ? '#ffcdd2' :
@@ -909,7 +964,7 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
                   boxShadow: '0 2px 8px 0 rgba(60,72,100,0.04)'
                 }}>
                   <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={{ xs: 0.5, sm: 0 }}>
-                    <Typography variant="subtitle2" fontWeight={600} color="primary.main" sx={{ fontSize: { xs: '0.85rem', sm: '0.875rem' } }}>
+                    <Typography variant="subtitle2" fontWeight={600} color={r.status === 'Cancelado' ? 'white' : 'primary.main'} sx={{ fontSize: { xs: '0.85rem', sm: '0.875rem' } }}>
                       {r.customer_name}
                     </Typography>
                     {r.status === 'Alterado' && (
@@ -937,17 +992,42 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
                         ⏱ PENDENTE
                       </Typography>
                     )}
+                    {r.status === 'Cancelado' && (
+                      <Typography variant="caption" sx={{ bgcolor: '#000', color: 'white', px: { xs: 0.75, sm: 1 }, py: { xs: 0.4, sm: 0.5 }, borderRadius: 1, fontWeight: 600, fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>
+                        ✗ CANCELADO
+                      </Typography>
+                    )}
                   </Stack>
-                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mt: { xs: 0.5, sm: 0 } }}>
+                  <Typography variant="body2" color={r.status === 'Cancelado' ? 'white' : 'text.secondary'} sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mt: { xs: 0.5, sm: 0 } }}>
                     Produto: <b>{r.product_name || r.product_id}</b> — Preço: <b>R$ {Number(r.requested_price).toFixed(2)}</b> — Qtd: <b>{r.quantity || '—'}</b>
                   </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
+                  <Typography variant="caption" color={r.status === 'Cancelado' ? 'rgba(255,255,255,0.7)' : 'text.secondary'} sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
                     {new Date(r.created_at).toLocaleString()} {r.notes && `— ${r.notes}`}
                   </Typography>
                   {r.status === 'Reprovado' && r.approved_by && (
                     <Typography variant="caption" sx={{ display: 'block', mt: 0.5, color: '#d32f2f', fontWeight: 600, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
                       Motivo: {r.notes}
                     </Typography>
+                  )}
+                  {r.status !== 'Cancelado' && !r.cancellation_requested && (
+                    <Button
+                      variant="outlined"
+                      color="error"
+                      size="small"
+                      startIcon={<CancelIcon />}
+                      onClick={() => handleOpenCancelDialog(r._id || r.id)}
+                      sx={{ mt: 0, fontSize: { xs: '0.7rem', sm: '0.75rem' } }}
+                    >
+                      Solicitar Cancelamento
+                    </Button>
+                  )}
+                  {r.cancellation_requested && r.status !== 'Cancelado' && (
+                    <Chip
+                      label="Cancelamento Pendente"
+                      size="small"
+                      color="warning"
+                      sx={{ mt: 1 }}
+                    />
                   )}
                 </Box>
               ))}
@@ -1021,6 +1101,50 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
             autoFocus
           >
             Entendido
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog de Solicitação de Cancelamento */}
+      <Dialog
+        open={cancelDialogOpen}
+        onClose={handleCloseCancelDialog}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <CancelIcon color="error" />
+          Solicitar Cancelamento
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mb: 2 }}>
+            Por favor, informe o motivo do cancelamento desta solicitação. 
+            A solicitação será enviada para aprovação do administrador.
+          </DialogContentText>
+          <TextField
+            autoFocus
+            required
+            fullWidth
+            multiline
+            rows={4}
+            label="Motivo do Cancelamento"
+            value={cancellationReason}
+            onChange={(e) => setCancellationReason(e.target.value)}
+            placeholder="Descreva o motivo do cancelamento..."
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseCancelDialog} color="inherit">
+            Cancelar
+          </Button>
+          <Button 
+            onClick={handleConfirmCancellation} 
+            variant="contained" 
+            color="error"
+            disabled={!cancellationReason.trim()}
+            startIcon={<CancelIcon />}
+          >
+            Confirmar Cancelamento
           </Button>
         </DialogActions>
       </Dialog>

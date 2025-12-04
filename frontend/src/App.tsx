@@ -5,6 +5,7 @@ import AuthForm from './components/AuthForm';
 import RequestForm from './components/RequestForm';
 import AdminPanel from './components/AdminPanel';
 import AdminRequestsPanel from './components/AdminRequestsPanel';
+import AdminLixeira from './components/AdminLixeira';
 import SupervisorPanel from './components/SupervisorPanel';
 import GerentePanel from './components/GerentePanel';
 import { parseClientesCsv } from './utils/parseCsv';
@@ -154,10 +155,12 @@ function AppContent() {
                   gridTemplateColumns={{ xs: '1fr', md: '420px 1fr' }} 
                   gap={3}
                   alignItems="start"
+                  mb={3}
                 >
                   <AdminPanel />
                   <AdminRequestsPanel />
                 </Box>
+                <AdminLixeira />
               </Box>
             ) : (
               <Navigate to="/login" replace />

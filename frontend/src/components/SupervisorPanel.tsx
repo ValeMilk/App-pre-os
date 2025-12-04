@@ -683,7 +683,7 @@ export default function SupervisorPanel() {
                   <TableRow
                     key={req._id}
                     sx={{
-                      bgcolor: req.status === 'Alterado' ? '#e3f2fd' : req.status === 'Aprovado' ? '#e8f5e9' : req.status === 'Reprovado' ? '#ffebee' : 'inherit'
+                      bgcolor: req.status === 'Cancelado' ? '#d8d2d2ff' : req.status === 'Alterado' ? '#a8dbffff' : req.status === 'Aprovado pela Gerência' ? '#fcb42fff' : req.status === 'Aprovado' ? '#91e999ff' :req.status === 'Reprovado' ? '#f18a9aff' : 'inherit'
                     }}
                   >
                     <TableCell>{req.requester_name}</TableCell>
@@ -720,9 +720,11 @@ export default function SupervisorPanel() {
                           req.status === 'Alterado' ? 'info' : 
                           req.status === 'Aprovado' || req.status === 'Aprovado pela Gerência' ? 'success' : 
                           req.status === 'Aguardando Gerência' ? 'warning' :
+                          req.status === 'Cancelado' ? 'default' :
                           'error'
                         }
                         size="small"
+                        sx={req.status === 'Cancelado' ? { bgcolor: '#000', color: 'white', fontWeight: 600 } : {}}
                       />
                     </TableCell>
                     <TableCell sx={{ maxWidth: 200 }}>{req.notes || '—'}</TableCell>

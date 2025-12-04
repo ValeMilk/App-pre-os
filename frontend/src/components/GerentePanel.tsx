@@ -500,7 +500,7 @@ export default function GerentePanel() {
                   </TableCell>
                   <TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     <Typography variant="body2" color="warning.main" fontWeight={600}>
-                      {group.requests[0]?.supervisor_notes || '—'}
+                      {(group.requests[0] as any)?.supervisor_notes || '—'}
                     </Typography>
                   </TableCell>
                   <TableCell>
@@ -672,12 +672,13 @@ export default function GerentePanel() {
                       const group = item.data;
                       const isApproved = group.status === 'Aprovado pela Gerência';
                       const isAltered = group.status === 'Alterado';
+                      const isCanceled = group.status === 'Cancelado';
                       return (
                         <TableRow 
                           key={group.batchId}
                           sx={{ 
-                            bgcolor: isAltered ? '#e3f2fd' : (isApproved ? '#f1f8e9' : '#ffebee'),
-                            '&:hover': { bgcolor: isAltered ? '#bbdefb' : (isApproved ? '#e8f5e9' : '#ffcdd2') }
+                            bgcolor: isCanceled ? '#000' : isAltered ? '#e3f2fd' : (isApproved ? '#f1f8e9' : '#ffebee'),
+                            '&:hover': { bgcolor: isCanceled ? '#333' : isAltered ? '#bbdefb' : (isApproved ? '#e8f5e9' : '#ffcdd2') }
                           }}
                         >
                           <TableCell>{group.requester_name}</TableCell>
@@ -726,8 +727,9 @@ export default function GerentePanel() {
                             <Chip
                               label={group.status}
                               size="small"
-                              color={isAltered ? 'info' : (isApproved ? 'success' : 'error')}
+                              color={isCanceled ? 'default' : isAltered ? 'info' : (isApproved ? 'success' : 'error')}
                               icon={isApproved ? <CheckCircleIcon /> : <CancelIcon />}
+                              sx={isCanceled ? { bgcolor: '#000', color: 'white', fontWeight: 600 } : {}}
                             />
                           </TableCell>
                           <TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -742,12 +744,13 @@ export default function GerentePanel() {
                       const req = item.data;
                       const isApproved = req.status === 'Aprovado pela Gerência';
                       const isAltered = req.status === 'Alterado';
+                      const isCanceled = req.status === 'Cancelado';
                       return (
                         <TableRow 
                           key={req._id}
                           sx={{ 
-                            bgcolor: isAltered ? '#e3f2fd' : (isApproved ? '#f1f8e9' : '#ffebee'),
-                            '&:hover': { bgcolor: isAltered ? '#bbdefb' : (isApproved ? '#e8f5e9' : '#ffcdd2') }
+                            bgcolor: isCanceled ? '#000' : isAltered ? '#e3f2fd' : (isApproved ? '#f1f8e9' : '#ffebee'),
+                            '&:hover': { bgcolor: isCanceled ? '#333' : isAltered ? '#bbdefb' : (isApproved ? '#e8f5e9' : '#ffcdd2') }
                           }}
                         >
                           <TableCell>{req.requester_name}</TableCell>
@@ -798,8 +801,9 @@ export default function GerentePanel() {
                             <Chip
                               label={req.status}
                               size="small"
-                              color={isAltered ? 'info' : (isApproved ? 'success' : 'error')}
+                              color={isCanceled ? 'default' : isAltered ? 'info' : (isApproved ? 'success' : 'error')}
                               icon={isApproved ? <CheckCircleIcon /> : <CancelIcon />}
+                              sx={isCanceled ? { bgcolor: '#000', color: 'white', fontWeight: 600 } : {}}
                             />
                           </TableCell>
                           <TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>

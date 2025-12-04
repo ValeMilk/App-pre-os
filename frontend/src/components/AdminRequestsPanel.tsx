@@ -304,6 +304,7 @@ export default function AdminRequestsPanel() {
                   <tr key={r._id} style={{ 
                     borderBottom: '1px solid #e8e8e8', 
                     background: 
+                      r.status === 'Cancelado' ? '#000' :
                       r.status === 'Alterado' ? '#e3f2fd' : 
                       r.status === 'Aprovado' || r.status === 'Aprovado pela Gerência' ? '#e8f5e9' : 
                       r.status === 'Reprovado' || r.status === 'Reprovado pela Gerência' ? '#ffebee' :
@@ -324,10 +325,11 @@ export default function AdminRequestsPanel() {
                           r.status === 'Alterado' ? 'info' : 
                           r.status === 'Aprovado' || r.status === 'Aprovado pela Gerência' ? 'success' : 
                           r.status === 'Reprovado' || r.status === 'Reprovado pela Gerência' ? 'error' : 
+                          r.status === 'Cancelado' ? 'default' :
                           'warning'
                         }
                         size="small"
-                        sx={{ fontWeight: 600, fontSize: 14 }}
+                        sx={r.status === 'Cancelado' ? { fontWeight: 600, fontSize: 14, bgcolor: '#000', color: 'white' } : { fontWeight: 600, fontSize: 14 }}
                       />
                     </td>
                     <td style={{ padding: 10, fontSize: 12 }}>{new Date(r.created_at).toLocaleDateString('pt-BR')}</td>
