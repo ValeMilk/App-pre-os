@@ -152,7 +152,6 @@ export default function AdminRequestsPanel() {
     a.download = 'todas_solicitacoes.csv';
     a.click();
     URL.revokeObjectURL(url);
-    setSuccess('Arquivo CSV exportado!');
   }
 
   return (

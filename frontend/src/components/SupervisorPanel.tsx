@@ -80,9 +80,11 @@ export default function SupervisorPanel() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [encaminharDialogOpen, setEncaminharDialogOpen] = useState(false);
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
   const [rejectNotes, setRejectNotes] = useState('');
+  const [encaminharNotes, setEncaminharNotes] = useState('');
 
   const fetchRequests = async () => {
     try {
@@ -114,7 +116,7 @@ export default function SupervisorPanel() {
       // Validar com Zod
       try {
         const validatedRequests = RequestsArraySchema.parse(data);
-        setRequests(validatedRequests);
+        setRequests(validatedRequests as any);
       } catch (err) {
         console.error('Erro ao validar solicitações:', err);
         setError('Dados inválidos recebidos do servidor');
@@ -273,7 +275,26 @@ export default function SupervisorPanel() {
     setRejectNotes('');
   };
 
-  const handleEncaminharGerencia = async (requestId: string) => {
+  const handleOpenEncaminharDialog = (requestId: string) => {
+    setSelectedRequestId(requestId);
+    setSelectedBatchId(null);
+    setEncaminharNotes('');
+    setEncaminharDialogOpen(true);
+  };
+
+  const handleOpenEncaminharBatchDialog = (batchId: string) => {
+    setSelectedBatchId(batchId);
+    setSelectedRequestId(null);
+    setEncaminharNotes('');
+    setEncaminharDialogOpen(true);
+  };
+
+  const handleConfirmEncaminhar = async () => {
+    if (!encaminharNotes.trim()) {
+      setError('Por favor, forneça uma justificativa para encaminhar à gerência');
+      return;
+    }
+
     try {
       const token = localStorage.getItem('token');
       if (!token) {
@@ -281,12 +302,22 @@ export default function SupervisorPanel() {
         return;
       }
 
-      const response = await fetch(`${API_URL}/${requestId}/encaminhar-gerencia`, {
+      let url = '';
+      if (selectedRequestId) {
+        url = `${API_URL}/${selectedRequestId}/encaminhar-gerencia`;
+      } else if (selectedBatchId) {
+        url = `${API_URL}/batch/${selectedBatchId}/encaminhar-gerencia`;
+      } else {
+        return;
+      }
+
+      const response = await fetch(url, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
-        }
+        },
+        body: JSON.stringify({ supervisor_notes: encaminharNotes })
       });
 
       if (!response.ok) {
@@ -294,8 +325,10 @@ export default function SupervisorPanel() {
         throw new Error(errorData.error || 'Erro ao encaminhar para gerência');
       }
 
-      setSuccess('Solicitação encaminhada para gerência!');
+      setSuccess('Solicitação encaminhada para gerência com justificativa!');
       setTimeout(() => setSuccess(null), 3000);
+      setEncaminharDialogOpen(false);
+      setEncaminharNotes('');
       fetchRequests();
     } catch (err: any) {
       setError(err.message || 'Erro ao encaminhar para gerência');
@@ -331,25 +364,7 @@ export default function SupervisorPanel() {
     setRejectDialogOpen(true);
   };
 
-  const handleEncaminharGerenciaBatch = async (batchId: string) => {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) return;
 
-      const response = await fetch(`${API_URL}/batch/${batchId}/encaminhar-gerencia`, {
-        method: 'PATCH',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (!response.ok) throw new Error('Erro ao encaminhar subrede para gerência');
-      const data = await response.json();
-      setSuccess(`${data.count} solicitações encaminhadas para gerência!`);
-      setTimeout(() => setSuccess(null), 3000);
-      fetchRequests();
-    } catch (err: any) {
-      setError(err.message || 'Erro ao encaminhar subrede');
-    }
-  };
 
   const canApproveDirectly = (request: Request | GroupedRequest): boolean => {
     if (!request.product_minimo || !request.requested_price) return true;
@@ -507,7 +522,7 @@ export default function SupervisorPanel() {
                               variant="contained"
                               color="warning"
                               size="small"
-                              onClick={() => handleEncaminharGerenciaBatch(group.batchId)}
+                              onClick={() => handleOpenEncaminharBatchDialog(group.batchId)}
                               sx={{ mr: 0.5 }}
                             >
                             Encaminhar para Gerência 
@@ -601,7 +616,7 @@ export default function SupervisorPanel() {
                               variant="contained"
                               color="warning"
                               size="small"
-                              onClick={() => handleEncaminharGerencia(req._id)}
+                              onClick={() => handleOpenEncaminharDialog(req._id)}
                               sx={{ mr: 0.5 }}
                             >
                               Encaminhar para Gerência
@@ -660,7 +675,7 @@ export default function SupervisorPanel() {
                   <TableCell align="center" sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Status</strong></TableCell>
                   <TableCell sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Justificativa</strong></TableCell>
                   <TableCell sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Aprovado por</strong></TableCell>
-                  <TableCell sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Data Aprovação</strong></TableCell>
+                  <TableCell sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Data/Hora Aprovação</strong></TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -713,7 +728,13 @@ export default function SupervisorPanel() {
                     <TableCell sx={{ maxWidth: 200 }}>{req.notes || '—'}</TableCell>
                     <TableCell>{req.approved_by || '—'}</TableCell>
                     <TableCell>
-                      {req.approved_at ? new Date(req.approved_at).toLocaleDateString('pt-BR') : '—'}
+                      {req.approved_at ? new Date(req.approved_at).toLocaleString('pt-BR', { 
+                        day: '2-digit', 
+                        month: '2-digit', 
+                        year: 'numeric', 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                      }) : '—'}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -750,6 +771,41 @@ export default function SupervisorPanel() {
             disabled={!rejectNotes.trim()}
           >
             Confirmar Reprovação
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog para Encaminhar para Gerência com Justificativa */}
+      <Dialog open={encaminharDialogOpen} onClose={() => setEncaminharDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Encaminhar para Gerência</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Por favor, forneça uma justificativa para o encaminhamento desta solicitação à gerência.
+          </Typography>
+          <TextField
+            label="Justificativa do Supervisor"
+            multiline
+            rows={4}
+            fullWidth
+            value={encaminharNotes}
+            onChange={(e) => setEncaminharNotes(e.target.value)}
+            placeholder="Explique o motivo do encaminhamento para gerência..."
+            autoFocus
+            sx={{ mt: 1 }}
+            required
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEncaminharDialogOpen(false)} color="inherit">
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleConfirmEncaminhar}
+            color="warning"
+            variant="contained"
+            disabled={!encaminharNotes.trim()}
+          >
+            Confirmar Encaminhamento
           </Button>
         </DialogActions>
       </Dialog>

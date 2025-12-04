@@ -28,28 +28,29 @@ import { RequestsArraySchema } from '../schemas';
 const API_URL = API_ENDPOINTS.requests.base;
 
 interface Request {
-  _id: string;
-  requester_name: string;
-  requester_id: string;
-  customer_code: string;
+  _id?: string;
+  id?: string;
+  requester_name?: string;
+  requester_id?: string;
+  customer_code?: string;
   customer_name?: string;
-  product_id: string;
+  product_id?: string;
   product_name?: string;
-  requested_price: string;
-  quantity?: string;
-  product_maximo?: string;
-  product_minimo?: string;
-  product_promocional?: string;
-  currency: string;
-  status: string;
+  requested_price?: string | number;
+  quantity?: string | number;
+  product_maximo?: string | number;
+  product_minimo?: string | number;
+  product_promocional?: string | number;
+  currency?: string;
+  status?: string;
   notes?: string;
-  created_at: string;
+  created_at?: string | Date;
   approved_by?: string;
-  approved_at?: string;
+  approved_at?: string | Date;
   subrede_batch_id?: string;
   subrede_name?: string;
-  discount_percent?: string;
-  discounted_price?: string;
+  discount_percent?: string | number;
+  discounted_price?: string | number;
 }
 
 interface GroupedRequest {
@@ -125,8 +126,8 @@ export default function GerentePanel() {
       }
       
       // Separar pendentes e processadas
-      const pending = validatedData.filter((r: Request) => r.status === 'Aguardando Gerência');
-      const processed = validatedData.filter((r: Request) => 
+      const pending = validatedData.filter((r: any) => r.status === 'Aguardando Gerência');
+      const processed = validatedData.filter((r: any) => 
         r.status === 'Aprovado pela Gerência' || r.status === 'Reprovado pela Gerência' || r.status === 'Alterado'
       );
       
@@ -134,7 +135,7 @@ export default function GerentePanel() {
       const groupedPending: { [key: string]: Request[] } = {};
       const individualPending: Request[] = [];
       
-      pending.forEach((req: Request) => {
+      pending.forEach((req: any) => {
         if (req.subrede_batch_id) {
           if (!groupedPending[req.subrede_batch_id]) {
             groupedPending[req.subrede_batch_id] = [];
@@ -151,20 +152,20 @@ export default function GerentePanel() {
           batchId,
           subrede_name: firstReq.subrede_name || 'SUBREDE',
           requests: reqs,
-          requester_name: firstReq.requester_name,
-          product_id: firstReq.product_id,
+          requester_name: firstReq.requester_name || '',
+          product_id: firstReq.product_id || '',
           product_name: firstReq.product_name || '',
-          requested_price: firstReq.requested_price,
-          quantity: firstReq.quantity || '',
-          product_minimo: firstReq.product_minimo || '',
-          product_promocional: firstReq.product_promocional || '',
-          currency: firstReq.currency,
-          status: firstReq.status,
+          requested_price: String(firstReq.requested_price || '0'),
+          quantity: String(firstReq.quantity || ''),
+          product_minimo: String(firstReq.product_minimo || ''),
+          product_promocional: String(firstReq.product_promocional || ''),
+          currency: firstReq.currency || 'R$',
+          status: firstReq.status || 'Pending',
           notes: firstReq.notes || '',
-          created_at: firstReq.created_at,
+          created_at: String(firstReq.created_at || ''),
           clientCount: reqs.length,
-          discount_percent: firstReq.discount_percent,
-          discounted_price: firstReq.discounted_price
+          discount_percent: String(firstReq.discount_percent || ''),
+          discounted_price: String(firstReq.discounted_price || '')
         };
       });
       
@@ -172,7 +173,7 @@ export default function GerentePanel() {
       const groupedProc: { [key: string]: Request[] } = {};
       const individualProc: Request[] = [];
       
-      processed.forEach((req: Request) => {
+      processed.forEach((req: any) => {
         if (req.subrede_batch_id) {
           if (!groupedProc[req.subrede_batch_id]) {
             groupedProc[req.subrede_batch_id] = [];
@@ -189,29 +190,50 @@ export default function GerentePanel() {
           batchId,
           subrede_name: firstReq.subrede_name || 'SUBREDE',
           requests: reqs,
-          requester_name: firstReq.requester_name,
-          product_id: firstReq.product_id,
+          requester_name: firstReq.requester_name || '',
+          product_id: firstReq.product_id || '',
           product_name: firstReq.product_name || '',
-          requested_price: firstReq.requested_price,
-          quantity: firstReq.quantity || '',
-          product_minimo: firstReq.product_minimo || '',
-          product_promocional: firstReq.product_promocional || '',
-          currency: firstReq.currency,
-          status: firstReq.status,
+          requested_price: String(firstReq.requested_price || '0'),
+          quantity: String(firstReq.quantity || ''),
+          product_minimo: String(firstReq.product_minimo || ''),
+          product_promocional: String(firstReq.product_promocional || ''),
+          currency: firstReq.currency || 'R$',
+          status: firstReq.status || 'Pending',
           notes: firstReq.notes || '',
-          created_at: firstReq.created_at,
+          created_at: String(firstReq.created_at || ''),
           clientCount: reqs.length,
-          discount_percent: firstReq.discount_percent,
-          discounted_price: firstReq.discounted_price
+          discount_percent: String(firstReq.discount_percent || ''),
+          discounted_price: String(firstReq.discounted_price || '')
         };
       });
       
-      setRequests(pending);
-      setAllRequests(processed);
+      // Ordenar processadas por data (mais recente primeiro)
+      const sortedProcessed = processed.sort((a: any, b: any) => {
+        const dateA = new Date(a.approved_at || a.created_at || 0).getTime();
+        const dateB = new Date(b.approved_at || b.created_at || 0).getTime();
+        return dateB - dateA; // Mais recente primeiro
+      });
+
+      // Ordenar agrupadas por data (mais recente primeiro)
+      const sortedGroupedProc = groupedProcArray.sort((a, b) => {
+        const dateA = new Date(a.requests[0]?.approved_at || a.created_at || 0).getTime();
+        const dateB = new Date(b.requests[0]?.approved_at || b.created_at || 0).getTime();
+        return dateB - dateA;
+      });
+
+      // Ordenar individuais processadas por data (mais recente primeiro)
+      const sortedIndividualProc = individualProc.sort((a: any, b: any) => {
+        const dateA = new Date(a.approved_at || a.created_at || 0).getTime();
+        const dateB = new Date(b.approved_at || b.created_at || 0).getTime();
+        return dateB - dateA;
+      });
+
+      setRequests(pending as any);
+      setAllRequests(sortedProcessed as any);
       setGroupedRequests(groupedPendingArray);
       setIndividualRequests(individualPending);
-      setGroupedProcessed(groupedProcArray);
-      setIndividualProcessed(individualProc);
+      setGroupedProcessed(sortedGroupedProc);
+      setIndividualProcessed(sortedIndividualProc);
     } catch (err: any) {
       setError(err.message || 'Erro ao carregar solicitações');
       console.error('[GerentePanel] Erro ao buscar solicitações:', err);
@@ -414,6 +436,7 @@ export default function GerentePanel() {
                 <TableCell align="right" sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Preço Promocional</strong></TableCell>
                 <TableCell align="center" sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Qtd.</strong></TableCell>
                 <TableCell sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Justificativa</strong></TableCell>
+                <TableCell sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Motivo Supervisor</strong></TableCell>
                 <TableCell sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Data</strong></TableCell>
                 <TableCell align="center" sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Ações</strong></TableCell>
               </TableRow>
@@ -474,6 +497,11 @@ export default function GerentePanel() {
                   </TableCell>
                   <TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {group.notes || '—'}
+                  </TableCell>
+                  <TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <Typography variant="body2" color="warning.main" fontWeight={600}>
+                      {group.requests[0]?.supervisor_notes || '—'}
+                    </Typography>
                   </TableCell>
                   <TableCell>
                     {new Date(group.created_at).toLocaleDateString('pt-BR')}
@@ -560,14 +588,19 @@ export default function GerentePanel() {
                   <TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {req.notes || '—'}
                   </TableCell>
+                  <TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <Typography variant="body2" color="warning.main" fontWeight={600}>
+                      {(req as any).supervisor_notes || '—'}
+                    </Typography>
+                  </TableCell>
                   <TableCell>
-                    {new Date(req.created_at).toLocaleDateString('pt-BR')}
+                    {req.created_at ? new Date(req.created_at).toLocaleDateString('pt-BR') : '—'}
                   </TableCell>
                   <TableCell align="center">
                     <Tooltip title="Aprovar">
                       <IconButton
                         color="success"
-                        onClick={() => handleApprove(req._id)}
+                        onClick={() => req._id && handleApprove(req._id)}
                         size="small"
                       >
                         <CheckCircleIcon />
@@ -576,7 +609,7 @@ export default function GerentePanel() {
                     <Tooltip title="Reprovar">
                       <IconButton
                         color="error"
-                        onClick={() => handleRejectClick(req._id)}
+                        onClick={() => req._id && handleRejectClick(req._id)}
                         size="small"
                       >
                         <CancelIcon />
@@ -619,192 +652,188 @@ export default function GerentePanel() {
                   <TableCell align="center" sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Qtd.</strong></TableCell>
                   <TableCell sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Status</strong></TableCell>
                   <TableCell sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Observações</strong></TableCell>
-                  <TableCell sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Data Aprovação/Reprovação</strong></TableCell>
+                  <TableCell sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Motivo Supervisor</strong></TableCell>
+                  <TableCell sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Data/Hora Aprovação/Reprovação</strong></TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {/* Subredes processadas */}
-                {groupedProcessed.map((group) => {
-                  const isApproved = group.status === 'Aprovado pela Gerência';
-                  const isAltered = group.status === 'Alterado';
-                  return (
-                    <TableRow 
-                      key={group.batchId}
-                      sx={{ 
-                        bgcolor: isAltered ? '#e3f2fd' : (isApproved ? '#f1f8e9' : '#ffebee'),
-                        '&:hover': { bgcolor: isAltered ? '#bbdefb' : (isApproved ? '#e8f5e9' : '#ffcdd2') }
-                      }}
-                    >
-                      <TableCell>{group.requester_name}</TableCell>
-                      <TableCell>
-                        <strong>SUBREDE: {group.subrede_name}</strong>
-                        <br />
-                       
-                      </TableCell>
-                      <TableCell>
-                        {group.product_name || group.product_id}
-                        <br />
-                        <Typography variant="caption" color="text.secondary">
-                          {group.product_id}
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="right">
-                        <strong style={{ color: '#d32f2f' }}>
-                          {group.currency} {group.requested_price}
-                        </strong>
-                      </TableCell>
-                      <TableCell align="center">
-                        {group.discount_percent ? (
-                          <Chip label={`${group.discount_percent}%`} size="small" color="success" />
-                        ) : (
-                          <span>—</span>
-                        )}
-                      </TableCell>
-                      <TableCell align="right">
-                        {group.discounted_price ? (
-                          <strong style={{ color: '#2e7d32' }}>
-                            {group.currency} {group.discounted_price}
-                          </strong>
-                        ) : (
-                          <span>—</span>
-                        )}
-                      </TableCell>
-                      <TableCell align="right">
-                        <Typography variant="body2" color="text.secondary">
-                          R$ {group.product_minimo || '—'}
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="center">
-                        <strong>{group.quantity || '—'}</strong>
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={group.status}
-                          size="small"
-                          color={isAltered ? 'info' : (isApproved ? 'success' : 'error')}
-                          icon={isApproved ? <CheckCircleIcon /> : <CancelIcon />}
-                        />
-                      </TableCell>
-                      <TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {group.notes || '—'}
-                      </TableCell>
-                      <TableCell>
-                        {group.created_at ? new Date(group.created_at).toLocaleDateString('pt-BR') : '—'}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-                
-                {/* Solicitações individuais processadas */}
-                {individualProcessed.map((req) => {
-                  const isApproved = req.status === 'Aprovado pela Gerência';
-                  const isAltered = req.status === 'Alterado';
-                  return (
-                    <TableRow 
-                      key={req._id}
-                      sx={{ 
-                        bgcolor: isAltered ? '#e3f2fd' : (isApproved ? '#f1f8e9' : '#ffebee'),
-                        '&:hover': { bgcolor: isAltered ? '#bbdefb' : (isApproved ? '#e8f5e9' : '#ffcdd2') }
-                      }}
-                    >
-                      <TableCell>{req.requester_name}</TableCell>
-                      <TableCell>
-                        {req.customer_name || req.customer_code}
-                        <br />
-                        <Typography variant="caption" color="text.secondary">
-                          {req.customer_code}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        {req.product_name || req.product_id}
-                        <br />
-                        <Typography variant="caption" color="text.secondary">
-                          {req.product_id}
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="right">
-                        <strong style={{ color: '#d32f2f' }}>
-                          {req.currency} {req.requested_price}
-                        </strong>
-                      </TableCell>
-                      <TableCell align="center">
-                        {req.discount_percent ? (
-                          <Chip label={`${req.discount_percent}%`} size="small" color="success" />
-                        ) : (
-                          <span>—</span>
-                        )}
-                      </TableCell>
-                      <TableCell align="right">
-                        {req.discounted_price ? (
-                          <strong style={{ color: '#2e7d32' }}>
-                            {req.currency} {req.discounted_price}
-                          </strong>
-                        ) : (
-                          <span>—</span>
-                        )}
-                      </TableCell>
-                      <TableCell align="right">
-                        <Typography variant="body2" color="text.secondary">
-                          R$ {req.product_minimo || '—'}
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="center">
-                        <strong>{req.quantity || '—'}</strong>
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={req.status}
-                          size="small"
-                          color={isAltered ? 'info' : (isApproved ? 'success' : 'error')}
-                          icon={isApproved ? <CheckCircleIcon /> : <CancelIcon />}
-                        />
-                      </TableCell>
-                      <TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {req.notes || '—'}
-                      </TableCell>
-                      <TableCell>
-                        {req.approved_at ? new Date(req.approved_at).toLocaleDateString('pt-BR') : '—'}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                {/* Misturar e ordenar subredes + individuais por data */}
+                {[
+                  ...groupedProcessed.map(g => ({ type: 'grouped' as const, data: g, date: g.requests[0]?.approved_at || g.created_at })),
+                  ...individualProcessed.map(r => ({ type: 'individual' as const, data: r, date: r.approved_at || r.created_at }))
+                ]
+                  .sort((a, b) => {
+                    const dateA = new Date(a.date || 0).getTime();
+                    const dateB = new Date(b.date || 0).getTime();
+                    return dateB - dateA; // Mais recente primeiro
+                  })
+                  .map((item) => {
+                    if (item.type === 'grouped') {
+                      const group = item.data;
+                      const isApproved = group.status === 'Aprovado pela Gerência';
+                      const isAltered = group.status === 'Alterado';
+                      return (
+                        <TableRow 
+                          key={group.batchId}
+                          sx={{ 
+                            bgcolor: isAltered ? '#e3f2fd' : (isApproved ? '#f1f8e9' : '#ffebee'),
+                            '&:hover': { bgcolor: isAltered ? '#bbdefb' : (isApproved ? '#e8f5e9' : '#ffcdd2') }
+                          }}
+                        >
+                          <TableCell>{group.requester_name}</TableCell>
+                          <TableCell>
+                            <strong>SUBREDE: {group.subrede_name}</strong>
+                            <br />
+                          
+                          </TableCell>
+                          <TableCell>
+                            {group.product_name || group.product_id}
+                            <br />
+                            <Typography variant="caption" color="text.secondary">
+                              {group.product_id}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="right">
+                            <strong style={{ color: '#d32f2f' }}>
+                              {group.currency} {group.requested_price}
+                            </strong>
+                          </TableCell>
+                          <TableCell align="center">
+                            {group.discount_percent ? (
+                              <Chip label={`${group.discount_percent}%`} size="small" color="success" />
+                            ) : (
+                              <span>—</span>
+                            )}
+                          </TableCell>
+                          <TableCell align="right">
+                            {group.discounted_price ? (
+                              <strong style={{ color: '#2e7d32' }}>
+                                {group.currency} {group.discounted_price}
+                              </strong>
+                            ) : (
+                              <span>—</span>
+                            )}
+                          </TableCell>
+                          <TableCell align="right">
+                            <Typography variant="body2" color="text.secondary">
+                              R$ {group.product_minimo || '—'}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="center">
+                            <strong>{group.quantity || '—'}</strong>
+                          </TableCell>
+                          <TableCell>
+                            <Chip
+                              label={group.status}
+                              size="small"
+                              color={isAltered ? 'info' : (isApproved ? 'success' : 'error')}
+                              icon={isApproved ? <CheckCircleIcon /> : <CancelIcon />}
+                            />
+                          </TableCell>
+                          <TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {group.notes || '—'}
+                          </TableCell>
+                          <TableCell>
+                            {group.created_at ? new Date(group.created_at).toLocaleDateString('pt-BR') : '—'}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    } else {
+                      const req = item.data;
+                      const isApproved = req.status === 'Aprovado pela Gerência';
+                      const isAltered = req.status === 'Alterado';
+                      return (
+                        <TableRow 
+                          key={req._id}
+                          sx={{ 
+                            bgcolor: isAltered ? '#e3f2fd' : (isApproved ? '#f1f8e9' : '#ffebee'),
+                            '&:hover': { bgcolor: isAltered ? '#bbdefb' : (isApproved ? '#e8f5e9' : '#ffcdd2') }
+                          }}
+                        >
+                          <TableCell>{req.requester_name}</TableCell>
+                          <TableCell>
+                            {req.customer_name || req.customer_code}
+                            <br />
+                            <Typography variant="caption" color="text.secondary">
+                              {req.customer_code}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            {req.product_name || req.product_id}
+                            <br />
+                            <Typography variant="caption" color="text.secondary">
+                              {req.product_id}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="right">
+                            <strong style={{ color: '#d32f2f' }}>
+                              {req.currency} {req.requested_price}
+                            </strong>
+                          </TableCell>
+                          <TableCell align="center">
+                            {req.discount_percent ? (
+                              <Chip label={`${req.discount_percent}%`} size="small" color="success" />
+                            ) : (
+                              <span>—</span>
+                            )}
+                          </TableCell>
+                          <TableCell align="right">
+                            {req.discounted_price ? (
+                              <strong style={{ color: '#2e7d32' }}>
+                                {req.currency} {req.discounted_price}
+                              </strong>
+                            ) : (
+                              <span>—</span>
+                            )}
+                          </TableCell>
+                          <TableCell align="right">
+                            <Typography variant="body2" color="text.secondary">
+                              R$ {req.product_minimo || '—'}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="center">
+                            <strong>{req.quantity || '—'}</strong>
+                          </TableCell>
+                          <TableCell>
+                            <Chip
+                              label={req.status}
+                              size="small"
+                              color={isAltered ? 'info' : (isApproved ? 'success' : 'error')}
+                              icon={isApproved ? <CheckCircleIcon /> : <CancelIcon />}
+                            />
+                          </TableCell>
+                          <TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {req.notes || '—'}
+                          </TableCell>
+                          <TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            <Typography variant="body2" color="warning.main" fontWeight={600}>
+                              {(req as any).supervisor_notes || '—'}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            {req.approved_at ? new Date(req.approved_at).toLocaleString('pt-BR', { 
+                              day: '2-digit', 
+                              month: '2-digit', 
+                              year: 'numeric', 
+                              hour: '2-digit', 
+                              minute: '2-digit' 
+                            }) : req.created_at ? new Date(req.created_at).toLocaleString('pt-BR', {
+                              day: '2-digit', 
+                              month: '2-digit', 
+                              year: 'numeric', 
+                              hour: '2-digit', 
+                              minute: '2-digit' 
+                            }) : '—'}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    }
+                  })}
               </TableBody>
             </Table>
           </TableContainer>
         </Box>
       )}
-
-      {/* Dialog de Reprovação */}
-      <Dialog open={rejectDialogOpen} onClose={handleRejectCancel} maxWidth="sm" fullWidth>
-        <DialogTitle>Reprovar Solicitação pela Gerência</DialogTitle>
-        <DialogContent>
-          <TextField
-            label="Motivo da Reprovação"
-            multiline
-            rows={4}
-            fullWidth
-            value={rejectNotes}
-            onChange={(e) => setRejectNotes(e.target.value)}
-            placeholder="Explique o motivo da reprovação..."
-            autoFocus
-            required
-            sx={{ mt: 2 }}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleRejectCancel} color="inherit">
-            Cancelar
-          </Button>
-          <Button
-            onClick={handleRejectConfirm}
-            color="error"
-            variant="contained"
-            disabled={!rejectNotes.trim()}
-          >
-            Confirmar Reprovação
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Paper>
   );
 }

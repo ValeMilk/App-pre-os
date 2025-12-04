@@ -67,7 +67,7 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
     // Usar cliente selecionado ou primeiro cliente da subrede
     let cliente: Cliente | undefined;
     if (selectionMode === 'cliente') {
-      cliente = selectedCustomer;
+      cliente = selectedCustomer || undefined;
     } else if (selectionMode === 'subrede' && selectedSubrede) {
       const clientesDaSubrede = clientes.filter(c => c.subrede && c.subrede.trim() === selectedSubrede);
       cliente = clientesDaSubrede[0];
@@ -75,9 +75,15 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
 
     if (!cliente) return null;
 
+    console.log('🔍 DEBUG DESCONTO - Cliente:', cliente);
+    console.log('🔍 DEBUG DESCONTO - Produto selecionado:', selectedProduct);
+    console.log('🔍 DEBUG DESCONTO - Total descontos:', descontos.length);
+
     // Buscar desconto aplicável usando a MESMA lógica da função calcularDesconto
     const desconto = descontos.find(d => {
       const produtoMatch = d.codigo_produto === selectedProduct.codigo_produto;
+      
+      console.log(`🔍 Testando desconto: ${d.codigo_produto} === ${selectedProduct.codigo_produto}? ${produtoMatch}`, d);
       
       if (!produtoMatch) return false;
       
@@ -89,25 +95,26 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
       
       // CASO 1: Desconto especifica REDE + SUBREDE -> cliente deve ter AMBOS
       if (descontoTemRede && descontoTemSubrede) {
-        const redeMatch = cliente.rede && d.rede.trim() === cliente.rede.trim();
-        const subredeMatch = cliente.subrede && d.subrede.trim() === cliente.subrede.trim();
+        const redeMatch = cliente.rede && d.rede && d.rede.trim() === cliente.rede.trim();
+        const subredeMatch = cliente.subrede && d.subrede && d.subrede.trim() === cliente.subrede.trim();
         return redeMatch && subredeMatch;
       }
       
       // CASO 2: Desconto especifica APENAS REDE (sem SUBREDE) -> cliente deve ter essa REDE (pode ter ou não SUBREDE)
       if (descontoTemRede && !descontoTemSubrede) {
-        return cliente.rede && d.rede.trim() === cliente.rede.trim();
+        return cliente.rede && d.rede && d.rede.trim() === cliente.rede.trim();
       }
       
       // CASO 3: Desconto especifica APENAS SUBREDE (sem REDE) -> cliente deve ter essa SUBREDE
       if (!descontoTemRede && descontoTemSubrede) {
-        return cliente.subrede && d.subrede.trim() === cliente.subrede.trim();
+        return cliente.subrede && d.subrede && d.subrede.trim() === cliente.subrede.trim();
       }
       
       // Se desconto não especifica nem REDE nem SUBREDE, não aplica
       return false;
     });
 
+    console.log('✅ DEBUG DESCONTO - Desconto encontrado:', desconto);
     return desconto;
   }, [selectedCustomer, selectedSubrede, selectedProduct, descontos, clientes, selectionMode]);
 
@@ -163,7 +170,7 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
         // Validar resposta com Zod
         try {
           const validatedRequests = RequestsArraySchema.parse(data);
-          setRequests(validatedRequests);
+          setRequests(validatedRequests as any);
         } catch (err) {
           console.error('Erro ao validar solicitações:', err);
           setError('Dados inválidos recebidos do servidor');
@@ -222,7 +229,7 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
     const validationResult = RequestFormSchema.safeParse(formData);
     
     if (!validationResult.success) {
-      const firstError = validationResult.error.errors[0];
+      const firstError = validationResult.error.issues[0];
       setError(firstError.message);
       return;
     }
@@ -321,8 +328,8 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
       
       // CASO 1: Desconto especifica REDE + SUBREDE -> cliente deve ter AMBOS
       if (descontoTemRede && descontoTemSubrede) {
-        const redeMatch = cliente.rede && d.rede.trim() === cliente.rede.trim();
-        const subredeMatch = cliente.subrede && d.subrede.trim() === cliente.subrede.trim();
+        const redeMatch = cliente.rede && d.rede && d.rede.trim() === cliente.rede.trim();
+        const subredeMatch = cliente.subrede && d.subrede && d.subrede.trim() === cliente.subrede.trim();
         const match = redeMatch && subredeMatch;
         console.log('🔍 Verificando por REDE + SUBREDE:', {
           descontoRede: d.rede,
@@ -336,7 +343,7 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
       
       // CASO 2: Desconto especifica APENAS REDE (sem SUBREDE) -> cliente deve ter essa REDE (pode ter ou não SUBREDE)
       if (descontoTemRede && !descontoTemSubrede) {
-        const redeMatch = cliente.rede && d.rede.trim() === cliente.rede.trim();
+        const redeMatch = cliente.rede && d.rede && d.rede.trim() === cliente.rede.trim();
         console.log('🔍 Verificando por REDE apenas:', {
           descontoRede: d.rede,
           clienteRede: cliente.rede,
@@ -348,7 +355,7 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
       
       // CASO 3: Desconto especifica APENAS SUBREDE (sem REDE) -> cliente deve ter essa SUBREDE
       if (!descontoTemRede && descontoTemSubrede) {
-        const subredeMatch = cliente.subrede && d.subrede.trim() === cliente.subrede.trim();
+        const subredeMatch = cliente.subrede && d.subrede && d.subrede.trim() === cliente.subrede.trim();
         console.log('🔍 Verificando por SUBREDE apenas:', {
           descontoSubrede: d.subrede,
           clienteSubrede: cliente.subrede,
@@ -548,8 +555,8 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
       return;
     }
     setError(null);
-    const rows = requests.map((r: PriceRequest) => [
-      r._id || '',
+    const rows = requests.map((r: any) => [
+      r._id || r.id || '',
       r.requester_name,
       r.requester_id || '',
       r.customer_code,
@@ -821,7 +828,7 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
                 value={notes}
                 onChange={e => setNotes(e.target.value)}
                 multiline
-                minRows={{ xs: 2, sm: 3 }}
+                minRows={2}
                 fullWidth
                 size="small"
                 sx={{
@@ -853,7 +860,6 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
                   fontSize: { xs: '0.85rem', sm: '1rem', md: '1.125rem' },
                   minHeight: { xs: 48, sm: 52 }
                 }}
-                fullWidth
               >
                 {loading ? 'Enviando...' : 'Enviar solicitação'}
               </Button>
@@ -883,7 +889,7 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
           ) : (
             <Stack spacing={{ xs: 1, sm: 1.5 }}>
               {requests.length === 0 && <Typography color="text.secondary" sx={{ fontSize: { xs: '0.85rem', sm: '0.875rem' } }}>Nenhuma solicitação registrada.</Typography>}
-              {requests.map(r => (
+              {requests.map((r: any) => (
                 <Box key={r._id || r.id} sx={{
                   p: { xs: 1, sm: 1.5 },
                   border: 

@@ -90,7 +90,8 @@ const priceRequestSchema = new mongoose.Schema({
   subrede_batch_id: String,
   subrede_name: String,
   discount_percent: String,
-  discounted_price: String
+  discounted_price: String,
+  supervisor_notes: String
 });
 const PriceRequest = mongoose.model('PriceRequest', priceRequestSchema);
 
@@ -233,12 +234,14 @@ const PriceRequest = mongoose.model('PriceRequest', priceRequestSchema);
       if (tipo !== 'supervisor') {
         return res.status(403).json({ error: 'Acesso permitido apenas para supervisores.' });
       }
+      const { supervisor_notes } = req.body;
       const request = await PriceRequest.findByIdAndUpdate(
         req.params.id,
         {
           status: 'Aguardando Gerência',
           approved_by: req.user?.name,
-          approved_at: new Date()
+          approved_at: new Date(),
+          supervisor_notes: supervisor_notes || ''
         },
         { new: true }
       );
@@ -301,12 +304,14 @@ const PriceRequest = mongoose.model('PriceRequest', priceRequestSchema);
       if (tipo !== 'supervisor') {
         return res.status(403).json({ error: 'Acesso permitido apenas para supervisores.' });
       }
+      const { supervisor_notes } = req.body;
       const result = await PriceRequest.updateMany(
         { subrede_batch_id: req.params.batchId },
         {
           status: 'Aguardando Gerência',
           approved_by: req.user?.name,
-          approved_at: new Date()
+          approved_at: new Date(),
+          supervisor_notes: supervisor_notes || ''
         }
       );
       res.json({ message: `${result.modifiedCount} solicitações encaminhadas para gerência`, count: result.modifiedCount });

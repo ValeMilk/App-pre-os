@@ -111,7 +111,7 @@ function AppContent() {
       </AppBar>
       <Container 
         maxWidth={user && user.email === 'admin@admin.com' ? false : (user && (user.tipo === 'supervisor' || user.tipo === 'gerente') ? false : 'md')} 
-        disableGutters={(user && user.email === 'admin@admin.com') || (user && (user.tipo === 'supervisor' || user.tipo === 'gerente'))} 
+        disableGutters={Boolean((user && user.email === 'admin@admin.com') || (user && (user.tipo === 'supervisor' || user.tipo === 'gerente')))} 
         sx={user && user.email === 'admin@admin.com' ? { 
           display: 'flex', 
           justifyContent: 'flex-start', 

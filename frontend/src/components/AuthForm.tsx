@@ -22,13 +22,16 @@ export default function AuthForm({ onAuthSuccess }: Props) {
   useEffect(() => {
     // Buscar lista de usuários com validação Zod
     fetch(API_ENDPOINTS.auth.users)
-      .then(res => res.json())
-      .then(data => {
+      .then(async res => {
+        if (!res.ok) throw new Error('Erro ao buscar usuários');
+        const data = await res.json();
+        console.log('Dados recebidos da API /auth/users:', data);
+        
         const validatedUsers = UserListSchema.parse(data);
         setUsers(validatedUsers);
       })
       .catch((err) => {
-        console.error('Erro ao validar usuários:', err);
+        console.error('Erro ao carregar/validar usuários:', err);
         setError('Erro ao carregar usuários');
       });
   }, []);
@@ -49,7 +52,7 @@ export default function AuthForm({ onAuthSuccess }: Props) {
     });
 
     if (!validationResult.success) {
-      setError(validationResult.error.errors[0].message);
+      setError(validationResult.error.issues[0].message);
       return;
     }
 

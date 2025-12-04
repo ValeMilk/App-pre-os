@@ -39,7 +39,7 @@ export const RegisterFormSchema = z.object({
   email: z.string().email('Email inválido'),
   password: z.string().min(6, 'Senha deve ter no mínimo 6 caracteres'),
   tipo: z.enum(['vendedor', 'supervisor', 'gerente', 'admin'], {
-    errorMap: () => ({ message: 'Tipo de usuário inválido' })
+    message: 'Tipo de usuário inválido'
   }),
   vendedor_code: z.string().optional(),
   codigo_supervisor: z.string().optional()
