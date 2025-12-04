@@ -68,6 +68,8 @@ interface GroupedRequest {
   status: string;
   notes: string;
   created_at: string;
+  approved_at?: string;
+  approved_by?: string;
   clientCount: number;
   discount_percent?: string;
   discounted_price?: string;
@@ -163,6 +165,8 @@ export default function GerentePanel() {
           status: firstReq.status || 'Pending',
           notes: firstReq.notes || '',
           created_at: String(firstReq.created_at || ''),
+          approved_at: firstReq.approved_at ? String(firstReq.approved_at) : undefined,
+          approved_by: firstReq.approved_by,
           clientCount: reqs.length,
           discount_percent: String(firstReq.discount_percent || ''),
           discounted_price: String(firstReq.discounted_price || '')
@@ -201,6 +205,8 @@ export default function GerentePanel() {
           status: firstReq.status || 'Pending',
           notes: firstReq.notes || '',
           created_at: String(firstReq.created_at || ''),
+          approved_at: firstReq.approved_at ? String(firstReq.approved_at) : undefined,
+          approved_by: firstReq.approved_by,
           clientCount: reqs.length,
           discount_percent: String(firstReq.discount_percent || ''),
           discounted_price: String(firstReq.discounted_price || '')
@@ -435,8 +441,8 @@ export default function GerentePanel() {
                 <TableCell align="right" sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Preço Mínimo</strong></TableCell>
                 <TableCell align="right" sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Preço Promocional</strong></TableCell>
                 <TableCell align="center" sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Qtd.</strong></TableCell>
-                <TableCell sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Justificativa</strong></TableCell>
-                <TableCell sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Motivo Supervisor</strong></TableCell>
+                <TableCell sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Justificativa Vendedor</strong></TableCell>
+                <TableCell sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Justificava Supervisor</strong></TableCell>
                 <TableCell sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Data</strong></TableCell>
                 <TableCell align="center" sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Ações</strong></TableCell>
               </TableRow>
@@ -465,7 +471,7 @@ export default function GerentePanel() {
                   </TableCell>
                   <TableCell align="right">
                     <strong style={{ color: '#d32f2f' }}>
-                      {group.currency} {group.requested_price}
+                      R$ {group.requested_price}
                     </strong>
                   </TableCell>
                   <TableCell align="center">
@@ -477,7 +483,7 @@ export default function GerentePanel() {
                   </TableCell>
                   <TableCell align="right">
                     {group.discounted_price ? (
-                      <strong style={{ color: '#2e7d32' }}>{group.currency} {group.discounted_price}</strong>
+                      <strong style={{ color: '#2e7d32' }}>R$ {group.discounted_price}</strong>
                     ) : (
                       <Typography variant="caption" color="text.secondary">—</Typography>
                     )}
@@ -496,10 +502,10 @@ export default function GerentePanel() {
                     <strong>{group.quantity || '—'}</strong>
                   </TableCell>
                   <TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {group.notes || '—'}
+                    {group.notes ? group.notes.replace(/\[SUBREDE:.*?\]\s*/gi, '').trim() || '—' : '—'}
                   </TableCell>
                   <TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    <Typography variant="body2" color="warning.main" fontWeight={600}>
+                    <Typography variant="body2" color="black" fontWeight={600}>
                       {(group.requests[0] as any)?.supervisor_notes || '—'}
                     </Typography>
                   </TableCell>
@@ -555,7 +561,7 @@ export default function GerentePanel() {
                   </TableCell>
                   <TableCell align="right">
                     <strong style={{ color: '#d32f2f' }}>
-                      {req.currency} {req.requested_price}
+                      R$ {req.requested_price}
                     </strong>
                   </TableCell>
                   <TableCell align="center">
@@ -567,7 +573,7 @@ export default function GerentePanel() {
                   </TableCell>
                   <TableCell align="right">
                     {req.discounted_price ? (
-                      <strong style={{ color: '#2e7d32' }}>{req.currency} {req.discounted_price}</strong>
+                      <strong style={{ color: '#2e7d32' }}>R$ {req.discounted_price}</strong>
                     ) : (
                       <Typography variant="caption" color="text.secondary">—</Typography>
                     )}
@@ -589,7 +595,7 @@ export default function GerentePanel() {
                     {req.notes || '—'}
                   </TableCell>
                   <TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    <Typography variant="body2" color="warning.main" fontWeight={600}>
+                    <Typography variant="body2" color="black" fontWeight={600}>
                       {(req as any).supervisor_notes || '—'}
                     </Typography>
                   </TableCell>
@@ -677,8 +683,8 @@ export default function GerentePanel() {
                         <TableRow 
                           key={group.batchId}
                           sx={{ 
-                            bgcolor: isCanceled ? '#000' : isAltered ? '#e3f2fd' : (isApproved ? '#f1f8e9' : '#ffebee'),
-                            '&:hover': { bgcolor: isCanceled ? '#333' : isAltered ? '#bbdefb' : (isApproved ? '#e8f5e9' : '#ffcdd2') }
+                            bgcolor: isCanceled ? '#000' : isAltered ? '#e3f2fd' : (isApproved ? '#f8f8f8ff' : '#ffebee'),
+                            '&:hover': { bgcolor: isCanceled ? '#333' : isAltered ? '#bbdefb' : (isApproved ? '#fafafaff' : '#ffcdd2') }
                           }}
                         >
                           <TableCell>{group.requester_name}</TableCell>
@@ -696,7 +702,7 @@ export default function GerentePanel() {
                           </TableCell>
                           <TableCell align="right">
                             <strong style={{ color: '#d32f2f' }}>
-                              {group.currency} {group.requested_price}
+                              R$ {group.requested_price}
                             </strong>
                           </TableCell>
                           <TableCell align="center">
@@ -709,7 +715,7 @@ export default function GerentePanel() {
                           <TableCell align="right">
                             {group.discounted_price ? (
                               <strong style={{ color: '#2e7d32' }}>
-                                {group.currency} {group.discounted_price}
+                                R$ {group.discounted_price}
                               </strong>
                             ) : (
                               <span>—</span>
@@ -727,16 +733,37 @@ export default function GerentePanel() {
                             <Chip
                               label={group.status}
                               size="small"
-                              color={isCanceled ? 'default' : isAltered ? 'info' : (isApproved ? 'success' : 'error')}
+                              color={isCanceled ? 'default' : isAltered ? 'info' : (isApproved ? 'warning' : 'error')}
                               icon={isApproved ? <CheckCircleIcon /> : <CancelIcon />}
-                              sx={isCanceled ? { bgcolor: '#000', color: 'white', fontWeight: 600 } : {}}
+                              sx={
+                                isCanceled ? { bgcolor: '#000', color: 'white', fontWeight: 600 } :
+                                isApproved ? { bgcolor: '#ffd700', color: '#000', fontWeight: 700 } :
+                                {}
+                              }
                             />
                           </TableCell>
                           <TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {group.notes || '—'}
+                            {group.notes ? group.notes.replace(/\[SUBREDE:.*?\]\s*/gi, '').trim() || '—' : '—'}
+                          </TableCell>
+                          <TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            <Typography variant="body2" color="black" fontWeight={600}>
+                              {(group.requests[0] as any)?.supervisor_notes || '—'}
+                            </Typography>
                           </TableCell>
                           <TableCell>
-                            {group.created_at ? new Date(group.created_at).toLocaleDateString('pt-BR') : '—'}
+                            {group.approved_at ? new Date(group.approved_at).toLocaleString('pt-BR', { 
+                              day: '2-digit', 
+                              month: '2-digit', 
+                              year: 'numeric', 
+                              hour: '2-digit', 
+                              minute: '2-digit' 
+                            }) : group.created_at ? new Date(group.created_at).toLocaleString('pt-BR', {
+                              day: '2-digit', 
+                              month: '2-digit', 
+                              year: 'numeric', 
+                              hour: '2-digit', 
+                              minute: '2-digit' 
+                            }) : '—'}
                           </TableCell>
                         </TableRow>
                       );
@@ -749,8 +776,8 @@ export default function GerentePanel() {
                         <TableRow 
                           key={req._id}
                           sx={{ 
-                            bgcolor: isCanceled ? '#000' : isAltered ? '#e3f2fd' : (isApproved ? '#f1f8e9' : '#ffebee'),
-                            '&:hover': { bgcolor: isCanceled ? '#333' : isAltered ? '#bbdefb' : (isApproved ? '#e8f5e9' : '#ffcdd2') }
+                            bgcolor: isCanceled ? '#000' : isAltered ? '#e3f2fd' : (isApproved ? '#ffffffff' : '#ffebee'),
+                            '&:hover': { bgcolor: isCanceled ? '#333' : isAltered ? '#bbdefb' : (isApproved ? '#ffffffff' : '#ffcdd2') }
                           }}
                         >
                           <TableCell>{req.requester_name}</TableCell>
@@ -770,7 +797,7 @@ export default function GerentePanel() {
                           </TableCell>
                           <TableCell align="right">
                             <strong style={{ color: '#d32f2f' }}>
-                              {req.currency} {req.requested_price}
+                              R$ {req.requested_price}
                             </strong>
                           </TableCell>
                           <TableCell align="center">
@@ -783,7 +810,7 @@ export default function GerentePanel() {
                           <TableCell align="right">
                             {req.discounted_price ? (
                               <strong style={{ color: '#2e7d32' }}>
-                                {req.currency} {req.discounted_price}
+                                R$ {req.discounted_price}
                               </strong>
                             ) : (
                               <span>—</span>
@@ -801,16 +828,20 @@ export default function GerentePanel() {
                             <Chip
                               label={req.status}
                               size="small"
-                              color={isCanceled ? 'default' : isAltered ? 'info' : (isApproved ? 'success' : 'error')}
+                              color={isCanceled ? 'default' : isAltered ? 'info' : (isApproved ? 'warning' : 'error')}
                               icon={isApproved ? <CheckCircleIcon /> : <CancelIcon />}
-                              sx={isCanceled ? { bgcolor: '#000', color: 'white', fontWeight: 600 } : {}}
+                              sx={
+                                isCanceled ? { bgcolor: '#000', color: 'white', fontWeight: 600 } :
+                                isApproved ? { bgcolor: '#ffd900ff', color: '#000', fontWeight: 700 } :
+                                {}
+                              }
                             />
                           </TableCell>
                           <TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {req.notes || '—'}
                           </TableCell>
                           <TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            <Typography variant="body2" color="warning.main" fontWeight={600}>
+                            <Typography variant="body2" color="black" fontWeight={600}>
                               {(req as any).supervisor_notes || '—'}
                             </Typography>
                           </TableCell>

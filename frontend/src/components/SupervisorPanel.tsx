@@ -467,9 +467,9 @@ export default function SupervisorPanel() {
                         {group.product_id}
                       </Typography>
                     </TableCell>
-                    <TableCell align="right">
-                      <strong>{group.currency} {group.requested_price}</strong>
-                    </TableCell>
+                  <TableCell align="right">
+                    <strong>R$ {group.requested_price}</strong>
+                  </TableCell>
                     <TableCell align="center">
                       {group.discount_percent ? (
                         <Chip label={`${group.discount_percent}%`} size="small" color="success" />
@@ -488,7 +488,7 @@ export default function SupervisorPanel() {
                       <strong>{group.quantity || '—'}</strong>
                     </TableCell>
                     <TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {group.notes || '—'}
+                      {group.notes ? group.notes.replace(/\[SUBREDE:.*?\]\s*/gi, '').trim() || '—' : '—'}
                     </TableCell>
                     <TableCell>
                       {new Date(group.created_at).toLocaleDateString('pt-BR')}
@@ -521,11 +521,26 @@ export default function SupervisorPanel() {
                             <Button
                               variant="contained"
                               color="warning"
-                              size="small"
                               onClick={() => handleOpenEncaminharBatchDialog(group.batchId)}
-                              sx={{ mr: 0.5 }}
+                              size="small"
+                              sx={{
+                                fontWeight: 700,
+                                fontSize: { xs: '0.65rem', sm: '0.75rem' },
+                                textTransform: 'none',
+                                minWidth: 'auto',
+                                px: 1.5,
+                                py: 0.5,
+                                borderRadius: 2,
+                                bgcolor: '#ff9800',
+                                color: 'white',
+                                boxShadow: '0 2px 4px rgba(255, 152, 0, 0.3)',
+                                '&:hover': {
+                                  bgcolor: '#f57c00',
+                                  boxShadow: '0 3px 6px rgba(255, 152, 0, 0.4)'
+                                }
+                              }}
                             >
-                            Encaminhar para Gerência 
+                              Gerência
                             </Button>
                           </Tooltip>
                           <Tooltip title="Reprovar Subrede">
@@ -561,9 +576,9 @@ export default function SupervisorPanel() {
                         {req.product_id}
                       </Typography>
                     </TableCell>
-                    <TableCell align="right">
-                      <strong>{req.currency} {req.requested_price}</strong>
-                    </TableCell>
+                  <TableCell align="right">
+                    <strong>R$ {req.requested_price}</strong>
+                  </TableCell>
                     <TableCell align="center">
                       {req.discount_percent ? (
                         <Chip label={`${req.discount_percent}%`} size="small" color="success" />
@@ -573,7 +588,7 @@ export default function SupervisorPanel() {
                     </TableCell>
                     <TableCell align="right">
                       {req.discounted_price ? (
-                        <strong style={{ color: '#2e7d32' }}>{req.currency} {req.discounted_price}</strong>
+                        <strong style={{ color: '#2e7d32' }}>R$ {req.discounted_price}</strong>
                       ) : (
                         <Typography variant="caption" color="text.secondary">—</Typography>
                       )}
@@ -615,11 +630,26 @@ export default function SupervisorPanel() {
                             <Button
                               variant="contained"
                               color="warning"
-                              size="small"
                               onClick={() => handleOpenEncaminharDialog(req._id)}
-                              sx={{ mr: 0.5 }}
+                              size="small"
+                              sx={{
+                                fontWeight: 700,
+                                fontSize: { xs: '0.35rem', sm: '0.75rem' },
+                                textTransform: 'none',
+                                minWidth: 'auto',
+                                px: 1.5,
+                                py: 0.5,
+                                borderRadius: 2,
+                                bgcolor: '#ff9800',
+                                color: 'white',
+                                boxShadow: '0 2px 4px rgba(255, 152, 0, 0.3)',
+                                '&:hover': {
+                                  bgcolor: '#f57c00',
+                                  boxShadow: '0 3px 6px rgba(255, 152, 0, 0.4)'
+                                }
+                              }}
                             >
-                              Encaminhar para Gerência
+                              Gerência
                             </Button>
                           </Tooltip>
                           <Tooltip title="Reprovar">
@@ -668,9 +698,9 @@ export default function SupervisorPanel() {
                   <TableCell sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Vendedor</strong></TableCell>
                   <TableCell sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Cliente</strong></TableCell>
                   <TableCell sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Produto</strong></TableCell>
-                  <TableCell align="right" sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Preço Solicitado</strong></TableCell>
+                  <TableCell align="center" sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Preço Solicitado</strong></TableCell>
                   <TableCell align="center" sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>% Desc.</strong></TableCell>
-                  <TableCell align="right" sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Preço c/ Desc.</strong></TableCell>
+                  <TableCell align="center" sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Preço c/ Desc.</strong></TableCell>
                   <TableCell align="center" sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Qtd.</strong></TableCell>
                   <TableCell align="center" sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Status</strong></TableCell>
                   <TableCell sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Justificativa</strong></TableCell>
@@ -683,7 +713,7 @@ export default function SupervisorPanel() {
                   <TableRow
                     key={req._id}
                     sx={{
-                      bgcolor: req.status === 'Cancelado' ? '#d8d2d2ff' : req.status === 'Alterado' ? '#a8dbffff' : req.status === 'Aprovado pela Gerência' ? '#ffffffff' : req.status === 'Aprovado' ? '#fafdfaff' :req.status === 'Reprovado' ? '#f18a9aff' : 'inherit'
+                      bgcolor: req.status === 'Cancelado' ? '#d8d2d2ff' : req.status === 'Alterado' ? '#a8dbffff' : req.status === 'Aprovado pela Gerência' ? '#f8f8f8ff' : req.status === 'Aprovado' ? '#fafdfaff' :req.status === 'Reprovado' ? '#f18a9aff' : 'inherit'
                     }}
                   >
                     <TableCell>{req.requester_name}</TableCell>
@@ -691,7 +721,7 @@ export default function SupervisorPanel() {
                     <TableCell>{req.product_name || req.product_id}</TableCell>
                     <TableCell align="right">
                       <strong style={{ color: '#d32f2f' }}>
-                        {req.currency} {req.requested_price}
+                        R$ {req.requested_price}
                       </strong>
                     </TableCell>
                     <TableCell align="center">
@@ -704,7 +734,7 @@ export default function SupervisorPanel() {
                     <TableCell align="right">
                       {req.discounted_price ? (
                         <strong style={{ color: '#2e7d32' }}>
-                          {req.currency} {req.discounted_price}
+                          R$ {req.discounted_price}
                         </strong>
                       ) : (
                         <span>—</span>
@@ -718,13 +748,18 @@ export default function SupervisorPanel() {
                         label={req.status}
                         color={
                           req.status === 'Alterado' ? 'info' : 
-                          req.status === 'Aprovado' || req.status === 'Aprovado pela Gerência' ? 'success' : 
+                          req.status === 'Aprovado' ? 'success' :
+                          req.status === 'Aprovado pela Gerência' ? 'warning' : 
                           req.status === 'Aguardando Gerência' ? 'warning' :
                           req.status === 'Cancelado' ? 'default' :
                           'error'
                         }
                         size="small"
-                        sx={req.status === 'Cancelado' ? { bgcolor: '#000', color: 'white', fontWeight: 600 } : {}}
+                        sx={
+                          req.status === 'Cancelado' ? { bgcolor: '#000', color: 'white', fontWeight: 600 } :
+                          req.status === 'Aprovado pela Gerência' ? { bgcolor: '#ffe44aff', color: '#000', fontWeight: 700 } : 
+                          {}
+                        }
                       />
                     </TableCell>
                     <TableCell sx={{ maxWidth: 200 }}>{req.notes || '—'}</TableCell>
