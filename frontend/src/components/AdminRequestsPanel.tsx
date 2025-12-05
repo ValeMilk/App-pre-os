@@ -329,7 +329,7 @@ export default function AdminRequestsPanel() {
                           'warning'
                         }
                         size="small"
-                        sx={r.status === 'Cancelado' ? { fontWeight: 600, fontSize: 14, bgcolor: '#000', color: 'white' } : { fontWeight: 600, fontSize: 14 }}
+                        sx={r.status === 'Cancelado' ? { fontWeight: 600, fontSize: 14, bgcolor: '#c2c2c2ff', color: 'white' } : { fontWeight: 600, fontSize: 14 }}
                       />
                     </td>
                     <td style={{ padding: 10, fontSize: 12 }}>{new Date(r.created_at).toLocaleDateString('pt-BR')}</td>

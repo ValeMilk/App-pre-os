@@ -1052,9 +1052,6 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
             O preço solicitado <strong>R$ {price}</strong> está abaixo do preço mínimo permitido 
             <strong> R$ {selectedProduct?.minimo}</strong>.
           </DialogContentText>
-          <DialogContentText sx={{ mt: 2 }}>
-            Esta solicitação será encaminhada para aprovação da gerência.
-          </DialogContentText>
           <DialogContentText sx={{ mt: 2, fontWeight: 600, color: 'warning.main' }}>
             Deseja confirmar e enviar esta solicitação?
           </DialogContentText>

@@ -171,7 +171,7 @@ function AppContent() {
             token && user ? (
               <Box sx={{ width: '100%', maxWidth: { xs: '100%', sm: '100%', md: 1400 }, mx: 'auto', px: { xs: 1, sm: 2 } }}>
                 <Box mb={2} display="flex" justifyContent="space-between" alignItems="center">
-                  <Typography variant="subtitle1">Bem-vindo, {user.name} (Supervisor)!</Typography>
+                  <Typography variant="subtitle1">Bem-vindo, {user.name} </Typography>
                 </Box>
                 <SupervisorPanel />
               </Box>
@@ -184,7 +184,7 @@ function AppContent() {
             token && user ? (
               <Box sx={{ width: '100%', maxWidth: { xs: '100%', sm: '100%', md: 1400 }, mx: 'auto', px: { xs: 1, sm: 2 } }}>
                 <Box mb={2} display="flex" justifyContent="space-between" alignItems="center">
-                  <Typography variant="subtitle1">Bem-vindo, {user.name} (Gerente)!</Typography>
+                  <Typography variant="subtitle1">Bem-vindo, {user.name} </Typography>
                 </Box>
                 <GerentePanel />
               </Box>
