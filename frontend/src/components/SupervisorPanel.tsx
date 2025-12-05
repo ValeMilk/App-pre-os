@@ -374,7 +374,13 @@ export default function SupervisorPanel() {
   };
 
   const pendingRequests = requests.filter(r => r.status === 'Pending');
-  const processedRequests = requests.filter(r => r.status !== 'Pending');
+  const processedRequests = requests
+    .filter(r => r.status !== 'Pending')
+    .sort((a, b) => {
+      const dateA = a.approved_at ? new Date(a.approved_at).getTime() : 0;
+      const dateB = b.approved_at ? new Date(b.approved_at).getTime() : 0;
+      return dateB - dateA; // Mais recente primeiro
+    });
 
   return (
     <Paper elevation={3} sx={{ p: { xs: 0.5, sm: 2, md: 4 }, width: '100%', overflowX: 'auto' }}>
