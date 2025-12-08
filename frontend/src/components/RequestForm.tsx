@@ -144,6 +144,81 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
     };
   }, [price, descontoAplicavel]);
 
+  // Calcular preço sugerido baseado no promocional
+  const precoSugerido = useMemo(() => {
+    if (!selectedProduct || !selectedProduct.promocional) return null;
+
+    const precoPromocional = parseFloat(selectedProduct.promocional.replace(',', '.'));
+    if (isNaN(precoPromocional)) return null;
+
+    // Se tem desconto aplicável, calcular preço que RESULTA no promocional APÓS o desconto
+    // Fórmula: Preço Sugerido = Preço Promocional / (1 - Desconto%)
+    if (descontoAplicavel) {
+      const percentualStr = descontoAplicavel.desconto.replace('%', '').replace(',', '.');
+      const percentual = parseFloat(percentualStr);
+      if (!isNaN(percentual) && percentual > 0) {
+        const fatorDesconto = 1 - (percentual / 100);
+        const precoSugeridoAntesDesconto = precoPromocional / fatorDesconto;
+        return {
+          valor: precoSugeridoAntesDesconto,
+          precoPromocional: precoPromocional,
+          temDesconto: true,
+          percentualDesconto: percentual
+        };
+      }
+    }
+
+    // Sem desconto: preço sugerido = preço promocional
+    return {
+      valor: precoPromocional,
+      precoPromocional: precoPromocional,
+      temDesconto: false,
+      percentualDesconto: 0
+    };
+  }, [selectedProduct, descontoAplicavel]);
+
+  // Verificar se preço FINAL (após desconto) está abaixo do promocional
+  const precoAbaixoDoPromocional = useMemo(() => {
+    if (!price || !selectedProduct || !selectedProduct.promocional) {
+      return false;
+    }
+    
+    const precoDigitado = parseFloat(price.replace(',', '.'));
+    if (isNaN(precoDigitado)) return false;
+    
+    const precoPromocional = parseFloat(selectedProduct.promocional.replace(',', '.'));
+    if (isNaN(precoPromocional)) return false;
+    
+    // Calcular preço FINAL (após aplicar desconto, se houver)
+    let precoFinal = precoDigitado;
+    
+    if (descontoAplicavel) {
+      const percentualStr = descontoAplicavel.desconto.replace('%', '').replace(',', '.');
+      const percentual = parseFloat(percentualStr);
+      if (!isNaN(percentual) && percentual > 0) {
+        const valorDesconto = precoDigitado * (percentual / 100);
+        precoFinal = precoDigitado - valorDesconto;
+      }
+    }
+    
+    // Arredondar valores para 2 casas decimais para evitar problemas de precisão
+    const precoFinalArredondado = Math.round(precoFinal * 100) / 100;
+    const precoPromocionalArredondado = Math.round(precoPromocional * 100) / 100;
+    
+    const estaAbaixo = precoFinalArredondado < precoPromocionalArredondado;
+    
+    console.log('🔍 DEBUG ALERTA - Verificação:', {
+      precoDigitado,
+      precoFinal: precoFinalArredondado,
+      precoPromocional: precoPromocionalArredondado,
+      temDesconto: !!descontoAplicavel,
+      estaAbaixo
+    });
+    
+    // Comparar preço FINAL com promocional (< e não <=)
+    return estaAbaixo;
+  }, [price, selectedProduct, descontoAplicavel]);
+
   // Extrair lista única de subredes
   const subredes = useMemo(() => {
     const uniqueSubredes = new Set<string>();
@@ -287,7 +362,7 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
       }
 
       // Se preço FINAL (com ou sem desconto) abaixo do promocional, bloqueia e mostra dialog informativo
-      if (precoFinal < promocionalPrice) {
+      if (precoFinal <= promocionalPrice) {
         if (temDesconto) {
           // Cliente tem desconto mas o preço final ainda está abaixo do promocional
           setPromocionalWarningMessage(`Preço final com desconto (R$ ${precoFinal.toFixed(2)}) está abaixo do promocional. Preço Promocional: R$ ${selectedProduct.promocional}`);
@@ -785,6 +860,38 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
                   Faixa de preço permitida: R$ {selectedProduct.minimo} até R$ {selectedProduct.maximo}
                 </Alert>
               )}
+              
+              {/* Alerta de Preço Abaixo do Promocional - Aparece SOMENTE quando preço digitado está abaixo */}
+              {precoSugerido && precoAbaixoDoPromocional && price && (
+                <Alert 
+                  severity="warning" 
+                  icon={<WarningIcon />}
+                  sx={{ 
+                    fontSize: { xs: '0.8rem', sm: '0.875rem' },
+                    '& .MuiAlert-message': {
+                      width: '100%'
+                    }
+                  }}
+                >
+                  <Stack spacing={0.5}>
+                    <Typography variant="body2" fontWeight={600} sx={{ fontSize: { xs: '0.85rem', sm: '0.9rem' } }}>
+                      {precoSugerido.temDesconto ? (
+                        <>⚠️ Preço Sugerido (com {precoSugerido.percentualDesconto}% desconto): <strong>R$ {precoSugerido.valor.toFixed(2)}</strong></>
+                      ) : (
+                        <>⚠️ Preço Sugerido: <strong>R$ {precoSugerido.valor.toFixed(2)}</strong></>
+                      )}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.8rem' } }}>
+                      Preço Promocional: R$ {precoSugerido.precoPromocional.toFixed(2)}
+                      {precoSugerido.temDesconto && ` (antes do desconto de ${precoSugerido.percentualDesconto}%)`}
+                    </Typography>
+                    <Typography variant="caption" color="warning.dark" fontWeight={600} sx={{ fontSize: { xs: '0.75rem', sm: '0.8rem' }, mt: 0.5 }}>
+                      ⚠️ O preço digitado  está abaixo do {precoSugerido.temDesconto ? 'promocional com desconto' : 'promocional'}
+                    </Typography>
+                  </Stack>
+                </Alert>
+              )}
+
               <TextField
                 label="Preço solicitado"
                 value={price}
