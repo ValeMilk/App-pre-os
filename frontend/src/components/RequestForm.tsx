@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Papa from 'papaparse'
 import { Cliente } from '../utils/parseCsv'
 import { Produto } from '../utils/parseProdutosCsv'
 import { Desconto } from '../types/Desconto'
 import { RequestFormSchema, RequestsArraySchema } from '../schemas'
-import { Box, Button, TextField, Typography, Alert, Stack, Paper, Autocomplete, Divider, Slide, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, DialogContentText, Chip } from '@mui/material'
+import { Box, Button, TextField, Typography, Alert, Stack, Paper, Autocomplete, Divider, Slide, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, DialogContentText, Chip, InputAdornment, Tooltip } from '@mui/material'
 import SendIcon from '@mui/icons-material/Send';
 import DownloadIcon from '@mui/icons-material/Download';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
@@ -12,6 +13,8 @@ import PersonIcon from '@mui/icons-material/Person';
 import WarningIcon from '@mui/icons-material/Warning';
 import LocalOfferIcon from '@mui/icons-material/LocalOffer';
 import CancelIcon from '@mui/icons-material/Cancel';
+import CalculateIcon from '@mui/icons-material/Calculate';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 type Props = {
   clientes: Cliente[]
@@ -42,6 +45,7 @@ import { API_ENDPOINTS } from '../config/api';
 const API_URL = API_ENDPOINTS.requests.base;
 
 export default function RequestForm({ clientes, produtos, descontos, onClientesLoaded }: Props) {
+  const navigate = useNavigate();
   const token = localStorage.getItem('token');
   // Estados do formulário e feedback
   const [selectionMode, setSelectionMode] = useState<'cliente' | 'subrede'>('cliente');
@@ -62,6 +66,205 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [cancellationReason, setCancellationReason] = useState('');
   const [selectedRequestForCancel, setSelectedRequestForCancel] = useState<string | null>(null);
+  
+  // Estados da calculadora
+  const [calculatorOpen, setCalculatorOpen] = useState(false);
+  const [calcCusto, setCalcCusto] = useState('');
+  const [calcMargem, setCalcMargem] = useState('');
+  const [calcMarkup, setCalcMarkup] = useState('');
+  const [calcRenda, setCalcRenda] = useState('');
+  const [calcLucro, setCalcLucro] = useState('');
+  
+  // Rastrear os 2 últimos campos editados
+  const [ultimosCampos, setUltimosCampos] = useState<string[]>([]);
+
+  // Função unificada que calcula baseado nos 2 campos fixos
+  const recalcular = (campo: string, valor: string, novosCampos: string[]) => {
+    if (novosCampos.length < 2) return;
+
+    const [campo1, campo2] = novosCampos;
+    const valores: Record<string, number> = {
+      custo: parseFloat(calcCusto),
+      margem: parseFloat(calcMargem),
+      markup: parseFloat(calcMarkup),
+      renda: parseFloat(calcRenda),
+      lucro: parseFloat(calcLucro)
+    };
+    // Usar o novo valor digitado
+    valores[campo] = parseFloat(valor);
+
+    // Obter os 2 valores fixos
+    const val1 = valores[campo1];
+    const val2 = valores[campo2];
+
+    if (isNaN(val1) || isNaN(val2)) return;
+
+    // CUSTO + RENDA
+    if ((campo1 === 'custo' && campo2 === 'renda') || (campo1 === 'renda' && campo2 === 'custo')) {
+      const custo = valores.custo;
+      const renda = valores.renda;
+      if (renda > custo) {
+        const lucro = renda - custo;
+        const margem = (lucro / renda) * 100;
+        const markup = (lucro / custo) * 100;
+        setCalcLucro(lucro.toFixed(2));
+        setCalcMargem(margem.toFixed(2));
+        setCalcMarkup(markup.toFixed(4));
+      }
+    }
+    // CUSTO + MARGEM
+    else if ((campo1 === 'custo' && campo2 === 'margem') || (campo1 === 'margem' && campo2 === 'custo')) {
+      const custo = valores.custo;
+      const margem = valores.margem;
+      if (margem < 100) {
+        const markup = margem / (1 - margem / 100);
+        const renda = custo * (1 + markup / 100);
+        const lucro = renda - custo;
+        setCalcMarkup(markup.toFixed(4));
+        setCalcRenda(renda.toFixed(2));
+        setCalcLucro(lucro.toFixed(2));
+      }
+    }
+    // CUSTO + MARKUP
+    else if ((campo1 === 'custo' && campo2 === 'markup') || (campo1 === 'markup' && campo2 === 'custo')) {
+      const custo = valores.custo;
+      const markup = valores.markup;
+      const margem = (markup / (1 + markup / 100));
+      const renda = custo * (1 + markup / 100);
+      const lucro = renda - custo;
+      setCalcMargem(margem.toFixed(2));
+      setCalcRenda(renda.toFixed(2));
+      setCalcLucro(lucro.toFixed(2));
+    }
+    // CUSTO + LUCRO
+    else if ((campo1 === 'custo' && campo2 === 'lucro') || (campo1 === 'lucro' && campo2 === 'custo')) {
+      const custo = valores.custo;
+      const lucro = valores.lucro;
+      const renda = custo + lucro;
+      const margem = (lucro / renda) * 100;
+      const markup = (lucro / custo) * 100;
+      setCalcRenda(renda.toFixed(2));
+      setCalcMargem(margem.toFixed(2));
+      setCalcMarkup(markup.toFixed(4));
+    }
+    // RENDA + MARGEM
+    else if ((campo1 === 'renda' && campo2 === 'margem') || (campo1 === 'margem' && campo2 === 'renda')) {
+      const renda = valores.renda;
+      const margem = valores.margem;
+      if (margem < 100) {
+        const markup = margem / (1 - margem / 100);
+        const custo = renda / (1 + markup / 100);
+        const lucro = renda - custo;
+        setCalcMarkup(markup.toFixed(4));
+        setCalcCusto(custo.toFixed(2));
+        setCalcLucro(lucro.toFixed(2));
+      }
+    }
+    // RENDA + MARKUP
+    else if ((campo1 === 'renda' && campo2 === 'markup') || (campo1 === 'markup' && campo2 === 'renda')) {
+      const renda = valores.renda;
+      const markup = valores.markup;
+      const margem = (markup / (1 + markup / 100));
+      const custo = renda / (1 + markup / 100);
+      const lucro = renda - custo;
+      setCalcMargem(margem.toFixed(2));
+      setCalcCusto(custo.toFixed(2));
+      setCalcLucro(lucro.toFixed(2));
+    }
+    // RENDA + LUCRO
+    else if ((campo1 === 'renda' && campo2 === 'lucro') || (campo1 === 'lucro' && campo2 === 'renda')) {
+      const renda = valores.renda;
+      const lucro = valores.lucro;
+      if (renda > lucro) {
+        const custo = renda - lucro;
+        const margem = (lucro / renda) * 100;
+        const markup = (lucro / custo) * 100;
+        setCalcCusto(custo.toFixed(2));
+        setCalcMargem(margem.toFixed(2));
+        setCalcMarkup(markup.toFixed(4));
+      }
+    }
+    // MARGEM + MARKUP (são interdependentes)
+    else if ((campo1 === 'margem' && campo2 === 'markup') || (campo1 === 'markup' && campo2 === 'margem')) {
+      // Se digitou margem por último, recalcula markup
+      if (campo === 'margem') {
+        const margem = valores.margem;
+        const markup = margem / (1 - margem / 100);
+        setCalcMarkup(markup.toFixed(4));
+      } else {
+        const markup = valores.markup;
+        const margem = (markup / (1 + markup / 100));
+        setCalcMargem(margem.toFixed(2));
+      }
+    }
+    // MARGEM + LUCRO
+    else if ((campo1 === 'margem' && campo2 === 'lucro') || (campo1 === 'lucro' && campo2 === 'margem')) {
+      const margem = valores.margem;
+      const lucro = valores.lucro;
+      if (margem < 100) {
+        const renda = lucro / (margem / 100);
+        const custo = renda - lucro;
+        const markup = margem / (1 - margem / 100);
+        setCalcRenda(renda.toFixed(2));
+        setCalcCusto(custo.toFixed(2));
+        setCalcMarkup(markup.toFixed(4));
+      }
+    }
+    // MARKUP + LUCRO
+    else if ((campo1 === 'markup' && campo2 === 'lucro') || (campo1 === 'lucro' && campo2 === 'markup')) {
+      const markup = valores.markup;
+      const lucro = valores.lucro;
+      const custo = lucro / (markup / 100);
+      const renda = custo + lucro;
+      const margem = (markup / (1 + markup / 100));
+      setCalcCusto(custo.toFixed(2));
+      setCalcRenda(renda.toFixed(2));
+      setCalcMargem(margem.toFixed(2));
+    }
+  };
+
+  const handleCalcCustoChange = (value: string) => {
+    setCalcCusto(value);
+    const novosCampos = [...ultimosCampos.filter(c => c !== 'custo'), 'custo'].slice(-2);
+    setUltimosCampos(novosCampos);
+    recalcular('custo', value, novosCampos);
+  };
+
+  const handleCalcMargemChange = (value: string) => {
+    setCalcMargem(value);
+    const novosCampos = [...ultimosCampos.filter(c => c !== 'margem'), 'margem'].slice(-2);
+    setUltimosCampos(novosCampos);
+    recalcular('margem', value, novosCampos);
+  };
+
+  const handleCalcMarkupChange = (value: string) => {
+    setCalcMarkup(value);
+    const novosCampos = [...ultimosCampos.filter(c => c !== 'markup'), 'markup'].slice(-2);
+    setUltimosCampos(novosCampos);
+    recalcular('markup', value, novosCampos);
+  };
+
+  const handleCalcRendaChange = (value: string) => {
+    setCalcRenda(value);
+    const novosCampos = [...ultimosCampos.filter(c => c !== 'renda'), 'renda'].slice(-2);
+    setUltimosCampos(novosCampos);
+    recalcular('renda', value, novosCampos);
+  };
+
+  const handleCalcLucroChange = (value: string) => {
+    setCalcLucro(value);
+    const novosCampos = [...ultimosCampos.filter(c => c !== 'lucro'), 'lucro'].slice(-2);
+    setUltimosCampos(novosCampos);
+    recalcular('lucro', value, novosCampos);
+  };
+
+  const limparCalculadora = () => {
+    setCalcCusto('');
+    setCalcMargem('');
+    setCalcMarkup('');
+    setCalcRenda('');
+    setCalcLucro('');
+  };
 
   // Calcular desconto aplicável em tempo real
   const descontoAplicavel = useMemo(() => {
@@ -752,6 +955,20 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
   // Renderização do componente
   return (
     <Box sx={{ maxWidth: { xs: '100%', sm: 500, md: 600 }, mx: 'auto', p: { xs: 0, sm: 1, md: 2 }, width: '100%' }}>
+      {/* Botão Voltar ao Vale Tech */}
+      <Button
+        startIcon={<ArrowBackIcon />}
+        onClick={() => navigate('/vendedor')}
+        sx={{ 
+          mb: 2, 
+          textTransform: 'none', 
+          fontWeight: 600,
+          fontSize: { xs: '0.85rem', sm: '0.95rem' }
+        }}
+      >
+        Voltar ao Vale Tech
+      </Button>
+
       <Slide in direction="down">
         <Paper elevation={6} sx={{
           p: { xs: 1, sm: 2, md: 3 },
@@ -763,6 +980,28 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
           <Stack direction="row" alignItems="center" spacing={{ xs: 0.75, sm: 1.5, md: 2 }} mb={{ xs: 1.25, sm: 1.75, md: 2 }}>
             <PersonIcon color="primary" sx={{ fontSize: { xs: 22, sm: 28, md: 36 } }} />
             <Typography variant="h6" fontWeight={700} color="primary.main" sx={{ fontSize: { xs: '0.9rem', sm: '1.05rem', md: '1.25rem' } }}>Solicitação de Preço</Typography>
+          </Stack>
+          <Stack direction="row" alignItems="center" spacing={1} mb={{ xs: 1.25, sm: 1.75, md: 2 }}>
+            <Button
+              variant="outlined"
+              startIcon={<CalculateIcon />}
+              onClick={() => setCalculatorOpen(true)}
+              size="small"
+              sx={{
+                fontSize: { xs: '0.75rem', sm: '0.85rem' },
+                fontWeight: 600,
+                textTransform: 'none',
+                borderColor: 'primary.main',
+                color: 'primary.main',
+                '&:hover': {
+                  borderColor: 'primary.dark',
+                  bgcolor: 'primary.light',
+                  color: 'white'
+                }
+              }}
+            >
+              Calculadora de Margem
+            </Button>
           </Stack>
           <Divider sx={{ mb: { xs: 1.25, sm: 1.75, md: 2 } }} />
           
@@ -1326,6 +1565,260 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Modal da Calculadora de Margem */}
+      <Dialog
+        open={calculatorOpen}
+        onClose={() => setCalculatorOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        scroll="body"
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            m: { xs: 1, sm: 2 },
+            maxHeight: { xs: '95vh', sm: '90vh' },
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          bgcolor: 'primary.main',
+          color: 'white',
+          fontSize: { xs: '1.1rem', sm: '1.4rem' },
+          fontWeight: 600,
+          py: { xs: 2, sm: 2.5 },
+          px: { xs: 2, sm: 3 },
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: 1.5
+        }}>
+          <CalculateIcon sx={{ fontSize: { xs: 24, sm: 32 } }} />
+          Calculadora de Margem
+        </DialogTitle>
+        <DialogContent sx={{ pt: 3, pb: 2, px: { xs: 2, sm: 3 }, overflow: 'visible' }}>
+          <Stack spacing={2.5} sx={{ mt: 1 }}>
+            <TextField
+              label="Custo"
+              value={calcCusto}
+              onChange={(e) => handleCalcCustoChange(e.target.value)}
+              type="number"
+              placeholder="0.00"
+              inputProps={{ min: 0, step: 0.01 }}
+              fullWidth
+              size="small"
+              InputProps={{
+                startAdornment: <InputAdornment position="start">R$</InputAdornment>,
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  backgroundColor: ultimosCampos.includes('custo') ? '#fff3e0' : 'white',
+                  transition: 'all 0.3s ease',
+                  fontSize: '1.05rem',
+                  '&:hover': {
+                    backgroundColor: ultimosCampos.includes('custo') ? '#ffe0b2' : '#f5f5f5',
+                  },
+                  '&.Mui-focused': {
+                    backgroundColor: ultimosCampos.includes('custo') ? '#ffcc80' : 'white',
+                  }
+                },
+                '& .MuiInputLabel-root': {
+                  fontSize: '1rem',
+                  '&.Mui-focused': {
+                    color: ultimosCampos.includes('custo') ? '#e65100' : 'primary.main',
+                    fontWeight: ultimosCampos.includes('custo') ? 600 : 400,
+                  }
+                }
+              }}
+            />
+
+            <TextField
+              label="Margem de lucro"
+              value={calcMargem}
+              onChange={(e) => handleCalcMargemChange(e.target.value)}
+              type="number"
+              placeholder="0"
+              inputProps={{ min: 0, max: 99.99, step: 0.01 }}
+              fullWidth
+              size="small"
+              InputProps={{
+                endAdornment: <InputAdornment position="end">%</InputAdornment>,
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  backgroundColor: ultimosCampos.includes('margem') ? '#fff3e0' : 'white',
+                  transition: 'all 0.3s ease',
+                  fontSize: '1.05rem',
+                  '&:hover': {
+                    backgroundColor: ultimosCampos.includes('margem') ? '#ffe0b2' : '#f5f5f5',
+                  },
+                  '&.Mui-focused': {
+                    backgroundColor: ultimosCampos.includes('margem') ? '#ffcc80' : 'white',
+                  }
+                },
+                '& .MuiInputLabel-root': {
+                  fontSize: '1rem',
+                  '&.Mui-focused': {
+                    color: ultimosCampos.includes('margem') ? '#e65100' : 'primary.main',
+                    fontWeight: ultimosCampos.includes('margem') ? 600 : 400,
+                  }
+                }
+              }}
+            />
+
+            <TextField
+              label="Mark up"
+              value={calcMarkup}
+              onChange={(e) => handleCalcMarkupChange(e.target.value)}
+              type="number"
+              placeholder="0"
+              inputProps={{ min: 0, step: 0.01 }}
+              fullWidth
+              size="small"
+              InputProps={{
+                endAdornment: <InputAdornment position="end">%</InputAdornment>,
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  backgroundColor: ultimosCampos.includes('markup') ? '#fff3e0' : '#e3f2fd',
+                  transition: 'all 0.3s ease',
+                  fontSize: '1.05rem',
+                  '&:hover': {
+                    backgroundColor: ultimosCampos.includes('markup') ? '#ffe0b2' : '#bbdefb',
+                  },
+                  '&.Mui-focused': {
+                    backgroundColor: ultimosCampos.includes('markup') ? '#ffcc80' : '#90caf9',
+                  }
+                },
+                '& .MuiInputLabel-root': {
+                  fontSize: '1rem',
+                  '&.Mui-focused': {
+                    color: ultimosCampos.includes('markup') ? '#e65100' : '#1976d2',
+                    fontWeight: ultimosCampos.includes('markup') ? 600 : 400,
+                  }
+                }
+              }}
+            />
+
+            <TextField
+              label="Renda (Preço de Venda)"
+              value={calcRenda}
+              onChange={(e) => handleCalcRendaChange(e.target.value)}
+              type="number"
+              placeholder="0.00"
+              inputProps={{ min: 0, step: 0.01 }}
+              fullWidth
+              size="small"
+              InputProps={{
+                startAdornment: <InputAdornment position="start">R$</InputAdornment>,
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  backgroundColor: ultimosCampos.includes('renda') ? '#fff3e0' : '#e8f5e9',
+                  transition: 'all 0.3s ease',
+                  fontSize: '1.05rem',
+                  fontWeight: 600,
+                  '&:hover': {
+                    backgroundColor: ultimosCampos.includes('renda') ? '#ffe0b2' : '#c8e6c9',
+                  },
+                  '&.Mui-focused': {
+                    backgroundColor: ultimosCampos.includes('renda') ? '#ffcc80' : '#a5d6a7',
+                  }
+                },
+                '& .MuiInputLabel-root': {
+                  fontSize: '1rem',
+                  '&.Mui-focused': {
+                    color: ultimosCampos.includes('renda') ? '#e65100' : '#2e7d32',
+                    fontWeight: ultimosCampos.includes('renda') ? 600 : 400,
+                  }
+                }
+              }}
+            />
+
+            <TextField
+              label="Lucro"
+              value={calcLucro}
+              onChange={(e) => handleCalcLucroChange(e.target.value)}
+              type="number"
+              placeholder="0.00"
+              inputProps={{ min: 0, step: 0.01 }}
+              fullWidth
+              size="small"
+              InputProps={{
+                startAdornment: <InputAdornment position="start">R$</InputAdornment>,
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  backgroundColor: ultimosCampos.includes('lucro') ? '#fff3e0' : '#e1f5fe',
+                  transition: 'all 0.3s ease',
+                  fontSize: '1.05rem',
+                  '&:hover': {
+                    backgroundColor: ultimosCampos.includes('lucro') ? '#ffe0b2' : '#b3e5fc',
+                  },
+                  '&.Mui-focused': {
+                    backgroundColor: ultimosCampos.includes('lucro') ? '#ffcc80' : '#81d4fa',
+                  }
+                },
+                '& .MuiInputLabel-root': {
+                  fontSize: '1rem',
+                  '&.Mui-focused': {
+                    color: ultimosCampos.includes('lucro') ? '#e65100' : '#0277bd',
+                    fontWeight: ultimosCampos.includes('lucro') ? 600 : 400,
+                  }
+                }
+              }}
+            />
+
+            {/* Indicador visual dos campos fixos */}
+            {ultimosCampos.length >= 2 && (
+              <Box sx={{ 
+                mt: 1, 
+                p: 2, 
+                backgroundColor: '#fff3e0',
+                borderRadius: 2,
+                border: '2px solid #ff9800',
+              }}>
+                <Typography variant="body2" sx={{ fontWeight: 600, color: '#e65100', mb: 0.5 }}>
+                  📌 Campos Fixos (Base do Cálculo):
+                </Typography>
+                <Typography variant="body2" sx={{ color: '#ef6c00' }}>
+                  {ultimosCampos.map(c => 
+                    c === 'custo' ? 'Custo' :
+                    c === 'margem' ? 'Margem de lucro' :
+                    c === 'markup' ? 'Mark up' :
+                    c === 'renda' ? 'Renda' : 'Lucro'
+                  ).join(' + ')}
+                </Typography>
+              </Box>
+            )}
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
+          <Button 
+            onClick={limparCalculadora}
+            variant="outlined"
+            sx={{ 
+              borderRadius: 2,
+              textTransform: 'none',
+              fontWeight: 600,
+              fontSize: '0.95rem'
+            }}
+          >
+            🗑️ Limpar
+          </Button>
+          <Button 
+            onClick={() => setCalculatorOpen(false)} 
+            variant="contained"
+            color="primary"
+            sx={{ 
+              borderRadius: 2,
+              fontSize: '0.95rem',
+            }}
+          >
+            ✓ Fechar
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   )
 }
+

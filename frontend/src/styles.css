@@ -1,3 +1,46 @@
+/* ===================================
+   VALE TECH - PALETA DE CORES GLOBAL
+   =================================== */
+:root {
+  /* Cores Primárias/Ação */
+  --primary-color: #006FAD;
+  --primary-hover: #005a8c;
+  --primary-light: #4d9dc4;
+  --primary-dark: #004a73;
+  --secondary-color: #6C757D;
+  --secondary-hover: #5a6268;
+
+  /* Cores de Fundo e Texto */
+  --background-color: #F8F9FA;
+  --text-color: #212529;
+  --text-secondary: #6c757d;
+  --surface-color: #FFFFFF;
+
+  /* Cores de Status/Feedback */
+  --success-color: #28A745;
+  --success-light: #d4edda;
+  --success-dark: #1e7e34;
+  --danger-color: #DC3545;
+  --danger-light: #f8d7da;
+  --danger-dark: #bd2130;
+  --warning-color: #FFC107;
+  --warning-light: #fff3cd;
+  --warning-dark: #e0a800;
+  --info-color: #17A2B8;
+  --info-light: #d1ecf1;
+
+  /* Cores de UI */
+  --border-color: #dee2e6;
+  --shadow-color: rgba(0, 0, 0, 0.1);
+  --overlay-color: rgba(0, 0, 0, 0.5);
+
+  /* Gradientes Vale Tech */
+  --gradient-primary: linear-gradient(135deg, #006FAD 0%, #004a73 100%);
+  --gradient-secondary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --gradient-success: linear-gradient(135deg, #28A745 0%, #1e7e34 100%);
+  --gradient-danger: linear-gradient(135deg, #DC3545 0%, #bd2130 100%);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -11,6 +54,8 @@ body {
   font-family: Arial, Helvetica, sans-serif;
   margin: 0;
   padding: 0;
+  background-color: var(--background-color);
+  color: var(--text-color);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   /* Otimizações para mobile */

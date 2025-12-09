@@ -8,6 +8,8 @@ import AdminRequestsPanel from './components/AdminRequestsPanel';
 import AdminLixeira from './components/AdminLixeira';
 import SupervisorPanel from './components/SupervisorPanel';
 import GerentePanel from './components/GerentePanel';
+import VendorDashboard from './components/VendorDashboard';
+import CalculadoraStandalone from './components/CalculadoraStandalone';
 import { parseClientesCsv } from './utils/parseCsv';
 import { parseProdutosCsv } from './utils/parseProdutosCsv';
 import { parseDescontosCsv } from './utils/parseDescontosCsv';
@@ -99,14 +101,14 @@ function AppContent() {
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: user && user.email === 'admin@admin.com' ? '#f3f3f5ff' : 'inherit' }}>
+    <Box sx={{ minHeight: '100vh', bgcolor: user && user.email === 'admin@admin.com' ? 'background.default' : 'inherit' }}>
       <AppBar position="static" color="default" elevation={2} sx={{ mb: { xs: 1, sm: 2, md: 4 } }}>
         <Toolbar sx={{ justifyContent: 'space-between', px: { xs: 0.5, sm: 1.5, md: 2 }, minHeight: { xs: 48, sm: 56, md: 64 } }}>
-          <Typography variant="h6" fontWeight={600} color="primary.main" sx={{ fontSize: { xs: '0.85rem', sm: '1rem', md: '1.25rem' } }}>
-          💰Solicitação de Preços
+          <Typography variant="h6" fontWeight={600} color="primary.main" sx={{ fontSize: { xs: '1.25rem', sm: '1rem', md: '1.25rem' } }}>
+           📲 App Valemilk
           </Typography>
           {token && user && (
-            <Button variant="outlined" color="secondary" onClick={handleLogout} size="small" sx={{ fontWeight: 600, px: { xs: 1, sm: 1.5, md: 3 }, py: { xs: 0.5, sm: 0.75 }, fontSize: { xs: '0.7rem', sm: '0.8rem', md: '0.875rem' } }}>Sair</Button>
+            <Button variant="outlined" color="secondary" onClick={handleLogout} size="small" sx={{ px: { xs: 1, sm: 1.5, md: 3 }, py: { xs: 0.5, sm: 0.75 }, fontSize: { xs: '0.7rem', sm: '0.8rem', md: '0.875rem' } }}>Sair</Button>
           )}
         </Toolbar>
       </AppBar>
@@ -195,6 +197,14 @@ function AppContent() {
 
           <Route path="/vendedor" element={
             token && user ? (
+              <VendorDashboard userName={user.name} />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          } />
+
+          <Route path="/vendedor/solicitacao-precos" element={
+            token && user ? (
               <>
                 <Box mb={2} display="flex" justifyContent="space-between" alignItems="center">
                   <Typography variant="subtitle1">Bem-vindo, {user.name}!</Typography>
@@ -246,6 +256,14 @@ function AppContent() {
                   onClientesLoaded={setClientes}
                 />
               </>
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          } />
+
+          <Route path="/vendedor/calculadora" element={
+            token && user ? (
+              <CalculadoraStandalone />
             ) : (
               <Navigate to="/login" replace />
             )
