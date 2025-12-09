@@ -42,7 +42,7 @@ export default function VendorDashboard({ userName }: VendorDashboardProps) {
             fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' }
           }}
         >
-          Bem-vindo ao Vale Tech
+          Bem-vindo ao Vale Hub
         </Typography>
         <Typography variant="h6" color="text.secondary" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
           Olá, {userName}! 👋
