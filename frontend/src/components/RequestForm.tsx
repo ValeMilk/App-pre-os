@@ -1171,36 +1171,7 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
                 </Alert>
               )}
               
-              {/* Alerta de Preço Abaixo do Promocional - Aparece SOMENTE quando acima do mínimo mas abaixo do promocional */}
-              {precoAbaixoDoPromocional && precoSugeridoPromocional && price && (
-                <Alert 
-                  severity="warning" 
-                  icon={<WarningIcon />}
-                  sx={{ 
-                    fontSize: { xs: '0.8rem', sm: '0.875rem' },
-                    '& .MuiAlert-message': {
-                      width: '100%'
-                    }
-                  }}
-                >
-                  <Stack spacing={0.5}>
-                    <Typography variant="body2" fontWeight={600} sx={{ fontSize: { xs: '0.85rem', sm: '0.9rem' } }}>
-                      {precoSugeridoPromocional.temDesconto ? (
-                        <>⚠️ Preço Sugerido Promocional (com {precoSugeridoPromocional.percentualDesconto}% desconto): <strong>R$ {precoSugeridoPromocional.valor.toFixed(2)}</strong></>
-                      ) : (
-                        <>⚠️ Preço Sugerido Promocional: <strong>R$ {precoSugeridoPromocional.valor.toFixed(2)}</strong></>
-                      )}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.8rem' } }}>
-                      Preço Promocional: R$ {precoSugeridoPromocional.precoReferencia.toFixed(2)}
-                      {precoSugeridoPromocional.temDesconto && ` (antes do desconto de ${precoSugeridoPromocional.percentualDesconto}%)`}
-                    </Typography>
-                    <Typography variant="caption" color="warning.dark" fontWeight={600} sx={{ fontSize: { xs: '0.75rem', sm: '0.8rem' }, mt: 0.5 }}>
-                      ⚠️ O preço digitado está abaixo do {precoSugeridoPromocional.temDesconto ? 'promocional com desconto' : 'promocional'}
-                    </Typography>
-                  </Stack>
-                </Alert>
-              )}
+              {/* Alerta de Preço Abaixo do Promocional - REMOVIDO */}
 
               <TextField
                 label="Preço solicitado"

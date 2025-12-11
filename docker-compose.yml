@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  # Backend - API Node.js + Express
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: app-precos-backend
+    restart: unless-stopped
+    ports:
+      - "5001:5000"  # Porta externa alterada para 5001
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      MONGO_URI: mongodb+srv://nicolasimoes_db_user:TOG293qtDIlYsa6X@pricerequest.p5p0lrb.mongodb.net/?appName=priceRequest
+      JWT_SECRET: sua_chave_secreta_jwt_aqui_2024
+      CORS_ORIGIN: http://localhost:8080
+    volumes:
+      - ./backend/src:/app/src:ro
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Frontend - React + Vite + Nginx
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:5001
+    container_name: app-precos-frontend
+    restart: unless-stopped
+    ports:
+      - "8080:80"  # Porta externa alterada para 8080
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

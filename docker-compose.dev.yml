@@ -1,0 +1,71 @@
+version: '3.8'
+
+# Docker Compose para DESENVOLVIMENTO (hot reload)
+
+services:
+  # MongoDB - Banco de dados
+  mongodb:
+    image: mongo:7.0
+    container_name: app-precos-mongodb-dev
+    restart: unless-stopped
+    ports:
+      - "27019:27017"  # Porta externa alterada para 27019 (dev)
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: dev123
+      MONGO_INITDB_DATABASE: price_requests_dev
+    volumes:
+      - mongodb_data_dev:/data/db
+    networks:
+      - app-network-dev
+
+  # Backend - Com hot reload
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: app-precos-backend-dev
+    restart: unless-stopped
+    ports:
+      - "5002:5000"  # Porta externa alterada para 5002 (dev)
+    environment:
+      NODE_ENV: development
+      PORT: 5000
+      MONGODB_URI: mongodb://admin:dev123@mongodb:27017/price_requests_dev?authSource=admin
+      JWT_SECRET: dev_jwt_secret_key
+      CORS_ORIGIN: http://localhost:5173
+    depends_on:
+      - mongodb
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    networks:
+      - app-network-dev
+    command: npm run dev
+
+  # Frontend - Vite dev server
+  frontend:
+    image: node:18-alpine
+    container_name: app-precos-frontend-dev
+    restart: unless-stopped
+    working_dir: /app
+    ports:
+      - "5174:5173"  # Porta externa alterada para 5174 (dev)
+    environment:
+      VITE_API_URL: http://localhost:5002
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - app-network-dev
+    command: sh -c "npm install && npm run dev -- --host"
+
+networks:
+  app-network-dev:
+    driver: bridge
+
+volumes:
+  mongodb_data_dev:
+    driver: local
