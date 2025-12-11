@@ -1,8 +1,5 @@
 # Backend Dockerfile for Railway - Node.js API
-FROM node:18-alpine AS builder
-
-# Instalar dependências do sistema
-RUN apk add --no-cache libc6-compat
+FROM node:18-slim AS builder
 
 WORKDIR /app
 
@@ -11,18 +8,16 @@ COPY backend/package*.json ./
 COPY backend/tsconfig.json ./
 
 # Instalar TODAS as dependências (incluindo devDependencies para build)
-RUN npm ci && npm cache clean --force
+RUN npm ci
 
 # Copiar código fonte do backend
 COPY backend/src ./src
 
 # Build TypeScript
-RUN npx tsc
+RUN npm run build
 
 # Stage 2: Produção (apenas runtime)
-FROM node:18-alpine
-
-RUN apk add --no-cache libc6-compat
+FROM node:18-slim
 
 WORKDIR /app
 
@@ -30,7 +25,7 @@ WORKDIR /app
 COPY backend/package*.json ./
 
 # Instalar apenas dependências de produção
-RUN npm ci --only=production && npm cache clean --force
+RUN npm ci --only=production
 
 # Copiar build do stage anterior
 COPY --from=builder /app/dist ./dist
