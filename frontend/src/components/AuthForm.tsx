@@ -100,7 +100,7 @@ export default function AuthForm({ onAuthSuccess }: Props) {
         />
       </Box>
       <Typography variant="h5" mb={2} align="center" sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
-        Login do Colaboradorrr
+        Login do Colaborador
       </Typography>
       <form onSubmit={handleSubmit} autoComplete="off">
         <Stack spacing={{ xs: 1.5, sm: 2 }}>
