@@ -41,7 +41,7 @@ export default function AuthForm({ onAuthSuccess }: Props) {
     setError(null);
     
     if (!selectedUser) {
-      setError('Selecione um usuárioooo');
+      setError('Selecione um usuário');
       return;
     }
 
@@ -100,7 +100,7 @@ export default function AuthForm({ onAuthSuccess }: Props) {
         />
       </Box>
       <Typography variant="h5" mb={2} align="center" sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
-        Login do Colaborador
+        Login do Colaboradorrr
       </Typography>
       <form onSubmit={handleSubmit} autoComplete="off">
         <Stack spacing={{ xs: 1.5, sm: 2 }}>
