@@ -41,7 +41,7 @@ export default function AuthForm({ onAuthSuccess }: Props) {
     setError(null);
     
     if (!selectedUser) {
-      setError('Selecione um usuário');
+      setError('Selecione um usuárioooo');
       return;
     }
 
