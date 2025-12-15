@@ -6,6 +6,7 @@ import mongoose from 'mongoose';
 import cors from 'cors';
 import { Request, Response } from 'express';
 import authRoutes from './routes/auth';
+import analyticsRoutes from './routes/analytics';
 import { requireAuth, AuthRequest } from './middleware/auth';
 
 // dotenv already loaded via side-effect import above
@@ -46,6 +47,7 @@ app.get('/health', (req: Request, res: Response) => {
 });
 
 app.use('/api/auth', authRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 // Diagnostic logs to help debugging environment issues
 console.log('[STARTUP] PORT=', process.env.PORT || 'not set');
