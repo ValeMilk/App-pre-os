@@ -8,6 +8,7 @@ import { Request, Response } from 'express';
 import authRoutes from './routes/auth';
 import analyticsRoutes from './routes/analytics';
 import { requireAuth, AuthRequest } from './middleware/auth';
+import { PriceRequest } from './models/PriceRequest';
 
 // dotenv already loaded via side-effect import above
 
@@ -67,38 +68,7 @@ mongoose.connect(mongoUri)
     process.exit(1);
   });
 
-const priceRequestSchema = new mongoose.Schema({
-  requester_name: String,
-  requester_id: { type: String, required: true },
-  customer_code: String,
-  customer_name: String,
-  product_id: String,
-  product_name: String,
-  requested_price: String,
-  quantity: String,
-  product_maximo: String,
-  product_minimo: String,
-  product_promocional: String,
-  currency: String,
-  status: String,
-  notes: String,
-  created_at: { type: Date, default: Date.now },
-  approved_by: String,
-  approved_at: Date,
-  altered_by: String,
-  altered_at: Date,
-  codigo_supervisor: String,
-  nome_supervisor: String,
-  subrede_batch_id: String,
-  subrede_name: String,
-  discount_percent: String,
-  discounted_price: String,
-  supervisor_notes: String,
-  cancellation_requested: { type: Boolean, default: false },
-  cancellation_reason: String,
-  cancellation_requested_at: Date
-});
-const PriceRequest = mongoose.model('PriceRequest', priceRequestSchema);
+// PriceRequest model agora importado de ./models/PriceRequest.ts
 
   app.get('/api/requests/all', requireAuth, async (req: AuthRequest, res: Response) => {
     if (!req.user || req.user.email !== 'admin@admin.com') {
