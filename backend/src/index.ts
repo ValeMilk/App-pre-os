@@ -14,28 +14,14 @@ import { PriceRequest } from './models/PriceRequest';
 
 const app = express();
 
-// Configuração de CORS para produção
-const corsOptions = {
-  origin: function (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
-    // Permite requisições sem origin (como Postman, curl, etc) ou de dominios vercel.app
-    const allowedOrigins = [
-      'http://localhost:5173',
-      'http://localhost:4000',
-      'https://app-pre-os.vercel.app',
-    ];
-    
-    // Se não tem origin (requisições do servidor) ou é um dominio permitido ou termina em .vercel.app
-    if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
-      callback(null, true);
-    } else {
-      callback(null, true); // Temporariamente permitindo tudo para debug
-    }
-  },
-  credentials: true,
-  optionsSuccessStatus: 200
-};
-
-app.use(cors(corsOptions));
+// Configuração de CORS - permitir todas as origens (necessário para Power BI)
+app.use(cors({
+  origin: '*', // Permitir qualquer origem
+  credentials: false,
+  optionsSuccessStatus: 200,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
 
 // Health check endpoint
