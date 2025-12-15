@@ -92,6 +92,23 @@ router.get('/users', async (req, res) => {
   }
 });
 
+// Endpoint para corrigir admin (desenvolvimento apenas)
+router.post('/fix-admin', async (req, res) => {
+  try {
+    const admin = await User.findOneAndUpdate(
+      { email: 'admin@admin.com' },
+      { tipo: 'admin' },
+      { new: true }
+    );
+    if (!admin) {
+      return res.status(404).json({ error: 'Admin não encontrado' });
+    }
+    res.json({ message: 'Admin corrigido com sucesso', user: admin });
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao corrigir admin', details: err });
+  }
+});
+
 // Login
 router.post('/login', async (req, res) => {
   const JWT_SECRET = process.env.JWT_SECRET as string | undefined;
