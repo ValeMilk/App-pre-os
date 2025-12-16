@@ -289,7 +289,9 @@ export default function AdminRequestsPanel() {
         <MenuItem onClick={() => handleStatusFilterSelect('Todos')}>Todos</MenuItem>
         <MenuItem onClick={() => handleStatusFilterSelect('Pendente')}>Pendente</MenuItem>
         <MenuItem onClick={() => handleStatusFilterSelect('Aprovado')}>Aprovado</MenuItem>
+        <MenuItem onClick={() => handleStatusFilterSelect('Aprovado pela Gerência')}>Aprovado pela Gerência</MenuItem>
         <MenuItem onClick={() => handleStatusFilterSelect('Reprovado')}>Reprovado</MenuItem>
+        <MenuItem onClick={() => handleStatusFilterSelect('Reprovado pela Gerência')}>Reprovado pela Gerência</MenuItem>
         <MenuItem onClick={() => handleStatusFilterSelect('Alterado')}>Alterado</MenuItem>
       </Menu>
 
