@@ -20,6 +20,7 @@ export default function AdminRequestsPanel() {
   const [success, setSuccess] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('Todos');
+  const [statusPrecoFilter, setStatusPrecoFilter] = useState<string>('Todos');
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [filterColumn, setFilterColumn] = useState<string>('');
 
@@ -85,6 +86,27 @@ export default function AdminRequestsPanel() {
       filtered = filtered.filter(r => r.status === statusFilter);
     }
 
+    // Filtro por Status Preço
+    if (statusPrecoFilter !== 'Todos') {
+      filtered = filtered.filter(r => {
+        const precoSolicitado = parseFloat(String(r.requested_price || '0').replace(',', '.'));
+        const precoMinimoRaw = r.product_minimo;
+        const precoMinimo = (precoMinimoRaw && precoMinimoRaw !== 'NaN' && !isNaN(parseFloat(String(precoMinimoRaw).replace(',', '.')))) 
+          ? parseFloat(String(precoMinimoRaw).replace(',', '.')) 
+          : null;
+        
+        if (precoMinimo === null || precoMinimo === 0) {
+          return statusPrecoFilter === 'Sem preço mín.';
+        }
+        
+        if (precoSolicitado < precoMinimo) {
+          return statusPrecoFilter === 'Abaixo do Mín.';
+        } else {
+          return statusPrecoFilter === 'Igual/Acima do Mín.';
+        }
+      });
+    }
+
     // Filtro de pesquisa global
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
@@ -102,7 +124,7 @@ export default function AdminRequestsPanel() {
     }
 
     return filtered;
-  }, [requests, searchTerm, statusFilter]);
+  }, [requests, searchTerm, statusFilter, statusPrecoFilter]);
 
   const handleFilterClick = (event: React.MouseEvent<HTMLElement>, column: string) => {
     setAnchorEl(event.currentTarget);
@@ -116,6 +138,11 @@ export default function AdminRequestsPanel() {
 
   const handleStatusFilterSelect = (status: string) => {
     setStatusFilter(status);
+    handleFilterClose();
+  };
+
+  const handleStatusPrecoFilterSelect = (statusPreco: string) => {
+    setStatusPrecoFilter(statusPreco);
     handleFilterClose();
   };
 
@@ -225,13 +252,23 @@ export default function AdminRequestsPanel() {
         >
           Status: {statusFilter}
         </Button>
-        {(searchTerm || statusFilter !== 'Todos') && (
+        <Button
+          variant="outlined"
+          startIcon={<FilterListIcon />}
+          onClick={(e) => handleFilterClick(e, 'statusPreco')}
+          size="small"
+          sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' }, whiteSpace: 'nowrap' }}
+        >
+          Status Preço: {statusPrecoFilter}
+        </Button>
+        {(searchTerm || statusFilter !== 'Todos' || statusPrecoFilter !== 'Todos') && (
           <Button
             variant="text"
             size="small"
             onClick={() => {
               setSearchTerm('');
               setStatusFilter('Todos');
+              setStatusPrecoFilter('Todos');
             }}
             sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
           >
@@ -243,10 +280,10 @@ export default function AdminRequestsPanel() {
         </Typography>
       </Stack>
 
-      {/* Menu de Filtro */}
+      {/* Menu de Filtro Status */}
       <Menu
         anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
+        open={Boolean(anchorEl) && filterColumn === 'status'}
         onClose={handleFilterClose}
       >
         <MenuItem onClick={() => handleStatusFilterSelect('Todos')}>Todos</MenuItem>
@@ -254,6 +291,18 @@ export default function AdminRequestsPanel() {
         <MenuItem onClick={() => handleStatusFilterSelect('Aprovado')}>Aprovado</MenuItem>
         <MenuItem onClick={() => handleStatusFilterSelect('Reprovado')}>Reprovado</MenuItem>
         <MenuItem onClick={() => handleStatusFilterSelect('Alterado')}>Alterado</MenuItem>
+      </Menu>
+
+      {/* Menu de Filtro Status Preço */}
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl) && filterColumn === 'statusPreco'}
+        onClose={handleFilterClose}
+      >
+        <MenuItem onClick={() => handleStatusPrecoFilterSelect('Todos')}>Todos</MenuItem>
+        <MenuItem onClick={() => handleStatusPrecoFilterSelect('Abaixo do Mín.')}>Abaixo do Mín.</MenuItem>
+        <MenuItem onClick={() => handleStatusPrecoFilterSelect('Igual/Acima do Mín.')}>Igual/Acima do Mín.</MenuItem>
+        <MenuItem onClick={() => handleStatusPrecoFilterSelect('Sem preço mín.')}>Sem preço mín.</MenuItem>
       </Menu>
 
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
@@ -270,19 +319,22 @@ export default function AdminRequestsPanel() {
             bgcolor: '#fafafa',
             WebkitOverflowScrolling: 'touch' // suporte smooth scroll iOS
           }}>
-            <table style={{ width: '100%', minWidth: 1300, borderCollapse: 'collapse', fontSize: 14 }}>
+            <table style={{ width: '100%', minWidth: 1600, borderCollapse: 'collapse', fontSize: 14 }}>
               <colgroup>
-                <col style={{ width: '5%' }} />
-                <col style={{ width: '10%' }} />
-                <col style={{ width: '6%' }} />
-                <col style={{ width: '12%' }} />
-                <col style={{ width: '14%' }} />
-                <col style={{ width: '8%' }} />
-                <col style={{ width: '5%' }} />
-                <col style={{ width: '8%' }} />
+                <col style={{ width: '4%' }} />
                 <col style={{ width: '9%' }} />
-                <col style={{ width: '13%' }} />
+                <col style={{ width: '5%' }} />
                 <col style={{ width: '10%' }} />
+                <col style={{ width: '11%' }} />
+                <col style={{ width: '6%' }} />
+                <col style={{ width: '6%' }} />
+                <col style={{ width: '6%' }} />
+                <col style={{ width: '4%' }} />
+                <col style={{ width: '7%' }} />
+                <col style={{ width: '7%' }} />
+                <col style={{ width: '10%' }} />
+                <col style={{ width: '8%' }} />
+                <col style={{ width: '7%' }} />
               </colgroup>
               <thead style={{ position: 'sticky', top: 0, background: '#f1f5fb', zIndex: 1 }}>
                 <tr>
@@ -291,67 +343,106 @@ export default function AdminRequestsPanel() {
                   <th style={{ padding: 10, textAlign: 'left', fontWeight: 600 }}>Cód. Cliente</th>
                   <th style={{ padding: 10, textAlign: 'left', fontWeight: 600 }}>Cliente</th>
                   <th style={{ padding: 10, textAlign: 'left', fontWeight: 600 }}>Produto</th>
+                  <th style={{ padding: 10, textAlign: 'center', fontWeight: 600 }}>Cód. Prod.</th>
                   <th style={{ padding: 10, textAlign: 'right', fontWeight: 600 }}>Preço</th>
+                  <th style={{ padding: 10, textAlign: 'right', fontWeight: 600 }}>Mín.</th>
                   <th style={{ padding: 10, textAlign: 'center', fontWeight: 600 }}>Qtd.</th>
                   <th style={{ padding: 10, textAlign: 'center', fontWeight: 600 }}>Status</th>
                   <th style={{ padding: 10, textAlign: 'left', fontWeight: 600 }}>Data</th>
                   <th style={{ padding: 10, textAlign: 'left', fontWeight: 600 }}>Justificativa</th>
+                  <th style={{ padding: 10, textAlign: 'center', fontWeight: 600 }}>Status Preço</th>
                   <th style={{ padding: 10, textAlign: 'center', fontWeight: 600 }}>Ações</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredRequests.map(r => (
-                  <tr key={r._id} style={{ 
-                    borderBottom: '1px solid #e8e8e8', 
-                    background: 
-                      r.status === 'Cancelado' ? '#000' :
-                      r.status === 'Alterado' ? '#e3f2fd' : 
-                      r.status === 'Aprovado' || r.status === 'Aprovado pela Gerência' ? '#e8f5e9' : 
-                      r.status === 'Reprovado' || r.status === 'Reprovado pela Gerência' ? '#ffebee' :
-                      r.status === 'Aguardando Gerência' ? '#fff3e0' :
-                      '#fff'
-                  }}>
-                    <td style={{ padding: 10, color: '#666', fontSize: 16, wordBreak: 'break-all' }}>{r._id.substring(0, 6)}...</td>
-                    <td style={{ padding: 10, fontWeight: 500 }}>{r.requester_name}</td>
-                    <td style={{ padding: 10 }}>{r.customer_code}</td>
-                    <td style={{ padding: 10, wordBreak: 'break-word' }}>{r.customer_name}</td>
-                    <td style={{ padding: 10, wordBreak: 'break-word', fontSize: 13 }}>{r.product_name || r.product_id}</td>
-                    <td style={{ padding: 10, color: '#1976d2', fontWeight: 600, textAlign: 'right' }}>R$ {Number(r.requested_price).toFixed(2)}</td>
-                    <td style={{ padding: 10, textAlign: 'center', fontWeight: 600 }}>{r.quantity || '—'}</td>
-                    <td style={{ padding: 10, textAlign: 'center' }}>
-                      <Chip
-                        label={r.status}
-                        color={
-                          r.status === 'Alterado' ? 'info' : 
-                          r.status === 'Aprovado' || r.status === 'Aprovado pela Gerência' ? 'success' : 
-                          r.status === 'Reprovado' || r.status === 'Reprovado pela Gerência' ? 'error' : 
-                          r.status === 'Cancelado' ? 'default' :
-                          'warning'
-                        }
-                        size="small"
-                        sx={r.status === 'Cancelado' ? { fontWeight: 600, fontSize: 14, bgcolor: '#c2c2c2ff', color: 'white' } : { fontWeight: 600, fontSize: 14 }}
-                      />
-                    </td>
-                    <td style={{ padding: 10, fontSize: 12 }}>{new Date(r.created_at).toLocaleDateString('pt-BR')}</td>
-                    <td style={{ padding: 10, wordBreak: 'break-word', fontSize: 14, maxWidth: 150 }}>{r.notes || '—'}</td>
-                    <td style={{ padding: 10, textAlign: 'center' }}>
-                      {(r.status === 'Aprovado' || r.status === 'Reprovado' || r.status === 'Aprovado pela Gerência' || r.status === 'Reprovado pela Gerência') && (
-                        <Tooltip title="Marcar como Alterado">
-                          <IconButton
+                {filteredRequests.map(r => {
+                  // Calcular Status Preço
+                  const precoSolicitado = parseFloat(String(r.requested_price || '0').replace(',', '.'));
+                  const precoMinimo = r.product_minimo ? parseFloat(String(r.product_minimo).replace(',', '.')) : null;
+                  
+                  let statusPreco = 'Sem preço mín.';
+                  let statusPrecoCor: 'default' | 'error' | 'success' = 'default';
+                  
+                  if (precoMinimo && !isNaN(precoMinimo) && precoMinimo > 0) {
+                    if (precoSolicitado < precoMinimo) {
+                      statusPreco = 'Abaixo do Mín.';
+                      statusPrecoCor = 'error';
+                    } else {
+                      statusPreco = 'Igual/Acima do Mín.';
+                      statusPrecoCor = 'success';
+                    }
+                  }
+
+                  return (
+                    <tr key={r._id} style={{ 
+                      borderBottom: '1px solid #e8e8e8', 
+                      background: 
+                        r.status === 'Cancelado' ? '#000' :
+                        r.status === 'Alterado' ? '#e3f2fd' : 
+                        r.status === 'Aprovado' || r.status === 'Aprovado pela Gerência' ? '#e8f5e9' : 
+                        r.status === 'Reprovado' || r.status === 'Reprovado pela Gerência' ? '#ffebee' :
+                        r.status === 'Aguardando Gerência' ? '#fff3e0' :
+                        '#fff'
+                    }}>
+                      <td style={{ padding: 10, color: '#666', fontSize: 16, wordBreak: 'break-all' }}>{r._id.substring(0, 6)}...</td>
+                      <td style={{ padding: 10, fontWeight: 500 }}>{r.requester_name}</td>
+                      <td style={{ padding: 10 }}>{r.customer_code}</td>
+                      <td style={{ padding: 10, wordBreak: 'break-word' }}>{r.customer_name}</td>
+                      <td style={{ padding: 10, wordBreak: 'break-word', fontSize: 13 }}>{r.product_name || r.product_id}</td>
+                      <td style={{ padding: 10, textAlign: 'center', color: '#1976d2', fontWeight: 600 }}>{r.product_id}</td>
+                      <td style={{ padding: 10, color: '#1976d2', fontWeight: 600, textAlign: 'right' }}>R$ {Number(r.requested_price).toFixed(2)}</td>
+                      <td style={{ padding: 10, color: '#666', fontWeight: 500, textAlign: 'right' }}>
+                        {precoMinimo !== null && !isNaN(precoMinimo) ? `R$ ${precoMinimo.toFixed(2)}` : '—'}
+                      </td>
+                      <td style={{ padding: 10, textAlign: 'center', fontWeight: 600 }}>{r.quantity || '—'}</td>
+                      <td style={{ padding: 10, textAlign: 'center' }}>
+                        <Chip
+                          label={r.status}
+                          color={
+                            r.status === 'Alterado' ? 'info' : 
+                            r.status === 'Aprovado' || r.status === 'Aprovado pela Gerência' ? 'success' : 
+                            r.status === 'Reprovado' || r.status === 'Reprovado pela Gerência' ? 'error' : 
+                            r.status === 'Cancelado' ? 'default' :
+                            'warning'
+                          }
+                          size="small"
+                          sx={r.status === 'Cancelado' ? { fontWeight: 600, fontSize: 14, bgcolor: '#c2c2c2ff', color: 'white' } : { fontWeight: 600, fontSize: 14 }}
+                        />
+                      </td>
+                      <td style={{ padding: 10, fontSize: 12 }}>{new Date(r.created_at).toLocaleDateString('pt-BR')}</td>
+                      <td style={{ padding: 10, wordBreak: 'break-word', fontSize: 14, maxWidth: 150 }}>{r.notes || '—'}</td>
+                      <td style={{ padding: 10, textAlign: 'center' }}>
+                        {statusPreco !== '—' && (
+                          <Chip
+                            label={statusPreco}
+                            color={statusPrecoCor}
                             size="small"
-                            color="info"
-                            onClick={() => handleMarkAltered(r._id)}
-                          >
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      )}
-                      {r.status === 'Alterado' && (
-                        <Typography variant="caption" color="text.secondary">✓</Typography>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                            sx={{ fontWeight: 600, fontSize: 12 }}
+                          />
+                        )}
+                        {statusPreco === '—' && (
+                          <Typography variant="caption" color="text.secondary">—</Typography>
+                        )}
+                      </td>
+                      <td style={{ padding: 10, textAlign: 'center' }}>
+                        {(r.status === 'Aprovado' || r.status === 'Reprovado' || r.status === 'Aprovado pela Gerência' || r.status === 'Reprovado pela Gerência') && (
+                          <Tooltip title="Marcar como Alterado">
+                            <IconButton
+                              size="small"
+                              color="info"
+                              onClick={() => handleMarkAltered(r._id)}
+                            >
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+                        {r.status === 'Alterado' && (
+                          <Typography variant="caption" color="text.secondary">✓</Typography>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
             {requests.length === 0 && (
