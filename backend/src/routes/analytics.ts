@@ -497,4 +497,202 @@ router.get('/tempo-aprovacao', requireAuth, async (req: AuthRequest, res: Respon
   }
 });
 
+/**
+ * GET /api/analytics/dashboard
+ * Endpoint único que consolida TODOS os dados do dashboard em uma única chamada
+ * Query params: start_date, end_date
+ */
+router.get('/dashboard', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const userType = req.user?.tipo;
+    if (!['admin', 'gerente', 'supervisor'].includes(userType || '')) {
+      return res.status(403).json({ error: 'Acesso negado. Apenas admin, gerente ou supervisor.' });
+    }
+
+    const { start_date, end_date } = req.query;
+    const matchFilter: any = {};
+
+    // Filtro por data
+    if (start_date || end_date) {
+      matchFilter.created_at = {};
+      if (start_date) matchFilter.created_at.$gte = new Date(start_date as string);
+      if (end_date) matchFilter.created_at.$lte = new Date(end_date as string);
+    }
+
+    // Se for supervisor, limitar aos dados dele
+    if (userType === 'supervisor') {
+      const codigo_supervisor = req.user?.codigo_supervisor;
+      if (codigo_supervisor) {
+        matchFilter.codigo_supervisor = codigo_supervisor;
+      }
+    }
+
+    // 1. RESUMO GERAL
+    const totalDocs = await PriceRequest.countDocuments(matchFilter);
+    const aprovados = await PriceRequest.countDocuments({ ...matchFilter, status: 'aprovado' });
+    const rejeitados = await PriceRequest.countDocuments({ ...matchFilter, status: 'rejeitado' });
+    const pendentes = await PriceRequest.countDocuments({ ...matchFilter, status: 'pendente' });
+    const cancelados = await PriceRequest.countDocuments({ ...matchFilter, cancellation_requested: true });
+
+    const taxaAprovacao = totalDocs > 0 ? ((aprovados / totalDocs) * 100).toFixed(2) : '0';
+    const taxaRejeicao = totalDocs > 0 ? ((rejeitados / totalDocs) * 100).toFixed(2) : '0';
+
+    // 2. DADOS POR PRODUTO
+    const byProduct = await PriceRequest.aggregate([
+      { $match: matchFilter },
+      {
+        $group: {
+          _id: {
+            product_id: '$product_id',
+            product_name: '$product_name'
+          },
+          total_solicitacoes: { $sum: 1 },
+          aprovados: { $sum: { $cond: [{ $eq: ['$status', 'aprovado'] }, 1, 0] } },
+          rejeitados: { $sum: { $cond: [{ $eq: ['$status', 'rejeitado'] }, 1, 0] } },
+          pendentes: { $sum: { $cond: [{ $eq: ['$status', 'pendente'] }, 1, 0] } }
+        }
+      },
+      { $sort: { total_solicitacoes: -1 } }
+    ]);
+
+    // 3. DADOS POR VENDEDOR
+    const byVendedor = await PriceRequest.aggregate([
+      { $match: matchFilter },
+      {
+        $group: {
+          _id: {
+            requester_id: '$requester_id',
+            requester_name: '$requester_name'
+          },
+          total_solicitacoes: { $sum: 1 },
+          aprovados: { $sum: { $cond: [{ $eq: ['$status', 'aprovado'] }, 1, 0] } },
+          rejeitados: { $sum: { $cond: [{ $eq: ['$status', 'rejeitado'] }, 1, 0] } },
+          pendentes: { $sum: { $cond: [{ $eq: ['$status', 'pendente'] }, 1, 0] } }
+        }
+      },
+      { $sort: { total_solicitacoes: -1 } }
+    ]);
+
+    // 4. DADOS POR CLIENTE
+    const byCustomer = await PriceRequest.aggregate([
+      { $match: matchFilter },
+      {
+        $group: {
+          _id: {
+            customer_code: '$customer_code',
+            customer_name: '$customer_name'
+          },
+          total_solicitacoes: { $sum: 1 },
+          aprovados: { $sum: { $cond: [{ $eq: ['$status', 'aprovado'] }, 1, 0] } },
+          rejeitados: { $sum: { $cond: [{ $eq: ['$status', 'rejeitado'] }, 1, 0] } },
+          pendentes: { $sum: { $cond: [{ $eq: ['$status', 'pendente'] }, 1, 0] } }
+        }
+      },
+      { $sort: { total_solicitacoes: -1 } }
+    ]);
+
+    // 5. DADOS POR PERÍODO (MÊS)
+    const byPeriod = await PriceRequest.aggregate([
+      { $match: matchFilter },
+      {
+        $group: {
+          _id: { $dateToString: { format: '%Y-%m', date: '$created_at' } },
+          total_solicitacoes: { $sum: 1 },
+          aprovados: { $sum: { $cond: [{ $eq: ['$status', 'aprovado'] }, 1, 0] } },
+          rejeitados: { $sum: { $cond: [{ $eq: ['$status', 'rejeitado'] }, 1, 0] } },
+          pendentes: { $sum: { $cond: [{ $eq: ['$status', 'pendente'] }, 1, 0] } }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+
+    // 6. TEMPO MÉDIO DE APROVAÇÃO
+    const tempoAprovacaoResult = await PriceRequest.aggregate([
+      { $match: { ...matchFilter, status: 'aprovado', approved_at: { $exists: true } } },
+      {
+        $project: {
+          tempo_horas: {
+            $divide: [
+              { $subtract: ['$approved_at', '$created_at'] },
+              1000 * 60 * 60
+            ]
+          }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          tempo_medio_horas: { $avg: '$tempo_horas' },
+          tempo_minimo_horas: { $min: '$tempo_horas' },
+          tempo_maximo_horas: { $max: '$tempo_horas' },
+          total_aprovacoes: { $sum: 1 }
+        }
+      }
+    ]);
+
+    const tempoAprovacao = tempoAprovacaoResult.length > 0 
+      ? {
+          tempo_medio_horas: parseFloat(tempoAprovacaoResult[0].tempo_medio_horas.toFixed(2)),
+          tempo_minimo_horas: parseFloat(tempoAprovacaoResult[0].tempo_minimo_horas.toFixed(2)),
+          tempo_maximo_horas: parseFloat(tempoAprovacaoResult[0].tempo_maximo_horas.toFixed(2)),
+          total_aprovacoes: tempoAprovacaoResult[0].total_aprovacoes
+        }
+      : {
+          tempo_medio_horas: 0,
+          tempo_minimo_horas: 0,
+          tempo_maximo_horas: 0,
+          total_aprovacoes: 0
+        };
+
+    // 7. DADOS POR SUPERVISOR (apenas admin/gerente podem ver)
+    let bySupervisor = [];
+    if (['admin', 'gerente'].includes(userType || '')) {
+      bySupervisor = await PriceRequest.aggregate([
+        { $match: matchFilter },
+        {
+          $group: {
+            _id: {
+              codigo_supervisor: '$codigo_supervisor',
+              nome_supervisor: '$nome_supervisor'
+            },
+            total_solicitacoes: { $sum: 1 },
+            aprovados: { $sum: { $cond: [{ $eq: ['$status', 'aprovado'] }, 1, 0] } },
+            rejeitados: { $sum: { $cond: [{ $eq: ['$status', 'rejeitado'] }, 1, 0] } },
+            pendentes: { $sum: { $cond: [{ $eq: ['$status', 'pendente'] }, 1, 0] } }
+          }
+        },
+        { $sort: { total_solicitacoes: -1 } }
+      ]);
+    }
+
+    // 8. LISTA COMPLETA DE SOLICITAÇÕES
+    const allRequests = await PriceRequest.find(matchFilter)
+      .sort({ created_at: -1 })
+      .lean();
+
+    // Consolidar tudo em um único objeto
+    res.json({
+      summary: {
+        total: totalDocs,
+        aprovados,
+        rejeitados,
+        pendentes,
+        cancelados,
+        taxaAprovacao: `${taxaAprovacao}%`,
+        taxaRejeicao: `${taxaRejeicao}%`
+      },
+      byProduct,
+      byVendedor,
+      byCustomer,
+      byPeriod,
+      tempoAprovacao,
+      bySupervisor: ['admin', 'gerente'].includes(userType || '') ? bySupervisor : [],
+      allRequests
+    });
+  } catch (err) {
+    console.error('[ANALYTICS] Erro ao buscar dashboard completo:', err);
+    res.status(500).json({ error: 'Erro ao buscar dados do dashboard', details: err });
+  }
+});
+
 export default router;
