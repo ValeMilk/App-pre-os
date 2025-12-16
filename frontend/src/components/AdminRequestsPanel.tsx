@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Box, Paper, Typography, Button, Stack, Alert, Avatar, Divider, Tooltip, Chip, IconButton, TextField, InputAdornment, Menu, MenuItem } from '@mui/material';
+import { Box, Paper, Typography, Button, Stack, Alert, Avatar, Divider, Tooltip, Chip, IconButton, TextField, InputAdornment, Menu, MenuItem, Checkbox, ListItemText } from '@mui/material';
 import TableChartIcon from '@mui/icons-material/TableChart';
 import DownloadIcon from '@mui/icons-material/Download';
 import AssignmentIcon from '@mui/icons-material/Assignment';
@@ -19,7 +19,7 @@ export default function AdminRequestsPanel() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('Todos');
+  const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [statusPrecoFilter, setStatusPrecoFilter] = useState<string>('Todos');
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [filterColumn, setFilterColumn] = useState<string>('');
@@ -81,9 +81,9 @@ export default function AdminRequestsPanel() {
   const filteredRequests = useMemo(() => {
     let filtered = [...requests];
 
-    // Filtro por status
-    if (statusFilter !== 'Todos') {
-      filtered = filtered.filter(r => r.status === statusFilter);
+    // Filtro por status (múltipla seleção)
+    if (statusFilter.length > 0) {
+      filtered = filtered.filter(r => statusFilter.includes(r.status));
     }
 
     // Filtro por Status Preço
@@ -136,9 +136,14 @@ export default function AdminRequestsPanel() {
     setFilterColumn('');
   };
 
-  const handleStatusFilterSelect = (status: string) => {
-    setStatusFilter(status);
-    handleFilterClose();
+  const handleStatusFilterToggle = (status: string) => {
+    setStatusFilter(prev => {
+      if (prev.includes(status)) {
+        return prev.filter(s => s !== status);
+      } else {
+        return [...prev, status];
+      }
+    });
   };
 
   const handleStatusPrecoFilterSelect = (statusPreco: string) => {
@@ -250,7 +255,7 @@ export default function AdminRequestsPanel() {
           size="small"
           sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' }, whiteSpace: 'nowrap' }}
         >
-          Status: {statusFilter}
+          Status {statusFilter.length > 0 ? `(${statusFilter.length})` : ''}
         </Button>
         <Button
           variant="outlined"
@@ -261,13 +266,13 @@ export default function AdminRequestsPanel() {
         >
           Status Preço: {statusPrecoFilter}
         </Button>
-        {(searchTerm || statusFilter !== 'Todos' || statusPrecoFilter !== 'Todos') && (
+        {(searchTerm || statusFilter.length > 0 || statusPrecoFilter !== 'Todos') && (
           <Button
             variant="text"
             size="small"
             onClick={() => {
               setSearchTerm('');
-              setStatusFilter('Todos');
+              setStatusFilter([]);
               setStatusPrecoFilter('Todos');
             }}
             sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
@@ -286,13 +291,34 @@ export default function AdminRequestsPanel() {
         open={Boolean(anchorEl) && filterColumn === 'status'}
         onClose={handleFilterClose}
       >
-        <MenuItem onClick={() => handleStatusFilterSelect('Todos')}>Todos</MenuItem>
-        <MenuItem onClick={() => handleStatusFilterSelect('Pendente')}>Pendente</MenuItem>
-        <MenuItem onClick={() => handleStatusFilterSelect('Aprovado')}>Aprovado</MenuItem>
-        <MenuItem onClick={() => handleStatusFilterSelect('Aprovado pela Gerência')}>Aprovado pela Gerência</MenuItem>
-        <MenuItem onClick={() => handleStatusFilterSelect('Reprovado')}>Reprovado</MenuItem>
-        <MenuItem onClick={() => handleStatusFilterSelect('Reprovado pela Gerência')}>Reprovado pela Gerência</MenuItem>
-        <MenuItem onClick={() => handleStatusFilterSelect('Alterado')}>Alterado</MenuItem>
+        <MenuItem onClick={() => handleStatusFilterToggle('Pendente')}>
+          <Checkbox checked={statusFilter.includes('Pendente')} />
+          <ListItemText primary="Pendente" />
+        </MenuItem>
+        <MenuItem onClick={() => handleStatusFilterToggle('Aprovado')}>
+          <Checkbox checked={statusFilter.includes('Aprovado')} />
+          <ListItemText primary="Aprovado" />
+        </MenuItem>
+        <MenuItem onClick={() => handleStatusFilterToggle('Aprovado pela Gerência')}>
+          <Checkbox checked={statusFilter.includes('Aprovado pela Gerência')} />
+          <ListItemText primary="Aprovado pela Gerência" />
+        </MenuItem>
+        <MenuItem onClick={() => handleStatusFilterToggle('Reprovado')}>
+          <Checkbox checked={statusFilter.includes('Reprovado')} />
+          <ListItemText primary="Reprovado" />
+        </MenuItem>
+        <MenuItem onClick={() => handleStatusFilterToggle('Reprovado pela Gerência')}>
+          <Checkbox checked={statusFilter.includes('Reprovado pela Gerência')} />
+          <ListItemText primary="Reprovado pela Gerência" />
+        </MenuItem>
+        <MenuItem onClick={() => handleStatusFilterToggle('Alterado')}>
+          <Checkbox checked={statusFilter.includes('Alterado')} />
+          <ListItemText primary="Alterado" />
+        </MenuItem>
+        <Divider />
+        <MenuItem onClick={() => setStatusFilter([])}>
+          <ListItemText primary="Limpar seleção" sx={{ fontStyle: 'italic', color: 'text.secondary' }} />
+        </MenuItem>
       </Menu>
 
       {/* Menu de Filtro Status Preço */}
