@@ -570,6 +570,12 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
       return;
     }
 
+    // Validação de justificativa obrigatória
+    if (!notes.trim()) {
+      setError('A justificativa é obrigatória. Por favor, preencha o campo.');
+      return;
+    }
+
     // Validação de faixa de preço do produto
     if (selectedProduct && selectedProduct.maximo && selectedProduct.minimo && selectedProduct.promocional) {
       const priceNum = parseFloat(price);
@@ -1272,6 +1278,9 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
                 minRows={2}
                 fullWidth
                 size="small"
+                required
+                helperText={!notes.trim() ? 'Justificativa é obrigatória' : ''}
+                error={!notes.trim()}
                 sx={{
                   '& .MuiInputBase-root': {
                     fontSize: { xs: '0.85rem', sm: '0.95rem', md: '1rem' }
@@ -1291,7 +1300,9 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
                   (selectionMode === 'cliente' ? !selectedCustomer : !selectedSubrede) ||
                   !selectedProduct ||
                   !price || isNaN(Number(price)) || Number(price) <= 0 ||
-                  !quantity || isNaN(Number(quantity)) || Number(quantity) <= 0 || loading
+                  !quantity || isNaN(Number(quantity)) || Number(quantity) <= 0 ||
+                  !notes.trim() ||
+                  loading
                 }
                 fullWidth
                 sx={{ 
