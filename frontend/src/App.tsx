@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import { ThemeProvider, CssBaseline, Container, Box, Typography, Button, AppBar, Toolbar } from '@mui/material';
+import { ThemeProvider, CssBaseline, Container, Box, Typography, Button, AppBar, Toolbar, Fab, Tooltip } from '@mui/material';
+import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import AuthForm from './components/AuthForm';
 import RequestForm from './components/RequestForm';
 import AdminPanel from './components/AdminPanel';
@@ -17,6 +18,42 @@ import theme from './mui-theme';
 import { Cliente } from './types/Cliente';
 import { Produto } from './types/Produto';
 import { Desconto } from './types/Desconto';
+
+function AdminRoute() {
+  const [cadastroOpen, setCadastroOpen] = useState(false);
+
+  return (
+    <Box sx={{
+      width: '100%',
+      maxWidth: '100%',
+      mx: 0,
+      px: { xs: 2, md: 3 },
+      py: 3
+    }}>
+      <AdminRequestsPanel />
+      <Box mt={3}>
+        <AdminLixeira />
+      </Box>
+      
+      <Tooltip title="Cadastrar Usuários" placement="left">
+        <Fab
+          color="primary"
+          onClick={() => setCadastroOpen(true)}
+          sx={{
+            position: 'fixed',
+            bottom: 24,
+            right: 24,
+            zIndex: 1000
+          }}
+        >
+          <PersonAddIcon />
+        </Fab>
+      </Tooltip>
+
+      <AdminPanel open={cadastroOpen} onClose={() => setCadastroOpen(false)} />
+    </Box>
+  );
+}
 
 function AppContent() {
   const navigate = useNavigate();
@@ -144,26 +181,7 @@ function AppContent() {
 
           <Route path="/admin" element={
             token && user && user.email === 'admin@admin.com' ? (
-              <Box sx={{
-                width: '100%',
-                maxWidth: 1900,
-                mx: 0,
-                px: { xs: 2, md: 3 },
-                py: 3
-              }}>
-                <Box 
-                  width="100%" 
-                  display="grid" 
-                  gridTemplateColumns={{ xs: '1fr', md: '420px 1fr' }} 
-                  gap={3}
-                  alignItems="start"
-                  mb={3}
-                >
-                  <AdminPanel />
-                  <AdminRequestsPanel />
-                </Box>
-                <AdminLixeira />
-              </Box>
+              <AdminRoute />
             ) : (
               <Navigate to="/login" replace />
             )

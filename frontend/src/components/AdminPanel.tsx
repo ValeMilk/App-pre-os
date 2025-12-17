@@ -1,14 +1,20 @@
 import React, { useState } from 'react';
-import { Box, Button, TextField, Typography, Alert, Paper, Stack, Avatar, Divider, Tooltip, Tabs, Tab } from '@mui/material';
+import { Box, Button, TextField, Typography, Alert, Paper, Stack, Avatar, Divider, Tooltip, Tabs, Tab, Dialog, DialogTitle, DialogContent, DialogActions, IconButton } from '@mui/material';
 import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
 import AssignmentIndIcon from '@mui/icons-material/AssignmentInd';
+import CloseIcon from '@mui/icons-material/Close';
 import { API_ENDPOINTS } from '../config/api';
 
 const API_URL = API_ENDPOINTS.auth.adminRegister;
 const SUPERVISOR_URL = API_ENDPOINTS.auth.supervisorRegister;
 const GERENTE_URL = API_ENDPOINTS.auth.gerenteRegister;
 
-export default function AdminPanel() {
+interface AdminPanelProps {
+  open: boolean;
+  onClose: () => void;
+}
+
+export default function AdminPanel({ open, onClose }: AdminPanelProps) {
   const [tab, setTab] = useState(0);
   // Vendedor
   const [name, setName] = useState('');
@@ -106,24 +112,43 @@ export default function AdminPanel() {
   }
 
   return (
-    <Paper elevation={6} sx={{
-      p: { xs: 2, sm: 3, md: 4 },
-      borderRadius: { xs: 3, sm: 4, md: 6 },
-      bgcolor: '#ffffffff',
-      width: '100%',
-      maxWidth: { xs: '100%', sm: 500, md: 600 },
-      height: 'fit-content',
-      boxShadow: '0 8px 32px 0 rgba(60,72,100,0.10)',
-    }}>
-      <Typography variant="h5" fontWeight={700} color="primary.main" mb={3} textAlign="center" sx={{ fontSize: { xs: '1.25rem', sm: '1.35rem', md: '1.5rem' } }}>
+    <Dialog 
+      open={open} 
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
+      PaperProps={{
+        sx: {
+          borderRadius: 3,
+          maxHeight: '90vh'
+        }
+      }}
+    >
+      <DialogTitle sx={{ 
+        bgcolor: 'primary.main', 
+        color: 'white', 
+        fontWeight: 700,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between'
+      }}>
         Cadastro de Usuários
-      </Typography>
-      <Tabs value={tab} onChange={(_, v) => setTab(v)} variant="scrollable" scrollButtons="auto" sx={{ mb: 2 }} allowScrollButtonsMobile>
-        <Tab label="Vendedor" sx={{ minWidth: { xs: 100, sm: 120, md: 140 }, fontSize: { xs: '0.7rem', sm: '0.75rem', md: '0.80rem' } }} />
-        <Tab label="Supervisor" sx={{ minWidth: { xs: 100, sm: 120, md: 140 }, fontSize: { xs: '0.7rem', sm: '0.75rem', md: '0.80rem' } }} />
-        <Tab label="Gerente" sx={{ minWidth: { xs: 100, sm: 120, md: 140 }, fontSize: { xs: '0.7rem', sm: '0.75rem', md: '0.80rem' } }} />
-      </Tabs>
-      <Divider sx={{ mb: 5 }} />
+        <IconButton
+          onClick={onClose}
+          sx={{ 
+            color: 'white',
+            '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' }
+          }}
+        >
+          <CloseIcon />
+        </IconButton>
+      </DialogTitle>
+      <DialogContent sx={{ pt: 3 }}>
+        <Tabs value={tab} onChange={(_, v) => setTab(v)} variant="scrollable" scrollButtons="auto" sx={{ mb: 2 }} allowScrollButtonsMobile>
+          <Tab label="Vendedor" />
+          <Tab label="Supervisor" />
+          <Tab label="Gerente" />
+        </Tabs>
         {tab === 0 && (
           <form onSubmit={handleSubmit} autoComplete="off">
             <Stack spacing={2}>
@@ -194,6 +219,7 @@ export default function AdminPanel() {
             </Stack>
           </form>
         )}
-      </Paper>
+      </DialogContent>
+    </Dialog>
   );
 }
