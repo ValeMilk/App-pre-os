@@ -575,6 +575,10 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
       setError('A justificativa é obrigatória. Por favor, preencha o campo.');
       return;
     }
+    if (notes.trim().length < 10) {
+      setError('A justificativa deve ter no mínimo 10 caracteres.');
+      return;
+    }
 
     // Validação de faixa de preço do produto
     if (selectedProduct && selectedProduct.maximo && selectedProduct.minimo && selectedProduct.promocional) {
@@ -1279,8 +1283,14 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
                 fullWidth
                 size="small"
                 required
-                helperText={!notes.trim() ? 'Justificativa é obrigatória' : ''}
-                error={!notes.trim()}
+                helperText={
+                  !notes.trim() 
+                    ? 'Justificativa é obrigatória (mínimo 10 caracteres)' 
+                    : notes.trim().length < 10 
+                    ? `Mínimo 10 caracteres (${notes.trim().length}/10)` 
+                    : ''
+                }
+                error={!notes.trim() || notes.trim().length < 10}
                 sx={{
                   '& .MuiInputBase-root': {
                     fontSize: { xs: '0.85rem', sm: '0.95rem', md: '1rem' }
@@ -1301,7 +1311,7 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
                   !selectedProduct ||
                   !price || isNaN(Number(price)) || Number(price) <= 0 ||
                   !quantity || isNaN(Number(quantity)) || Number(quantity) <= 0 ||
-                  !notes.trim() ||
+                  !notes.trim() || notes.trim().length < 10 ||
                   loading
                 }
                 fullWidth
