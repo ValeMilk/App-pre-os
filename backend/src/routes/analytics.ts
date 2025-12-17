@@ -796,7 +796,8 @@ router.get('/dashboard', requireAuth, async (req: AuthRequest, res: Response) =>
       byPeriod,
       tempoAprovacao,
       bySupervisor: ['admin', 'gerente'].includes(userType || '') ? bySupervisor : [],
-      detailedRequests: enrichedRequests
+      allRequests: enrichedRequests,  // Compatibilidade com código antigo
+      detailedRequests: enrichedRequests  // Nome mais descritivo
     });
   } catch (err) {
     console.error('[ANALYTICS] Erro ao buscar dashboard completo:', err);
