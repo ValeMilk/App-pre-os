@@ -413,22 +413,24 @@ export default function AdminRequestsPanel() {
             bgcolor: '#fafafa',
             WebkitOverflowScrolling: 'touch' // suporte smooth scroll iOS
           }}>
-            <table style={{ width: '100%', minWidth: 1600, borderCollapse: 'collapse', fontSize: 14 }}>
+            <table style={{ width: '100%', minWidth: 1800, borderCollapse: 'collapse', fontSize: 14 }}>
               <colgroup>
+                <col style={{ width: '3%' }} />
+                <col style={{ width: '8%' }} />
                 <col style={{ width: '4%' }} />
                 <col style={{ width: '9%' }} />
+                <col style={{ width: '10%' }} />
                 <col style={{ width: '5%' }} />
-                <col style={{ width: '10%' }} />
-                <col style={{ width: '11%' }} />
-                <col style={{ width: '6%' }} />
-                <col style={{ width: '6%' }} />
-                <col style={{ width: '6%' }} />
+                <col style={{ width: '5%' }} />
+                <col style={{ width: '5%' }} />
                 <col style={{ width: '4%' }} />
+                <col style={{ width: '5%' }} />
+                <col style={{ width: '3%' }} />
+                <col style={{ width: '6%' }} />
+                <col style={{ width: '6%' }} />
+                <col style={{ width: '9%' }} />
                 <col style={{ width: '7%' }} />
-                <col style={{ width: '7%' }} />
-                <col style={{ width: '10%' }} />
-                <col style={{ width: '8%' }} />
-                <col style={{ width: '7%' }} />
+                <col style={{ width: '6%' }} />
               </colgroup>
               <thead style={{ position: 'sticky', top: 0, background: '#f1f5fb', zIndex: 1 }}>
                 <tr>
@@ -441,6 +443,8 @@ export default function AdminRequestsPanel() {
                   <th style={{ padding: 10, textAlign: 'right', fontWeight: 600 }}>Preço</th>
                   <th style={{ padding: 10, textAlign: 'right', fontWeight: 600 }}>Mín.</th>
                   <th style={{ padding: 10, textAlign: 'center', fontWeight: 600 }}>Qtd.</th>
+                  <th style={{ padding: 10, textAlign: 'center', fontWeight: 600 }}>Desc. %</th>
+                  <th style={{ padding: 10, textAlign: 'right', fontWeight: 600 }}>Preço Final</th>
                   <th style={{ padding: 10, textAlign: 'center', fontWeight: 600 }}>Status</th>
                   <th style={{ padding: 10, textAlign: 'left', fontWeight: 600 }}>Data</th>
                   <th style={{ padding: 10, textAlign: 'left', fontWeight: 600 }}>Justificativa</th>
@@ -489,6 +493,12 @@ export default function AdminRequestsPanel() {
                         {precoMinimo !== null && !isNaN(precoMinimo) ? `R$ ${precoMinimo.toFixed(2)}` : '—'}
                       </td>
                       <td style={{ padding: 10, textAlign: 'center', fontWeight: 600 }}>{r.quantity || '—'}</td>
+                      <td style={{ padding: 10, textAlign: 'center', color: r.discount_percent ? '#f57c00' : '#999', fontWeight: 600 }}>
+                        {r.discount_percent ? `${r.discount_percent}%` : '—'}
+                      </td>
+                      <td style={{ padding: 10, color: r.discounted_price ? '#2e7d32' : '#999', fontWeight: 600, textAlign: 'right' }}>
+                        {r.discounted_price ? `R$ ${Number(r.discounted_price).toFixed(2)}` : '—'}
+                      </td>
                       <td style={{ padding: 10, textAlign: 'center' }}>
                         <Chip
                           label={r.status}
