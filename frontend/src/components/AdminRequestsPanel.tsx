@@ -77,6 +77,59 @@ export default function AdminRequestsPanel() {
     }
   }
 
+  async function handleMarkAllApprovedAsAltered() {
+    const approvedRequests = requests.filter(r => 
+      r.status === 'Aprovado' || r.status === 'Aprovado pela Gerência'
+    );
+
+    if (approvedRequests.length === 0) {
+      setError('Nenhuma solicitação aprovada encontrada.');
+      return;
+    }
+
+    if (!confirm(`Deseja marcar ${approvedRequests.length} solicitação(ões) aprovada(s) como Alterado?`)) {
+      return;
+    }
+
+    setLoading(true);
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const request of approvedRequests) {
+      try {
+        const res = await fetch(`${API_ENDPOINTS.requests.base}/${request._id}/mark-altered`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        if (res.ok) {
+          successCount++;
+        } else {
+          errorCount++;
+        }
+      } catch (err) {
+        errorCount++;
+      }
+    }
+
+    setLoading(false);
+    
+    if (errorCount === 0) {
+      setSuccess(`${successCount} solicitação(ões) marcada(s) como Alterado com sucesso!`);
+    } else {
+      setError(`${successCount} sucesso, ${errorCount} falha(s).`);
+    }
+    
+    setTimeout(() => {
+      setSuccess(null);
+      setError(null);
+    }, 5000);
+    
+    fetchRequests();
+  }
+
   // Filtragem de dados
   const filteredRequests = useMemo(() => {
     let filtered = [...requests];
@@ -208,7 +261,7 @@ export default function AdminRequestsPanel() {
             <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.85rem' } }}>Todas as solicitações do sistema</Typography>
           </Box>
         </Stack>
-        <Stack direction={{ xs: 'row', sm: 'row' }} spacing={1} width={{ xs: '100%', md: 'auto' }}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} width={{ xs: '100%', md: 'auto' }}>
           <Tooltip title="Atualizar solicitações">
             <Button 
               onClick={fetchRequests} 
@@ -217,13 +270,26 @@ export default function AdminRequestsPanel() {
               size="small"
               startIcon={<RefreshIcon sx={{ fontSize: { xs: 18, sm: 20 } }} />} 
               disabled={loading}
-              sx={{ fontWeight: 600, fontSize: { xs: '0.75rem', sm: '0.85rem' }, flex: { xs: 1, sm: 'initial' } }}
+              sx={{ fontWeight: 600, fontSize: { xs: '0.75rem', sm: '0.85rem' } }}
             >
               {loading ? 'Atualizando...' : 'Atualizar'}
             </Button>
           </Tooltip>
+          <Tooltip title="Marcar todas aprovadas como Alterado">
+            <Button 
+              onClick={handleMarkAllApprovedAsAltered} 
+              variant="contained" 
+              color="warning" 
+              size="small"
+              startIcon={<EditIcon sx={{ fontSize: { xs: 18, sm: 20 } }} />} 
+              disabled={loading}
+              sx={{ fontWeight: 600, fontSize: { xs: '0.75rem', sm: '0.85rem' } }}
+            >
+              Alterar Aprovadas
+            </Button>
+          </Tooltip>
           <Tooltip title="Exportar todas as solicitações para CSV">
-            <Button onClick={exportCsv} variant="contained" color="success" size="small" startIcon={<DownloadIcon sx={{ fontSize: { xs: 18, sm: 20 } }} />} sx={{ fontWeight: 600, fontSize: { xs: '0.75rem', sm: '0.85rem' }, flex: { xs: 1, sm: 'initial' } }}>
+            <Button onClick={exportCsv} variant="contained" color="success" size="small" startIcon={<DownloadIcon sx={{ fontSize: { xs: 18, sm: 20 } }} />} sx={{ fontWeight: 600, fontSize: { xs: '0.75rem', sm: '0.85rem' } }}>
               Exportar
             </Button>
           </Tooltip>
