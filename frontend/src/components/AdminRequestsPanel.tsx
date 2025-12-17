@@ -522,7 +522,6 @@ export default function AdminRequestsPanel() {
                          new Date(r.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                       </td>
                       <td style={{ padding: 10, wordBreak: 'break-word', fontSize: 14, maxWidth: 150 }}>{r.notes || '—'}</td>
-                      <td style={{ padding: 10, wordBreak: 'break-word', fontSize: 14, maxWidth: 150 }}>{r.notes || '—'}</td>
                       <td style={{ padding: 10, textAlign: 'center' }}>
                         {statusPreco !== '—' && (
                           <Chip
