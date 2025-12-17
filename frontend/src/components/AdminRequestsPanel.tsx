@@ -413,24 +413,25 @@ export default function AdminRequestsPanel() {
             bgcolor: '#fafafa',
             WebkitOverflowScrolling: 'touch' // suporte smooth scroll iOS
           }}>
-            <table style={{ width: '100%', minWidth: 1800, borderCollapse: 'collapse', fontSize: 14 }}>
+            <table style={{ width: '100%', minWidth: 1900, borderCollapse: 'collapse', fontSize: 14 }}>
               <colgroup>
                 <col style={{ width: '3%' }} />
                 <col style={{ width: '8%' }} />
                 <col style={{ width: '4%' }} />
                 <col style={{ width: '9%' }} />
-                <col style={{ width: '10%' }} />
+                <col style={{ width: '9%' }} />
                 <col style={{ width: '5%' }} />
                 <col style={{ width: '5%' }} />
                 <col style={{ width: '5%' }} />
                 <col style={{ width: '4%' }} />
+                <col style={{ width: '4%' }} />
                 <col style={{ width: '5%' }} />
-                <col style={{ width: '3%' }} />
                 <col style={{ width: '6%' }} />
+                <col style={{ width: '5%' }} />
                 <col style={{ width: '6%' }} />
-                <col style={{ width: '9%' }} />
+                <col style={{ width: '8%' }} />
                 <col style={{ width: '7%' }} />
-                <col style={{ width: '6%' }} />
+                <col style={{ width: '5%' }} />
               </colgroup>
               <thead style={{ position: 'sticky', top: 0, background: '#f1f5fb', zIndex: 1 }}>
                 <tr>
@@ -447,6 +448,7 @@ export default function AdminRequestsPanel() {
                   <th style={{ padding: 10, textAlign: 'right', fontWeight: 600 }}>Preço Final</th>
                   <th style={{ padding: 10, textAlign: 'center', fontWeight: 600 }}>Status</th>
                   <th style={{ padding: 10, textAlign: 'left', fontWeight: 600 }}>Data</th>
+                  <th style={{ padding: 10, textAlign: 'left', fontWeight: 600 }}>Horário</th>
                   <th style={{ padding: 10, textAlign: 'left', fontWeight: 600 }}>Justificativa</th>
                   <th style={{ padding: 10, textAlign: 'center', fontWeight: 600 }}>Status Preço</th>
                   <th style={{ padding: 10, textAlign: 'center', fontWeight: 600 }}>Ações</th>
@@ -514,6 +516,12 @@ export default function AdminRequestsPanel() {
                         />
                       </td>
                       <td style={{ padding: 10, fontSize: 12 }}>{new Date(r.created_at).toLocaleDateString('pt-BR')}</td>
+                      <td style={{ padding: 10, fontSize: 12, color: '#666' }}>
+                        {r.approved_at ? new Date(r.approved_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : 
+                         r.updated_at ? new Date(r.updated_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : 
+                         new Date(r.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                      </td>
+                      <td style={{ padding: 10, wordBreak: 'break-word', fontSize: 14, maxWidth: 150 }}>{r.notes || '—'}</td>
                       <td style={{ padding: 10, wordBreak: 'break-word', fontSize: 14, maxWidth: 150 }}>{r.notes || '—'}</td>
                       <td style={{ padding: 10, textAlign: 'center' }}>
                         {statusPreco !== '—' && (
