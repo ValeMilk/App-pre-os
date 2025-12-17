@@ -665,10 +665,119 @@ router.get('/dashboard', requireAuth, async (req: AuthRequest, res: Response) =>
       ]);
     }
 
-    // 8. LISTA COMPLETA DE SOLICITAÇÕES
+    // 8. LISTA COMPLETA DE SOLICITAÇÕES COM TODOS OS DETALHES
     const allRequests = await PriceRequest.find(matchFilter)
       .sort({ created_at: -1 })
       .lean();
+
+    // Enriquecer dados com campos calculados para facilitar análise no Power BI
+    const enrichedRequests = allRequests.map((req: any) => {
+      const precoSolicitado = parseFloat(req.requested_price || 0);
+      const precoMinimo = req.product_minimo ? parseFloat(String(req.product_minimo).replace(',', '.')) : null;
+      const precoMaximo = req.product_maximo ? parseFloat(String(req.product_maximo).replace(',', '.')) : null;
+      const precoPromocional = req.product_promocional ? parseFloat(String(req.product_promocional).replace(',', '.')) : null;
+      
+      // Calcular Status do Preço
+      let statusPreco = 'Sem preço mín.';
+      if (precoMinimo && !isNaN(precoMinimo) && precoMinimo > 0) {
+        if (precoSolicitado < precoMinimo) {
+          statusPreco = 'Abaixo do Mínimo';
+        } else if (precoSolicitado === precoMinimo) {
+          statusPreco = 'Igual ao Mínimo';
+        } else {
+          statusPreco = 'Acima do Mínimo';
+        }
+      }
+
+      // Calcular tempo de aprovação (em horas)
+      let tempoAprovacaoHoras = null;
+      if (req.approved_at && req.created_at) {
+        const diff = new Date(req.approved_at).getTime() - new Date(req.created_at).getTime();
+        tempoAprovacaoHoras = (diff / (1000 * 60 * 60)).toFixed(2);
+      }
+
+      // Calcular desconto (se preço solicitado vs preço máximo)
+      let percentualDesconto = null;
+      if (precoMaximo && !isNaN(precoMaximo) && precoMaximo > 0) {
+        percentualDesconto = (((precoMaximo - precoSolicitado) / precoMaximo) * 100).toFixed(2);
+      }
+
+      return {
+        // IDs e Identificação
+        _id: req._id,
+        created_at: req.created_at,
+        updated_at: req.updated_at,
+        
+        // Vendedor
+        requester_id: req.requester_id,
+        requester_name: req.requester_name,
+        
+        // Cliente
+        customer_code: req.customer_code,
+        customer_name: req.customer_name,
+        
+        // Produto
+        product_id: req.product_id,
+        product_name: req.product_name,
+        product_maximo: precoMaximo,
+        product_minimo: precoMinimo,
+        product_promocional: precoPromocional,
+        
+        // Preço e Quantidade
+        requested_price: precoSolicitado,
+        quantity: req.quantity || null,
+        currency: req.currency,
+        
+        // Status e Aprovação
+        status: req.status,
+        approved_by: req.approved_by || null,
+        approved_at: req.approved_at || null,
+        rejected_by: req.rejected_by || null,
+        rejected_at: req.rejected_at || null,
+        
+        // Supervisor
+        codigo_supervisor: req.codigo_supervisor,
+        nome_supervisor: req.nome_supervisor,
+        
+        // Observações
+        notes: req.notes || null,
+        rejection_reason: req.rejection_reason || null,
+        
+        // Cancelamento
+        cancellation_requested: req.cancellation_requested || false,
+        cancellation_reason: req.cancellation_reason || null,
+        cancelled_by: req.cancelled_by || null,
+        
+        // Subrede (se aplicável)
+        subrede_name: req.subrede_name || null,
+        subrede_batch_id: req.subrede_batch_id || null,
+        
+        // Desconto (se aplicável)
+        discount_percent: req.discount_percent || null,
+        discounted_price: req.discounted_price || null,
+        
+        // ====== CAMPOS CALCULADOS PARA ANÁLISE ======
+        statusPreco,
+        tempoAprovacaoHoras,
+        percentualDesconto,
+        
+        // Dia da semana da criação
+        diaSemana: new Date(req.created_at).toLocaleDateString('pt-BR', { weekday: 'long' }),
+        mes: new Date(req.created_at).toLocaleDateString('pt-BR', { month: 'long' }),
+        ano: new Date(req.created_at).getFullYear(),
+        
+        // Flags booleanas para facilitar filtros
+        isAprovado: req.status === 'Aprovado' || req.status === 'Aprovado pela Gerência',
+        isRejeitado: req.status === 'Reprovado' || req.status === 'Reprovado pela Gerência',
+        isPendente: req.status === 'Pendente' || req.status === 'Aguardando Gerência',
+        isAlterado: req.status === 'Alterado',
+        isCancelado: req.cancellation_requested === true,
+        
+        // Variação de preço
+        variacaoPrecoMinimo: precoMinimo ? ((precoSolicitado - precoMinimo) / precoMinimo * 100).toFixed(2) : null,
+        variacaoPrecoMaximo: precoMaximo ? ((precoSolicitado - precoMaximo) / precoMaximo * 100).toFixed(2) : null
+      };
+    });
 
     // Consolidar tudo em um único objeto
     res.json({
@@ -687,7 +796,7 @@ router.get('/dashboard', requireAuth, async (req: AuthRequest, res: Response) =>
       byPeriod,
       tempoAprovacao,
       bySupervisor: ['admin', 'gerente'].includes(userType || '') ? bySupervisor : [],
-      allRequests
+      detailedRequests: enrichedRequests
     });
   } catch (err) {
     console.error('[ANALYTICS] Erro ao buscar dashboard completo:', err);
