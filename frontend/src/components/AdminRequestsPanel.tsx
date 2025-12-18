@@ -222,12 +222,13 @@ export default function AdminRequestsPanel() {
       r.currency,
       r.status,
       (r.notes || '').replace(/"/g, '""'),
+      (r.supervisor_notes || '').replace(/"/g, '""'),
       r.created_at,
       r.approved_by || '',
       r.approved_at || ''
     ]);
     const header = [
-      'ID', 'Vendedor', 'ID Vendedor', 'Código Cliente', 'Cliente', 'ID Produto', 'Produto', 'Preço', 'Moeda', 'Status', 'Justificativa', 'Criado em', 'Aprovado por', 'Aprovado em'
+      'ID', 'Vendedor', 'ID Vendedor', 'Código Cliente', 'Cliente', 'ID Produto', 'Produto', 'Preço', 'Moeda', 'Status', 'Justificativa Vendedor', 'Justificativa Supervisor', 'Criado em', 'Aprovado por', 'Aprovado em'
     ];
     const csv = [header, ...rows].map((r: (string | number)[]) => r.map((c: string | number) => `"${c}"`).join(';')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -413,24 +414,25 @@ export default function AdminRequestsPanel() {
             bgcolor: '#fafafa',
             WebkitOverflowScrolling: 'touch' // suporte smooth scroll iOS
           }}>
-            <table style={{ width: '100%', minWidth: 1900, borderCollapse: 'collapse', fontSize: 14 }}>
+            <table style={{ width: '100%', minWidth: 2100, borderCollapse: 'collapse', fontSize: 14 }}>
               <colgroup>
                 <col style={{ width: '3%' }} />
-                <col style={{ width: '8%' }} />
-                <col style={{ width: '4%' }} />
-                <col style={{ width: '9%' }} />
-                <col style={{ width: '9%' }} />
-                <col style={{ width: '5%' }} />
-                <col style={{ width: '5%' }} />
-                <col style={{ width: '5%' }} />
-                <col style={{ width: '4%' }} />
-                <col style={{ width: '4%' }} />
-                <col style={{ width: '5%' }} />
-                <col style={{ width: '6%' }} />
-                <col style={{ width: '5%' }} />
-                <col style={{ width: '6%' }} />
-                <col style={{ width: '8%' }} />
                 <col style={{ width: '7%' }} />
+                <col style={{ width: '4%' }} />
+                <col style={{ width: '8%' }} />
+                <col style={{ width: '8%' }} />
+                <col style={{ width: '4%' }} />
+                <col style={{ width: '5%' }} />
+                <col style={{ width: '5%' }} />
+                <col style={{ width: '3%' }} />
+                <col style={{ width: '3%' }} />
+                <col style={{ width: '5%' }} />
+                <col style={{ width: '5%' }} />
+                <col style={{ width: '4%' }} />
+                <col style={{ width: '5%' }} />
+                <col style={{ width: '8%' }} />
+                <col style={{ width: '8%' }} />
+                <col style={{ width: '6%' }} />
                 <col style={{ width: '5%' }} />
               </colgroup>
               <thead style={{ position: 'sticky', top: 0, background: '#f1f5fb', zIndex: 1 }}>
@@ -449,7 +451,8 @@ export default function AdminRequestsPanel() {
                   <th style={{ padding: 10, textAlign: 'center', fontWeight: 600 }}>Status</th>
                   <th style={{ padding: 10, textAlign: 'left', fontWeight: 600 }}>Data</th>
                   <th style={{ padding: 10, textAlign: 'left', fontWeight: 600 }}>Horário</th>
-                  <th style={{ padding: 10, textAlign: 'left', fontWeight: 600 }}>Justificativa</th>
+                  <th style={{ padding: 10, textAlign: 'left', fontWeight: 600 }}>Justificativa Vendedor</th>
+                  <th style={{ padding: 10, textAlign: 'left', fontWeight: 600 }}>Justificativa Supervisor</th>
                   <th style={{ padding: 10, textAlign: 'center', fontWeight: 600 }}>Status Preço</th>
                   <th style={{ padding: 10, textAlign: 'center', fontWeight: 600 }}>Ações</th>
                 </tr>
@@ -521,7 +524,12 @@ export default function AdminRequestsPanel() {
                          r.updated_at ? new Date(r.updated_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : 
                          new Date(r.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                       </td>
-                      <td style={{ padding: 10, wordBreak: 'break-word', fontSize: 14, maxWidth: 150 }}>{r.notes || '—'}</td>
+                      <td style={{ padding: 10, wordBreak: 'break-word', fontSize: 13, maxWidth: 180 }}>
+                        {r.notes || '—'}
+                      </td>
+                      <td style={{ padding: 10, wordBreak: 'break-word', fontSize: 13, maxWidth: 180 }}>
+                        {r.supervisor_notes || '—'}
+                      </td>
                       <td style={{ padding: 10, textAlign: 'center' }}>
                         {statusPreco !== '—' && (
                           <Chip

@@ -124,7 +124,7 @@ mongoose.connect(mongoUri)
           status: 'Aprovado',
           approved_by: req.user?.name,
           approved_at: new Date(),
-          notes: req.body.notes || ''
+          supervisor_notes: req.body.notes || ''
         },
         { new: true }
       );
@@ -149,7 +149,7 @@ mongoose.connect(mongoUri)
           status: 'Reprovado',
           approved_by: req.user?.name,
           approved_at: new Date(),
-          notes
+          supervisor_notes: notes
         },
         { new: true }
       );
@@ -249,7 +249,7 @@ mongoose.connect(mongoUri)
           status: 'Reprovado',
           approved_by: req.user?.name,
           approved_at: new Date(),
-          notes
+          supervisor_notes: notes
         }
       );
       res.json({ message: `${result.modifiedCount} solicitações reprovadas`, count: result.modifiedCount });
@@ -336,7 +336,7 @@ mongoose.connect(mongoUri)
           status: 'Reprovado pela Gerência',
           approved_by: req.user?.name,
           approved_at: new Date(),
-          notes
+          supervisor_notes: notes
         },
         { new: true }
       );
@@ -383,7 +383,7 @@ mongoose.connect(mongoUri)
           status: 'Reprovado pela Gerência',
           approved_by: req.user?.name,
           approved_at: new Date(),
-          notes
+          supervisor_notes: notes
         }
       );
       res.json({ message: `${result.modifiedCount} solicitações reprovadas pela gerência`, count: result.modifiedCount });

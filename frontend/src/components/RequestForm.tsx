@@ -580,6 +580,48 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
       return;
     }
 
+    // Verificar se já existe solicitação pendente/aguardando para o mesmo cliente + produto
+    if (selectionMode === 'cliente' && selectedCustomer && selectedProduct) {
+      console.log('🔍 Verificando duplicação - Total de requests:', requests.length);
+      console.log('🔍 Cliente selecionado:', selectedCustomer.codigo, selectedCustomer.nome_fantasia);
+      console.log('🔍 Produto selecionado:', selectedProduct.codigo_produto, selectedProduct.nome_produto);
+      
+      const solicitacaoDuplicada = requests.find(r => {
+        const mesmoCliente = String(r.customer_code).trim() === String(selectedCustomer.codigo).trim();
+        const mesmoProduto = String(r.product_id).trim() === String(selectedProduct.codigo_produto).trim();
+        const statusPendente = ['Pendente', 'Pending', 'Aguardando Gerência'].includes(r.status);
+        
+        if (mesmoCliente || mesmoProduto) {
+          console.log('🔍 Verificando solicitação:', {
+            id: r.id?.substring(0, 8),
+            cliente_request: `"${r.customer_code}"`,
+            cliente_selecionado: `"${selectedCustomer.codigo}"`,
+            produto_request: `"${r.product_id}"`,
+            produto_selecionado: `"${selectedProduct.codigo_produto}"`,
+            status: r.status,
+            mesmoCliente,
+            mesmoProduto,
+            statusPendente,
+            match: mesmoCliente && mesmoProduto && statusPendente
+          });
+        }
+        
+        return mesmoCliente && mesmoProduto && statusPendente;
+      });
+
+      if (solicitacaoDuplicada) {
+        const statusMsg = solicitacaoDuplicada.status === 'Aguardando Gerência' 
+          ? 'aguardando aprovação da gerência' 
+          : 'pendente de aprovação';
+        
+        console.log('❌ DUPLICAÇÃO DETECTADA!', solicitacaoDuplicada);
+        setError(`⚠️ SOLICITAÇÃO DUPLICADA: Já existe uma solicitação ${statusMsg} para o produto "${selectedProduct.nome_produto}" no cliente "${selectedCustomer.nome_fantasia}". Aguarde a aprovação ou cancelamento antes de criar uma nova solicitação.`);
+        return;
+      }
+      
+      console.log('✅ Nenhuma duplicação encontrada, prosseguindo...');
+    }
+
     // Validação de faixa de preço do produto
     if (selectedProduct && selectedProduct.maximo && selectedProduct.minimo && selectedProduct.promocional) {
       const priceNum = parseFloat(price);
