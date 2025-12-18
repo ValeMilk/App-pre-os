@@ -358,9 +358,13 @@ export default function AdminRequestsPanel() {
         open={Boolean(anchorEl) && filterColumn === 'status'}
         onClose={handleFilterClose}
       >
-        <MenuItem onClick={() => handleStatusFilterToggle('Pendente')}>
-          <Checkbox checked={statusFilter.includes('Pendente')} />
+        <MenuItem onClick={() => handleStatusFilterToggle('Pending')}>
+          <Checkbox checked={statusFilter.includes('Pending')} />
           <ListItemText primary="Pendente" />
+        </MenuItem>
+        <MenuItem onClick={() => handleStatusFilterToggle('Aguardando Gerência')}>
+          <Checkbox checked={statusFilter.includes('Aguardando Gerência')} />
+          <ListItemText primary="Aguardando Gerência" />
         </MenuItem>
         <MenuItem onClick={() => handleStatusFilterToggle('Aprovado')}>
           <Checkbox checked={statusFilter.includes('Aprovado')} />
@@ -381,6 +385,10 @@ export default function AdminRequestsPanel() {
         <MenuItem onClick={() => handleStatusFilterToggle('Alterado')}>
           <Checkbox checked={statusFilter.includes('Alterado')} />
           <ListItemText primary="Alterado" />
+        </MenuItem>
+        <MenuItem onClick={() => handleStatusFilterToggle('Cancelado')}>
+          <Checkbox checked={statusFilter.includes('Cancelado')} />
+          <ListItemText primary="Cancelado" />
         </MenuItem>
         <Divider />
         <MenuItem onClick={() => setStatusFilter([])}>
