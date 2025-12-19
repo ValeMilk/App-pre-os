@@ -1465,16 +1465,25 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
                     </Typography>
                   )}
                   {r.status !== 'Cancelado' && !r.cancellation_requested && (
-                    <Button
-                      variant="outlined"
-                      color="error"
-                      size="small"
-                      startIcon={<CancelIcon />}
+                    <Box 
                       onClick={() => handleOpenCancelDialog(r._id || r.id)}
-                      sx={{ mt: 5, fontSize: { xs: '0.75rem', sm: '0.75rem' } }}
+                      sx={{ 
+                        mt: 1.5,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 0.5,
+                        fontSize: { xs: '0.7rem', sm: '0.75rem' },
+                        color: '#666',
+                        cursor: 'pointer',
+                        transition: 'color 0.2s',
+                        '&:hover': {
+                          color: '#d32f2f'
+                        }
+                      }}
                     >
-                      Solicitar Cancelamento
-                    </Button>
+                      <CancelIcon sx={{ fontSize: '0.875rem' }} />
+                      Solicitar cancelamento
+                    </Box>
                   )}
                   {r.cancellation_requested && r.status !== 'Cancelado' && (
                     <Chip
