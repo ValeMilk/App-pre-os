@@ -629,12 +629,6 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
       const maxPrice = parseFloat(selectedProduct.maximo.replace(',', '.'));
       const promocionalPrice = parseFloat(selectedProduct.promocional.replace(',', '.'));
       
-      // Se preço acima do máximo, bloqueia
-      if (priceNum > maxPrice) {
-        setError(`Preço acima do máximo permitido. Máximo: R$ ${selectedProduct.maximo}`);
-        return;
-      }
-
       // Calcular desconto para validação
       let precoFinal = priceNum;
       let temDesconto = false;
@@ -654,6 +648,16 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
             temDesconto = true;
           }
         }
+      }
+
+      // Se preço FINAL (após desconto) acima do máximo, bloqueia
+      if (precoFinal > maxPrice) {
+        if (temDesconto) {
+          setError(`Preço final com desconto (R$ ${precoFinal.toFixed(2)}) está acima do máximo permitido. Máximo: R$ ${selectedProduct.maximo}`);
+        } else {
+          setError(`Preço acima do máximo permitido. Máximo: R$ ${selectedProduct.maximo}`);
+        }
+        return;
       }
 
       // Se preço FINAL (com ou sem desconto) abaixo do promocional, bloqueia e mostra dialog informativo
