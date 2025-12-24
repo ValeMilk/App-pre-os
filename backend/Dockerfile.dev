@@ -3,17 +3,17 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# Instalar dependências globais
-RUN npm install -g nodemon ts-node typescript
-
-# Copiar package.json
+# Copiar package.json primeiro para aproveitar cache do Docker
 COPY package*.json ./
 
-# Instalar todas as dependências (incluindo dev)
+# Instalar todas as dependências (incluindo devDependencies)
 RUN npm install
+
+# Copiar tsconfig.json
+COPY tsconfig.json ./
 
 # Expor porta
 EXPOSE 5000
 
-# Comando com hot reload
+# Comando com hot reload (ts-node-dev virá do node_modules local)
 CMD ["npm", "run", "dev"]

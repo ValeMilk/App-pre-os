@@ -445,7 +445,7 @@ export default function AdminRequestsPanel() {
               </colgroup>
               <thead style={{ position: 'sticky', top: 0, background: '#f1f5fb', zIndex: 1 }}>
                 <tr>
-                  <th style={{ padding: 10, textAlign: 'left', fontWeight: 600 }}>ID</th>
+                  <th style={{ padding: 10, textAlign: 'left', fontWeight: 600 }}>Parametro</th>
                   <th style={{ padding: 10, textAlign: 'left', fontWeight: 600 }}>Vendedor</th>
                   <th style={{ padding: 10, textAlign: 'left', fontWeight: 600 }}>Cód. Cliente</th>
                   <th style={{ padding: 10, textAlign: 'left', fontWeight: 600 }}>Cliente</th>
@@ -495,7 +495,9 @@ export default function AdminRequestsPanel() {
                         r.status === 'Aguardando Gerência' ? '#fff3e0' :
                         '#fff'
                     }}>
-                      <td style={{ padding: 10, color: '#666', fontSize: 16, wordBreak: 'break-all' }}>{r._id.substring(0, 6)}...</td>
+                      <td style={{ padding: 10, color: r.subrede_name ? '#1976d2' : '#999', fontSize: 13, fontWeight: r.subrede_name ? 600 : 400, textAlign: 'center' }}>
+                        {r.subrede_name ? 'para todas as lojas' : '—'}
+                      </td>
                       <td style={{ padding: 10, fontWeight: 500 }}>{r.requester_name}</td>
                       <td style={{ padding: 10 }}>{r.customer_code}</td>
                       <td style={{ padding: 10, wordBreak: 'break-word' }}>{r.customer_name}</td>
