@@ -469,7 +469,12 @@ export default function AdminRequestsPanel() {
                 {filteredRequests.map(r => {
                   // Calcular Status Preço
                   const precoSolicitado = parseFloat(String(r.requested_price || '0').replace(',', '.'));
-                  const precoMinimo = r.product_minimo ? parseFloat(String(r.product_minimo).replace(',', '.')) : null;
+                  
+                  // Normalizar preço mínimo (pode vir com vírgula do CSV)
+                  const precoMinimoRaw = r.product_minimo;
+                  const precoMinimo = (precoMinimoRaw && String(precoMinimoRaw).trim() !== '' && String(precoMinimoRaw) !== 'NaN') 
+                    ? parseFloat(String(precoMinimoRaw).replace(',', '.')) 
+                    : null;
                   
                   let statusPreco = 'Sem preço mín.';
                   let statusPrecoCor: 'default' | 'error' | 'success' = 'default';
