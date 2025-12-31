@@ -7,6 +7,8 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import EditIcon from '@mui/icons-material/Edit';
 import SearchIcon from '@mui/icons-material/Search';
 import FilterListIcon from '@mui/icons-material/FilterList';
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
+import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import { API_ENDPOINTS } from '../config/api';
 import { RequestsArraySchema } from '../schemas';
 
@@ -23,6 +25,8 @@ export default function AdminRequestsPanel() {
   const [statusPrecoFilter, setStatusPrecoFilter] = useState<string>('Todos');
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [filterColumn, setFilterColumn] = useState<string>('');
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   const fetchRequests = () => {
     if (!token) return;
@@ -176,8 +180,33 @@ export default function AdminRequestsPanel() {
       );
     }
 
+    // Ordenação
+    if (sortColumn) {
+      filtered.sort((a, b) => {
+        let valueA: any = a[sortColumn];
+        let valueB: any = b[sortColumn];
+
+        // Tratamento especial por coluna
+        if (sortColumn === 'requested_price' || sortColumn === 'product_minimo' || sortColumn === 'quantity') {
+          valueA = parseFloat(String(valueA || '0').replace(',', '.'));
+          valueB = parseFloat(String(valueB || '0').replace(',', '.'));
+        } else if (sortColumn === 'created_at' || sortColumn === 'approved_at') {
+          valueA = new Date(valueA).getTime();
+          valueB = new Date(valueB).getTime();
+        } else {
+          // String (case-insensitive)
+          valueA = String(valueA || '').toLowerCase();
+          valueB = String(valueB || '').toLowerCase();
+        }
+
+        if (valueA < valueB) return sortDirection === 'asc' ? -1 : 1;
+        if (valueA > valueB) return sortDirection === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
     return filtered;
-  }, [requests, searchTerm, statusFilter, statusPrecoFilter]);
+  }, [requests, searchTerm, statusFilter, statusPrecoFilter, sortColumn, sortDirection]);
 
   const handleFilterClick = (event: React.MouseEvent<HTMLElement>, column: string) => {
     setAnchorEl(event.currentTarget);
@@ -202,6 +231,17 @@ export default function AdminRequestsPanel() {
   const handleStatusPrecoFilterSelect = (statusPreco: string) => {
     setStatusPrecoFilter(statusPreco);
     handleFilterClose();
+  };
+
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      // Se já está ordenando por essa coluna, inverte a direção
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // Nova coluna, começa com ascendente
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
   };
 
   function exportCsv() {
@@ -408,65 +448,145 @@ export default function AdminRequestsPanel() {
         <MenuItem onClick={() => handleStatusPrecoFilterSelect('Sem preço mín.')}>Sem preço mín.</MenuItem>
       </Menu>
 
-        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-        {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
-        {loading ? (
-          <Typography color="text.secondary">Carregando solicitações...</Typography>
-        ) : (
-          <Box sx={{ 
-            maxHeight: '65vh', 
-            overflow: 'auto', 
-            overflowX: { xs: 'auto', md: 'auto' },
-            borderRadius: 2, 
-            border: '1px solid #e0e0e0', 
-            bgcolor: '#fafafa',
-            WebkitOverflowScrolling: 'touch' // suporte smooth scroll iOS
-          }}>
-            <table style={{ width: '100%', minWidth: 2100, borderCollapse: 'collapse', fontSize: 14 }}>
-              <colgroup>
-                <col style={{ width: '3%' }} />
-                <col style={{ width: '7%' }} />
-                <col style={{ width: '4%' }} />
-                <col style={{ width: '8%' }} />
-                <col style={{ width: '8%' }} />
-                <col style={{ width: '4%' }} />
-                <col style={{ width: '5%' }} />
-                <col style={{ width: '5%' }} />
-                <col style={{ width: '3%' }} />
-                <col style={{ width: '3%' }} />
-                <col style={{ width: '5%' }} />
-                <col style={{ width: '5%' }} />
-                <col style={{ width: '4%' }} />
-                <col style={{ width: '5%' }} />
-                <col style={{ width: '8%' }} />
-                <col style={{ width: '8%' }} />
-                <col style={{ width: '6%' }} />
-                <col style={{ width: '5%' }} />
-              </colgroup>
-              <thead style={{ position: 'sticky', top: 0, background: '#f1f5fb', zIndex: 1 }}>
-                <tr>
-                  <th style={{ padding: 10, textAlign: 'left', fontWeight: 600 }}>Parametro</th>
-                  <th style={{ padding: 10, textAlign: 'left', fontWeight: 600 }}>Vendedor</th>
-                  <th style={{ padding: 10, textAlign: 'left', fontWeight: 600 }}>Cód. Cliente</th>
-                  <th style={{ padding: 10, textAlign: 'left', fontWeight: 600 }}>Cliente</th>
-                  <th style={{ padding: 10, textAlign: 'left', fontWeight: 600 }}>Produto</th>
-                  <th style={{ padding: 10, textAlign: 'center', fontWeight: 600 }}>Cód. Prod.</th>
-                  <th style={{ padding: 10, textAlign: 'right', fontWeight: 600 }}>Preço</th>
-                  <th style={{ padding: 10, textAlign: 'right', fontWeight: 600 }}>Mín.</th>
-                  <th style={{ padding: 10, textAlign: 'center', fontWeight: 600 }}>Qtd.</th>
-                  <th style={{ padding: 10, textAlign: 'center', fontWeight: 600 }}>Desc. %</th>
-                  <th style={{ padding: 10, textAlign: 'right', fontWeight: 600 }}>Preço Final</th>
-                  <th style={{ padding: 10, textAlign: 'center', fontWeight: 600 }}>Status</th>
-                  <th style={{ padding: 10, textAlign: 'left', fontWeight: 600 }}>Data</th>
-                  <th style={{ padding: 10, textAlign: 'left', fontWeight: 600 }}>Horário</th>
-                  <th style={{ padding: 10, textAlign: 'left', fontWeight: 600 }}>Justificativa Vendedor</th>
-                  <th style={{ padding: 10, textAlign: 'left', fontWeight: 600 }}>Justificativa Supervisor</th>
-                  <th style={{ padding: 10, textAlign: 'center', fontWeight: 600 }}>Status Preço</th>
-                  <th style={{ padding: 10, textAlign: 'center', fontWeight: 600 }}>Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredRequests.map(r => {
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
+      {loading ? (
+        <Typography color="text.secondary">Carregando solicitações...</Typography>
+      ) : (
+        <Box sx={{ 
+          maxHeight: '65vh', 
+          overflow: 'auto', 
+          overflowX: { xs: 'auto', md: 'auto' },
+          borderRadius: 2, 
+          border: '1px solid #e0e0e0', 
+          bgcolor: '#fafafa',
+          WebkitOverflowScrolling: 'touch'
+        }}>
+          <table style={{ width: '100%', minWidth: 2100, borderCollapse: 'collapse', fontSize: 14 }}>
+            <colgroup>
+              <col style={{ width: '3%' }} />
+              <col style={{ width: '7%' }} />
+              <col style={{ width: '4%' }} />
+              <col style={{ width: '8%' }} />
+              <col style={{ width: '8%' }} />
+              <col style={{ width: '4%' }} />
+              <col style={{ width: '5%' }} />
+              <col style={{ width: '5%' }} />
+              <col style={{ width: '3%' }} />
+              <col style={{ width: '3%' }} />
+              <col style={{ width: '5%' }} />
+              <col style={{ width: '5%' }} />
+              <col style={{ width: '4%' }} />
+              <col style={{ width: '5%' }} />
+              <col style={{ width: '8%' }} />
+              <col style={{ width: '8%' }} />
+              <col style={{ width: '6%' }} />
+              <col style={{ width: '5%' }} />
+            </colgroup>
+            <thead style={{ position: 'sticky', top: 0, background: '#f1f5fb', zIndex: 1 }}>
+              <tr>
+                <th style={{ padding: 10, textAlign: 'left', fontWeight: 600, cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('subrede_name')}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    Parametro
+                    {sortColumn === 'subrede_name' && (sortDirection === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />)}
+                  </Box>
+                </th>
+                <th style={{ padding: 10, textAlign: 'left', fontWeight: 600, cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('requester_name')}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    Vendedor
+                    {sortColumn === 'requester_name' && (sortDirection === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />)}
+                  </Box>
+                </th>
+                <th style={{ padding: 10, textAlign: 'left', fontWeight: 600, cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('customer_code')}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    Cód. Cliente
+                    {sortColumn === 'customer_code' && (sortDirection === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />)}
+                  </Box>
+                </th>
+                <th style={{ padding: 10, textAlign: 'left', fontWeight: 600, cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('customer_name')}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    Cliente
+                    {sortColumn === 'customer_name' && (sortDirection === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />)}
+                  </Box>
+                </th>
+                <th style={{ padding: 10, textAlign: 'left', fontWeight: 600, cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('product_name')}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    Produto
+                    {sortColumn === 'product_name' && (sortDirection === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />)}
+                  </Box>
+                </th>
+                <th style={{ padding: 10, textAlign: 'center', fontWeight: 600, cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('product_id')}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
+                    Cód. Prod.
+                    {sortColumn === 'product_id' && (sortDirection === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />)}
+                  </Box>
+                </th>
+                <th style={{ padding: 10, textAlign: 'right', fontWeight: 600, cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('requested_price')}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}>
+                    Preço
+                    {sortColumn === 'requested_price' && (sortDirection === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />)}
+                  </Box>
+                </th>
+                <th style={{ padding: 10, textAlign: 'right', fontWeight: 600, cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('product_minimo')}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}>
+                    Mín.
+                    {sortColumn === 'product_minimo' && (sortDirection === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />)}
+                  </Box>
+                </th>
+                <th style={{ padding: 10, textAlign: 'center', fontWeight: 600, cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('quantity')}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
+                    Qtd.
+                    {sortColumn === 'quantity' && (sortDirection === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />)}
+                  </Box>
+                </th>
+                <th style={{ padding: 10, textAlign: 'center', fontWeight: 600, cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('discount_percent')}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
+                    Desc. %
+                    {sortColumn === 'discount_percent' && (sortDirection === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />)}
+                  </Box>
+                </th>
+                <th style={{ padding: 10, textAlign: 'right', fontWeight: 600, cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('discounted_price')}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}>
+                    Preço Final
+                    {sortColumn === 'discounted_price' && (sortDirection === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />)}
+                  </Box>
+                </th>
+                <th style={{ padding: 10, textAlign: 'center', fontWeight: 600, cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('status')}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
+                    Status
+                    {sortColumn === 'status' && (sortDirection === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />)}
+                  </Box>
+                </th>
+                <th style={{ padding: 10, textAlign: 'left', fontWeight: 600, cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('created_at')}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    Data
+                    {sortColumn === 'created_at' && (sortDirection === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />)}
+                  </Box>
+                </th>
+                <th style={{ padding: 10, textAlign: 'left', fontWeight: 600, cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('approved_at')}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    Horário
+                    {sortColumn === 'approved_at' && (sortDirection === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />)}
+                  </Box>
+                </th>
+                <th style={{ padding: 10, textAlign: 'left', fontWeight: 600, cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('notes')}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    Justificativa Vendedor
+                    {sortColumn === 'notes' && (sortDirection === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />)}
+                  </Box>
+                </th>
+                <th style={{ padding: 10, textAlign: 'left', fontWeight: 600, cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('supervisor_notes')}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    Justificativa Supervisor
+                    {sortColumn === 'supervisor_notes' && (sortDirection === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />)}
+                  </Box>
+                </th>
+                <th style={{ padding: 10, textAlign: 'center', fontWeight: 600 }}>Status Preço</th>
+                <th style={{ padding: 10, textAlign: 'center', fontWeight: 600 }}>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredRequests.map(r => {
                   // Calcular Status Preço
                   const precoSolicitado = parseFloat(String(r.requested_price || '0').replace(',', '.'));
                   
