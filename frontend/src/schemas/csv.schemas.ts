@@ -6,6 +6,8 @@ export const ClienteSchema = z.object({
   nome_fantasia: z.string().min(1, 'Nome fantasia é obrigatório'),
   rede: z.string().optional(),
   subrede: z.string().optional(),
+  canal_venda: z.string().optional(),
+  segmento: z.string().optional(),
   vendedor_code: z.string().optional(),
   vendedor_name: z.string().optional(),
   supervisor_code: z.string().optional(),

@@ -580,6 +580,22 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
       return;
     }
 
+    // NOVA REGRA: Validação de segmento especial (PADARIA, RESTAURANTE & LANCHONETE, COZINHA & TRANSFORMADORES)
+    if (selectionMode === 'cliente' && selectedCustomer && selectedCustomer.segmento && selectedProduct) {
+      const segmentosEspeciais = ['PADARIA', 'RESTAURANTE & LANCHONETE', 'COZINHA & TRANSFORMADORES'];
+      const segmentoCliente = selectedCustomer.segmento.trim().toUpperCase();
+      
+      if (segmentosEspeciais.includes(segmentoCliente)) {
+        const priceNum = parseFloat(price);
+        const maxPrice = selectedProduct.maximo ? parseFloat(selectedProduct.maximo.replace(',', '.')) : null;
+        
+        if (maxPrice && priceNum !== maxPrice) {
+          setError(`⚠️ ATENÇÃO: Para o segmento "${selectedCustomer.segmento}", o preço solicitado deve ser IGUAL ao preço máximo do produto (R$ ${selectedProduct.maximo}). Preço atual: R$ ${priceNum.toFixed(2)}`);
+          return;
+        }
+      }
+    }
+
     // Verificar se já existe solicitação pendente/aguardando para o mesmo cliente + produto
     if (selectionMode === 'cliente' && selectedCustomer && selectedProduct) {
       console.log('🔍 Verificando duplicação - Total de requests:', requests.length);
@@ -1105,35 +1121,82 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
               {success && <Alert severity="success" sx={{ fontSize: { xs: '0.85rem', sm: '0.875rem' } }}>{success}</Alert>}
               
               {selectionMode === 'cliente' ? (
-                <Autocomplete
-                  options={clientes}
-                  getOptionLabel={option => `${option.nome_fantasia} — ${option.codigo}`}
-                  value={selectedCustomer}
-                  onChange={(_, value) => {
-                    setSelectedCustomer(value);
-                    setSelectedProduct(null);
-                    setPrice('');
-                  }}
-                  renderInput={params => (
-                    <TextField 
-                      {...params} 
-                      label="Cliente" 
-                      required 
-                      placeholder="Buscar cliente..." 
-                      size="small"
+                <>
+                  <Autocomplete
+                    options={clientes}
+                    getOptionLabel={option => `${option.nome_fantasia} — ${option.codigo}`}
+                    value={selectedCustomer}
+                    onChange={(_, value) => {
+                      setSelectedCustomer(value);
+                      setSelectedProduct(null);
+                      setPrice('');
+                    }}
+                    renderInput={params => (
+                      <TextField 
+                        {...params} 
+                        label="Cliente" 
+                        required 
+                        placeholder="Buscar cliente..." 
+                        size="small"
+                        sx={{
+                          '& .MuiInputBase-root': {
+                            fontSize: { xs: '0.85rem', sm: '0.95rem', md: '1rem' }
+                          },
+                          '& .MuiInputLabel-root': {
+                            fontSize: { xs: '0.85rem', sm: '0.95rem', md: '1rem' }
+                          }
+                        }}
+                      />
+                    )}
+                    isOptionEqualToValue={(option, value) => option.codigo === value.codigo}
+                    fullWidth
+                  />
+                  
+                  {selectedCustomer && selectedCustomer.segmento && (
+                    <Box
                       sx={{
-                        '& .MuiInputBase-root': {
-                          fontSize: { xs: '0.85rem', sm: '0.95rem', md: '1rem' }
-                        },
-                        '& .MuiInputLabel-root': {
-                          fontSize: { xs: '0.85rem', sm: '0.95rem', md: '1rem' }
-                        }
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                        p: 1.5,
+                        borderRadius: 1,
+                        bgcolor: 'grey.100',
+                        border: '1px solid',
+                        borderColor: 'grey.300'
                       }}
-                    />
+                    >
+                      <LocalOfferIcon 
+                        sx={{ 
+                          color: 'grey.600',
+                          fontSize: '1.2rem'
+                        }} 
+                      />
+                      <Box sx={{ flex: 1 }}>
+                        <Typography 
+                          variant="caption" 
+                          sx={{ 
+                            color: 'text.secondary',
+                            fontSize: '0.75rem',
+                            display: 'block',
+                            mb: 0.25
+                          }}
+                        >
+                          Segmento
+                        </Typography>
+                        <Typography 
+                          variant="body2" 
+                          sx={{ 
+                            color: 'text.primary',
+                            fontSize: '0.95rem',
+                            fontWeight: 500
+                          }}
+                        >
+                          {selectedCustomer.segmento}
+                        </Typography>
+                      </Box>
+                    </Box>
                   )}
-                  isOptionEqualToValue={(option, value) => option.codigo === value.codigo}
-                  fullWidth
-                />
+                </>
               ) : (
                 <Autocomplete
                   options={subredes}
