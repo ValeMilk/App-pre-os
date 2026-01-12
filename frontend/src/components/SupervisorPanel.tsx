@@ -22,8 +22,10 @@ import {
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
+import CalculateIcon from '@mui/icons-material/Calculate';
 import { API_ENDPOINTS } from '../config/api';
 import { RequestsArraySchema } from '../schemas';
+import CalculadoraStandalone from './CalculadoraStandalone';
 
 const API_URL = API_ENDPOINTS.requests.base;
 
@@ -85,6 +87,7 @@ export default function SupervisorPanel() {
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
   const [rejectNotes, setRejectNotes] = useState('');
   const [encaminharNotes, setEncaminharNotes] = useState('');
+  const [calculadoraOpen, setCalculadoraOpen] = useState(false);
 
   const fetchRequests = async () => {
     try {
@@ -389,14 +392,41 @@ export default function SupervisorPanel() {
         p: { xs: 1.5, sm: 2.5, md: 3 },
         borderRadius: { xs: 1, sm: 2 },
         mb: { xs: 1.5, sm: 2.5, md: 3 },
-        color: 'white'
+        color: 'white',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
       }}>
-        <Typography variant="h5" fontWeight={700} gutterBottom sx={{ fontSize: { xs: '1rem', sm: '1.3rem', md: '1.5rem' } }}>
-          🎯 Painel do Supervisor
-        </Typography>
-        <Typography variant="body2" sx={{ opacity: 0.9, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
-          Aprovar ou reprovar solicitações de preços dos vendedores
-        </Typography>
+        <Box>
+          <Typography variant="h5" fontWeight={700} gutterBottom sx={{ fontSize: { xs: '1rem', sm: '1.3rem', md: '1.5rem' } }}>
+            🎯 Painel do Supervisor
+          </Typography>
+          <Typography variant="body2" sx={{ opacity: 0.9, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+            Aprovar ou reprovar solicitações de preços dos vendedores
+          </Typography>
+        </Box>
+        <Button
+          variant="contained"
+          startIcon={<CalculateIcon />}
+          onClick={() => setCalculadoraOpen(true)}
+          sx={{
+            bgcolor: 'white',
+            color: '#000',
+            fontWeight: 700,
+            fontSize: { xs: '0.7rem', sm: '0.85rem', md: '0.95rem' },
+            textTransform: 'none',
+            px: { xs: 1.5, sm: 2, md: 2.5 },
+            py: { xs: 0.8, sm: 1 },
+            borderRadius: 2,
+            boxShadow: '0 4px 8px rgba(255, 255, 255, 0.2)',
+            '&:hover': {
+              bgcolor: '#f5f5f5',
+              boxShadow: '0 6px 12px rgba(255, 255, 255, 0.3)'
+            }
+          }}
+        >
+          Calculadora
+        </Button>
       </Box>
 
       {error && (
@@ -849,6 +879,31 @@ export default function SupervisorPanel() {
             disabled={!encaminharNotes.trim()}
           >
             Confirmar Encaminhamento
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog da Calculadora */}
+      <Dialog 
+        open={calculadoraOpen} 
+        onClose={() => setCalculadoraOpen(false)} 
+        maxWidth="md" 
+        fullWidth
+      >
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <CalculateIcon color="primary" />
+            <Typography variant="h6" fontWeight={700}>
+              Calculadora de Preços
+            </Typography>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <CalculadoraStandalone />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCalculadoraOpen(false)} color="primary" variant="contained">
+            Fechar
           </Button>
         </DialogActions>
       </Dialog>
