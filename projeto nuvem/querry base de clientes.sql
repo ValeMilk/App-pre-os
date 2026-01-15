@@ -1,0 +1,34 @@
+SELECT 
+    c.A00_STATUS,
+	 A16.A16_ID            AS REDE_ID,
+	A16.A16_DESC          AS REDE,
+	 r.A43_DESC     AS CANAL_DE_VENDA,
+    t.A44_DESC     AS SEGMENTO,
+	c.A00_ID,
+    c.A00_FANTASIA,
+    c.A00_ID_VEND,
+	v.A00_FANTASIA AS VENDEDOR,
+    c.A00_ID_VEND_2,                  -- opcional: conferência
+    s.A00_FANTASIA AS SUPERVISOR
+
+FROM A00 c
+INNER JOIN A14 a ON c.A00_ID_A14 = a.A14_ID
+INNER JOIN A02 b ON c.A00_ID_A02 = b.A02_ID
+LEFT JOIN A00 v  ON c.A00_ID_VEND   = v.A00_ID
+LEFT JOIN A00 s  ON c.A00_ID_VEND_2 = s.A00_ID
+LEFT JOIN A43 r  ON c.A00_ID_A43   = r.A43_ID
+LEFT JOIN A44 t  ON c.A00_ID_A44   = t.A44_ID
+LEFT JOIN A16
+    ON c.A00_ID_A16 = A16.A16_ID-- Novo join adicionado
+WHERE 
+    c.A00_EN_CL = 1
+	AND c.A00_STATUS= 1
+    AND a.A14_DESC IS NOT NULL
+    AND a.A14_DESC NOT IN (
+        '999 - L80-INDUSTRIA',
+        '700 - L81 - REMESSA VENDA',
+        '142 - L82-PARACURU-LICITAÇÃO',
+        '147 - L82-PARAIPABA-LICITAÇÃO',
+        '149 - L82-SGA-LICITAÇÃO',
+        '000 - L82-EXTRA ROTA'
+    );

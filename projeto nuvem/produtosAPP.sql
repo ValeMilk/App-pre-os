@@ -1,0 +1,23 @@
+SELECT 
+    E02_ID,
+    E02_LIVRE,
+    E02_DESC,
+	E02_PRECO AS TABELA_70,
+	E02_PRECO_02 AS MINIMO,
+	E02_PRECO_03 AS PROMO
+
+FROM 
+    e02 WITH (NOLOCK)
+WHERE 
+    E02_TIPO = '04'
+    AND E02_ID <> '58' 
+    AND (
+        E02_DESC IS NULL 
+        OR (
+            E02_DESC NOT LIKE '%(INATIVO)%' 
+            AND E02_DESC NOT LIKE '%(INATIVADO)%' 
+            AND E02_DESC NOT LIKE '%(PASTEURIZADO)%'
+        )
+    )
+ORDER BY 
+    E02_ID ASC;
