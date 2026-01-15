@@ -407,21 +407,23 @@ export default function SupervisorPanel() {
         </Box>
         <Button
           variant="contained"
-          startIcon={<CalculateIcon />}
+          startIcon={<CalculateIcon sx={{ fontSize: '0.75rem' }} />}
           onClick={() => setCalculadoraOpen(true)}
           sx={{
             bgcolor: 'white',
             color: '#000',
-            fontWeight: 700,
-            fontSize: { xs: '0.7rem', sm: '0.85rem', md: '0.95rem' },
+            fontWeight: 500,
+            fontSize: '0.65rem',
             textTransform: 'none',
-            px: { xs: 1.5, sm: 2, md: 2.5 },
-            py: { xs: 0.8, sm: 1 },
-            borderRadius: 2,
-            boxShadow: '0 4px 8px rgba(255, 255, 255, 0.2)',
+            px: 1,
+            py: 0.4,
+            borderRadius: 1,
+            boxShadow: '0 1px 3px rgba(255, 255, 255, 0.1)',
+            minWidth: 'auto',
+            whiteSpace: 'nowrap',
             '&:hover': {
               bgcolor: '#f5f5f5',
-              boxShadow: '0 6px 12px rgba(255, 255, 255, 0.3)'
+              boxShadow: '0 2px 5px rgba(255, 255, 255, 0.2)'
             }
           }}
         >
