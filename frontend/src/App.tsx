@@ -14,6 +14,7 @@ import CalculadoraStandalone from './components/CalculadoraStandalone';
 import { parseClientesCsv } from './utils/parseCsv';
 import { parseProdutosCsv } from './utils/parseProdutosCsv';
 import { parseDescontosCsv } from './utils/parseDescontosCsv';
+import { fetchClientesFromAPI, fetchProdutosFromAPI } from './utils/apiHelpers';
 import theme from './mui-theme';
 import { Cliente } from './types/Cliente';
 import { Produto } from './types/Produto';
@@ -68,28 +69,27 @@ function AppContent() {
   });
 
   useEffect(() => {
-    fetch('/clientes.csv')
-      .then(async res => {
-        if (!res.ok) throw new Error('Arquivo `clientes.csv` não encontrado em /public')
-        const text = await res.text()
-        const parsed = parseClientesCsv(text)
+    // Buscar clientes da API
+    fetchClientesFromAPI()
+      .then(parsed => {
         setClientes(parsed)
-        console.log('Clientes carregados:', parsed)
+        console.log('Clientes carregados da API:', parsed)
       })
       .catch(() => {
-        setError('Coloque `clientes.csv` na pasta `frontend/public` ou faça upload do arquivo.')
+        setError('Erro ao carregar clientes da API.')
       })
-    fetch('/produtos.csv')
-      .then(async res => {
-        if (!res.ok) throw new Error('Arquivo `produtos.csv` não encontrado em /public')
-        const text = await res.text()
-        const parsed = parseProdutosCsv(text)
+    
+    // Buscar produtos da API
+    fetchProdutosFromAPI()
+      .then(parsed => {
         setProdutos(parsed)
-        console.log('Produtos carregados:', parsed)
+        console.log('Produtos carregados da API:', parsed)
       })
       .catch(() => {
-        setError('Coloque `produtos.csv` na pasta `frontend/public`.')
+        setError('Erro ao carregar produtos da API.')
       })
+    
+    // Descontos continua vindo do CSV
     fetch('/descontos.csv')
       .then(async res => {
         if (!res.ok) throw new Error('Arquivo `descontos.csv` não encontrado em /public')

@@ -15,5 +15,9 @@ export const API_ENDPOINTS = {
     supervisor: `${API_BASE_URL}/api/requests/supervisor`,
     gerente: `${API_BASE_URL}/api/requests/gerente`,
     base: `${API_BASE_URL}/api/requests`,
+  },
+  data: {
+    clientes: `${API_BASE_URL}/api/clientes`,
+    produtos: `${API_BASE_URL}/api/produtos`,
   }
 };
