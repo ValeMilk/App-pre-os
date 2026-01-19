@@ -73,6 +73,7 @@ function AppContent() {
     fetchClientesFromAPI()
       .then(parsed => {
         setClientes(parsed)
+        localStorage.setItem('clientes', JSON.stringify(parsed))
         console.log('Clientes carregados da API:', parsed)
       })
       .catch(() => {
@@ -83,6 +84,7 @@ function AppContent() {
     fetchProdutosFromAPI()
       .then(parsed => {
         setProdutos(parsed)
+        localStorage.setItem('produtos', JSON.stringify(parsed))
         console.log('Produtos carregados da API:', parsed)
       })
       .catch(() => {
