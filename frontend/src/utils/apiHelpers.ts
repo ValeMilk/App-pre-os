@@ -12,9 +12,12 @@ export async function fetchClientesFromAPI(): Promise<Cliente[]> {
     codigo: String(row.a00_id || ''),
     nome_fantasia: String(row.a00_fantasia || ''),
     rede: row.rede || undefined,
+    subrede: row.subrede && row.subrede !== '-' ? row.subrede : undefined,
     canal_venda: row.canal_de_venda || undefined,
     segmento: row.segmento || undefined,
+    vendedor_id: row.a00_id_vend ? String(row.a00_id_vend) : undefined,
     vendedor_name: row.vendedor || undefined,
+    supervisor_id: row.a00_id_vend_2 ? String(row.a00_id_vend_2) : undefined,
     supervisor_name: row.supervisor || undefined,
   }));
 }
