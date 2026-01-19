@@ -10,15 +10,15 @@ export async function fetchClientesFromAPI(): Promise<Cliente[]> {
   // Mapear do formato PostgreSQL para Cliente
   return data.map((row: any) => ({
     codigo: String(row.a00_id || ''),
-    nome_fantasia: String(row.a00_fantasia || ''),
-    rede: row.rede || undefined,
-    subrede: row.subrede && row.subrede !== '-' ? row.subrede : undefined,
-    canal_venda: row.canal_de_venda || undefined,
-    segmento: row.segmento || undefined,
-    vendedor_id: row.a00_id_vend ? String(row.a00_id_vend) : undefined,
-    vendedor_name: row.vendedor || undefined,
-    supervisor_id: row.a00_id_vend_2 ? String(row.a00_id_vend_2) : undefined,
-    supervisor_name: row.supervisor || undefined,
+    nome_fantasia: String(row.a00_fantasia || '').trim(),
+    rede: row.rede ? String(row.rede).trim() : undefined,
+    subrede: row.subrede && row.subrede !== '-' ? String(row.subrede).trim() : undefined,
+    canal_venda: row.canal_de_venda ? String(row.canal_de_venda).trim() : undefined,
+    segmento: row.segmento ? String(row.segmento).trim() : undefined,
+    vendedor_code: row.a00_id_vend ? String(row.a00_id_vend) : undefined,
+    vendedor_name: row.vendedor ? String(row.vendedor).trim() : undefined,
+    supervisor_code: row.a00_id_vend_2 ? String(row.a00_id_vend_2) : undefined,
+    supervisor_name: row.supervisor ? String(row.supervisor).trim() : undefined,
   }));
 }
 
