@@ -40,4 +40,25 @@ router.get('/clientes', async (req: Request, res: Response) => {
   }
 });
 
+// GET /api/descontos
+router.get('/descontos', async (req: Request, res: Response) => {
+  try {
+    const result = await pgPool.query(`
+      SELECT 
+        rede_id,
+        rede_desc,
+        valor_desconto,
+        produto_id,
+        produto_livre,
+        produto_desc
+      FROM descontos
+      ORDER BY rede_id, produto_id
+    `);
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Erro ao buscar descontos:', err);
+    res.status(500).json({ error: 'Erro ao buscar descontos' });
+  }
+});
+
 export default router;
