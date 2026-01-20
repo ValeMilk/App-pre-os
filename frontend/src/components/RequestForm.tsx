@@ -315,12 +315,21 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
     }
 
     // PRIORITY 2: Buscar desconto de grupo
+    console.log('🔍 VERIFICANDO REDE_ID DO CLIENTE:', {
+      rede_id: cliente.rede_id,
+      rede: cliente.rede,
+      tipo: typeof cliente.rede_id,
+      temRedeId: !!cliente.rede_id
+    });
+    
     if (!desconto && cliente.rede_id) {
       console.log('🔍 Buscando desconto de grupo...');
       
       const descontoProdutoComGrupo = descontos.find(d => 
         d.codigo_produto === produto.codigo_produto && d.e01_id !== undefined
       );
+      
+      console.log('🔍 PRODUTO COM GRUPO ENCONTRADO?', descontoProdutoComGrupo);
       
       if (descontoProdutoComGrupo && descontoProdutoComGrupo.e01_id) {
         const produtoE01Id = descontoProdutoComGrupo.e01_id;
