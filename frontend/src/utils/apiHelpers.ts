@@ -13,6 +13,7 @@ export async function fetchClientesFromAPI(): Promise<Cliente[]> {
     codigo: String(row.a00_id || ''),
     nome_fantasia: String(row.a00_fantasia || '').trim(),
     rede: row.rede ? String(row.rede).trim() : undefined,
+    rede_id: row.rede_id ? Number(row.rede_id) : undefined,
     subrede: row.subrede && row.subrede !== '-' ? String(row.subrede).trim() : undefined,
     canal_venda: row.canal_de_venda ? String(row.canal_de_venda).trim() : undefined,
     segmento: row.segmento ? String(row.segmento).trim() : undefined,
