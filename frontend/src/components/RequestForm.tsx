@@ -266,12 +266,97 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
     setCalcLucro('');
   };
 
+  // Helper function: busca desconto com prioridade (produto > grupo)
+  const findDescontoForClienteProduto = (cliente: Cliente, produto: Produto): Desconto | null => {
+    console.log('� NOVA VERSÃO - Sistema de desconto com 2 níveis');
+    console.log('�🔍 DEBUG DESCONTO - Cliente:', cliente);
+    console.log('🔍 DEBUG DESCONTO - Produto:', produto);
+    console.log('🔍 DEBUG DESCONTO - Total descontos:', descontos.length);
+
+    // PRIORITY 1: Buscar desconto específico do produto (tipo_desconto='produto')
+    let desconto = descontos.find(d => {
+      if (d.tipo_desconto === 'grupo') return false;
+      
+      const produtoMatch = d.codigo_produto === produto.codigo_produto;
+      if (!produtoMatch) return false;
+      
+      const descontoTemRede = d.rede && d.rede !== '-' && d.rede.trim() !== '';
+      const descontoTemSubrede = d.subrede && d.subrede !== '-' && d.subrede.trim() !== '';
+      
+      if (descontoTemRede && descontoTemSubrede) {
+        const redeMatch = cliente.rede && d.rede && d.rede.trim() === cliente.rede.trim();
+        const subredeMatch = cliente.subrede && d.subrede && d.subrede.trim() === cliente.subrede.trim();
+        return redeMatch && subredeMatch;
+      }
+      
+      if (descontoTemRede && !descontoTemSubrede) {
+        return cliente.rede && d.rede && d.rede.trim() === cliente.rede.trim();
+      }
+      
+      if (!descontoTemRede && descontoTemSubrede) {
+        return cliente.subrede && d.subrede && d.subrede.trim() === cliente.subrede.trim();
+      }
+      
+      return false;
+    });
+
+    // Se encontrou desconto de produto, verificar se é válido (> 0%)
+    if (desconto) {
+      const percentualStr = desconto.desconto.replace('%', '').replace(',', '.');
+      const percentual = parseFloat(percentualStr);
+      
+      if (percentual > 0) {
+        console.log('✅ Desconto de produto encontrado:', desconto);
+        return desconto;
+      } else {
+        console.log('⚠️ Desconto de produto é 0%, buscando desconto de grupo...');
+        desconto = null; // Ignorar desconto 0%
+      }
+    }
+
+    // PRIORITY 2: Buscar desconto de grupo
+    if (!desconto && cliente.rede_id) {
+      console.log('🔍 Buscando desconto de grupo...');
+      
+      const descontoProdutoComGrupo = descontos.find(d => 
+        d.codigo_produto === produto.codigo_produto && d.e01_id !== undefined
+      );
+      
+      if (descontoProdutoComGrupo && descontoProdutoComGrupo.e01_id) {
+        const produtoE01Id = descontoProdutoComGrupo.e01_id;
+        console.log('🔍 Produto pertence ao grupo:', { e01_id: produtoE01Id, grupo: descontoProdutoComGrupo.grupo });
+        
+        desconto = descontos.find(d => {
+          if (d.tipo_desconto !== 'grupo') return false;
+          const redeMatch = d.rede_id && cliente.rede_id && d.rede_id === Number(cliente.rede_id);
+          const grupoMatch = d.e01_id === produtoE01Id;
+          return redeMatch && grupoMatch;
+        }) || null;
+        
+        // Verificar se desconto de grupo é válido (> 0%)
+        if (desconto) {
+          const percentualStr = desconto.desconto.replace('%', '').replace(',', '.');
+          const percentual = parseFloat(percentualStr);
+          
+          if (percentual > 0) {
+            console.log('✅ Desconto de grupo encontrado:', desconto);
+          } else {
+            console.log('⚠️ Desconto de grupo é 0%, ignorando...');
+            desconto = null;
+          }
+        }
+      }
+    }
+
+    console.log('✅ DEBUG DESCONTO - Desconto final:', desconto);
+    return desconto || null;
+  };
+
   // Calcular desconto aplicável em tempo real
   const descontoAplicavel = useMemo(() => {
     if (!selectedCustomer && !selectedSubrede) return null;
     if (!selectedProduct) return null;
 
-    // Usar cliente selecionado ou primeiro cliente da subrede
     let cliente: Cliente | undefined;
     if (selectionMode === 'cliente') {
       cliente = selectedCustomer || undefined;
@@ -282,47 +367,7 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
 
     if (!cliente) return null;
 
-    console.log('🔍 DEBUG DESCONTO - Cliente:', cliente);
-    console.log('🔍 DEBUG DESCONTO - Produto selecionado:', selectedProduct);
-    console.log('🔍 DEBUG DESCONTO - Total descontos:', descontos.length);
-
-    // Buscar desconto aplicável usando a MESMA lógica da função calcularDesconto
-    const desconto = descontos.find(d => {
-      const produtoMatch = d.codigo_produto === selectedProduct.codigo_produto;
-      
-      console.log(`🔍 Testando desconto: ${d.codigo_produto} === ${selectedProduct.codigo_produto}? ${produtoMatch}`, d);
-      
-      if (!produtoMatch) return false;
-      
-      // Verificar se desconto tem REDE especificada (não "-" e não vazio)
-      const descontoTemRede = d.rede && d.rede !== '-' && d.rede.trim() !== '';
-      
-      // Verificar se desconto tem SUBREDE especificada (não "-" e não vazio)
-      const descontoTemSubrede = d.subrede && d.subrede !== '-' && d.subrede.trim() !== '';
-      
-      // CASO 1: Desconto especifica REDE + SUBREDE -> cliente deve ter AMBOS
-      if (descontoTemRede && descontoTemSubrede) {
-        const redeMatch = cliente.rede && d.rede && d.rede.trim() === cliente.rede.trim();
-        const subredeMatch = cliente.subrede && d.subrede && d.subrede.trim() === cliente.subrede.trim();
-        return redeMatch && subredeMatch;
-      }
-      
-      // CASO 2: Desconto especifica APENAS REDE (sem SUBREDE) -> cliente deve ter essa REDE (pode ter ou não SUBREDE)
-      if (descontoTemRede && !descontoTemSubrede) {
-        return cliente.rede && d.rede && d.rede.trim() === cliente.rede.trim();
-      }
-      
-      // CASO 3: Desconto especifica APENAS SUBREDE (sem REDE) -> cliente deve ter essa SUBREDE
-      if (!descontoTemRede && descontoTemSubrede) {
-        return cliente.subrede && d.subrede && d.subrede.trim() === cliente.subrede.trim();
-      }
-      
-      // Se desconto não especifica nem REDE nem SUBREDE, não aplica
-      return false;
-    });
-
-    console.log('✅ DEBUG DESCONTO - Desconto encontrado:', desconto);
-    return desconto;
+    return findDescontoForClienteProduto(cliente, selectedProduct);
   }, [selectedCustomer, selectedSubrede, selectedProduct, descontos, clientes, selectionMode]);
 
   // Calcular preço com desconto
@@ -702,65 +747,14 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
 
   // Função para calcular desconto baseado em REDE/SUBREDE + PRODUTO
   function calcularDesconto(cliente: Cliente, produto: Produto, precoSolicitado: string): { discount_percent: string, discounted_price: string } | null {
-    console.log('🔍 Calculando desconto:', {
+    console.log('🔍 Calculando desconto para submissão:', {
       cliente: { rede: cliente.rede, subrede: cliente.subrede, codigo: cliente.codigo },
       produto: produto.codigo_produto,
       totalDescontos: descontos.length
     });
 
-    // Buscar desconto aplicável
-    const descontoAplicavel = descontos.find(d => {
-      const produtoMatch = d.codigo_produto === produto.codigo_produto;
-      
-      if (!produtoMatch) return false;
-      
-      // Verificar se desconto tem REDE especificada (não "-" e não vazio)
-      const descontoTemRede = d.rede && d.rede !== '-' && d.rede.trim() !== '';
-      
-      // Verificar se desconto tem SUBREDE especificada (não "-" e não vazio)
-      const descontoTemSubrede = d.subrede && d.subrede !== '-' && d.subrede.trim() !== '';
-      
-      // CASO 1: Desconto especifica REDE + SUBREDE -> cliente deve ter AMBOS
-      if (descontoTemRede && descontoTemSubrede) {
-        const redeMatch = cliente.rede && d.rede && d.rede.trim() === cliente.rede.trim();
-        const subredeMatch = cliente.subrede && d.subrede && d.subrede.trim() === cliente.subrede.trim();
-        const match = redeMatch && subredeMatch;
-        console.log('🔍 Verificando por REDE + SUBREDE:', {
-          descontoRede: d.rede,
-          descontoSubrede: d.subrede,
-          clienteRede: cliente.rede,
-          clienteSubrede: cliente.subrede,
-          match: match
-        });
-        return match;
-      }
-      
-      // CASO 2: Desconto especifica APENAS REDE (sem SUBREDE) -> cliente deve ter essa REDE (pode ter ou não SUBREDE)
-      if (descontoTemRede && !descontoTemSubrede) {
-        const redeMatch = cliente.rede && d.rede && d.rede.trim() === cliente.rede.trim();
-        console.log('🔍 Verificando por REDE apenas:', {
-          descontoRede: d.rede,
-          clienteRede: cliente.rede,
-          clienteSubrede: cliente.subrede,
-          match: redeMatch
-        });
-        return redeMatch;
-      }
-      
-      // CASO 3: Desconto especifica APENAS SUBREDE (sem REDE) -> cliente deve ter essa SUBREDE
-      if (!descontoTemRede && descontoTemSubrede) {
-        const subredeMatch = cliente.subrede && d.subrede && d.subrede.trim() === cliente.subrede.trim();
-        console.log('🔍 Verificando por SUBREDE apenas:', {
-          descontoSubrede: d.subrede,
-          clienteSubrede: cliente.subrede,
-          match: subredeMatch
-        });
-        return subredeMatch;
-      }
-      
-      // Se desconto não especifica nem REDE nem SUBREDE, não aplica
-      return false;
-    });
+    // Usar helper function para buscar desconto
+    const descontoAplicavel = findDescontoForClienteProduto(cliente, produto);
 
     if (!descontoAplicavel) {
       console.log('❌ Nenhum desconto encontrado');
@@ -1325,7 +1319,7 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
                   <Stack direction="row" alignItems="center" spacing={1} mb={1} flexWrap="wrap">
                     <LocalOfferIcon color="success" sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }} />
                     <Typography variant="h6" color="success.main" fontWeight={700} sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
-                      Desconto Aplicado!
+                      Desconto Aplicado! [V2]
                     </Typography>
                     <Chip 
                       label={`${precoComDesconto.percentual}%`} 
