@@ -14,7 +14,7 @@ import CalculadoraStandalone from './components/CalculadoraStandalone';
 import { parseClientesCsv } from './utils/parseCsv';
 import { parseProdutosCsv } from './utils/parseProdutosCsv';
 import { parseDescontosCsv } from './utils/parseDescontosCsv';
-import { fetchClientesFromAPI, fetchProdutosFromAPI } from './utils/apiHelpers';
+import { fetchClientesFromAPI, fetchProdutosFromAPI, fetchDescontosFromAPI } from './utils/apiHelpers';
 import theme from './mui-theme';
 import { Cliente } from './types/Cliente';
 import { Produto } from './types/Produto';
@@ -91,17 +91,15 @@ function AppContent() {
         setError('Erro ao carregar produtos da API.')
       })
     
-    // Descontos continua vindo do CSV
-    fetch('/descontos.csv')
-      .then(async res => {
-        if (!res.ok) throw new Error('Arquivo `descontos.csv` não encontrado em /public')
-        const text = await res.text()
-        const parsed = parseDescontosCsv(text)
+    // Buscar descontos da API
+    fetchDescontosFromAPI()
+      .then(parsed => {
         setDescontos(parsed)
-        console.log('Descontos carregados:', parsed)
+        localStorage.setItem('descontos', JSON.stringify(parsed))
+        console.log('Descontos carregados da API:', parsed)
       })
       .catch(() => {
-        console.warn('Arquivo descontos.csv não encontrado. Descontos não serão aplicados.')
+        setError('Erro ao carregar descontos da API.')
       })
   }, [user])
 

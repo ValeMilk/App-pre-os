@@ -19,5 +19,6 @@ export const API_ENDPOINTS = {
   data: {
     clientes: `${API_BASE_URL}/api/clientes`,
     produtos: `${API_BASE_URL}/api/produtos`,
+    descontos: `${API_BASE_URL}/api/descontos`,
   }
 };
