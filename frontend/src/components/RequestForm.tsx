@@ -274,7 +274,7 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
     console.log('🔍 DEBUG DESCONTO - Total descontos:', descontos.length);
 
     // PRIORITY 1: Buscar desconto específico do produto (tipo_desconto='produto')
-    let desconto = descontos.find(d => {
+    let desconto: Desconto | null = descontos.find(d => {
       if (d.tipo_desconto === 'grupo') return false;
       
       const produtoMatch = d.codigo_produto === produto.codigo_produto;
@@ -298,7 +298,7 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
       }
       
       return false;
-    });
+    }) || null;
 
     // Se encontrou desconto de produto, verificar se é válido (> 0%)
     if (desconto) {
@@ -337,7 +337,7 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
         
         desconto = descontos.find(d => {
           if (d.tipo_desconto !== 'grupo') return false;
-          const redeMatch = d.rede_id && cliente.rede_id && d.rede_id === Number(cliente.rede_id);
+          const redeMatch = d.rede_id && cliente.rede_id && Number(d.rede_id) === Number(cliente.rede_id);
           const grupoMatch = d.e01_id === produtoE01Id;
           return redeMatch && grupoMatch;
         }) || null;

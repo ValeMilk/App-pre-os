@@ -1,5 +1,6 @@
 export type Cliente = {
   rede?: string;
+  rede_id?: number;
   subrede?: string;
   canal_venda?: string;
   segmento?: string;
