@@ -1,0 +1,30 @@
+# ETL Dockerfile - Cron Job para sincronização
+FROM node:18-alpine
+
+# Instalar cron e dependências
+RUN apk add --no-cache libc6-compat dcron
+
+WORKDIR /app
+
+# Copiar package.json e instalar dependências
+COPY package*.json ./
+RUN npm ci --only=production && npm cache clean --force
+
+# Copiar script ETL
+COPY etl-corrigido.js ./etl.js
+
+# Criar script de inicialização com cron
+RUN echo '#!/bin/sh' > /app/start-etl.sh && \
+    echo 'echo "Iniciando ETL container..."' >> /app/start-etl.sh && \
+    echo 'echo "${CRON_SCHEDULE:-*/10 * * * *} cd /app && node etl.js >> /var/log/etl.log 2>&1" > /etc/crontabs/root' >> /app/start-etl.sh && \
+    echo 'echo "Executando primeira sincronização..."' >> /app/start-etl.sh && \
+    echo 'node etl.js' >> /app/start-etl.sh && \
+    echo 'echo "Iniciando cron daemon..."' >> /app/start-etl.sh && \
+    echo 'crond -f -l 2' >> /app/start-etl.sh && \
+    chmod +x /app/start-etl.sh
+
+# Criar arquivo de log
+RUN touch /var/log/etl.log
+
+# Comando de inicialização
+CMD ["/app/start-etl.sh"]
