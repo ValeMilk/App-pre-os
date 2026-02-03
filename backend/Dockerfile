@@ -36,11 +36,11 @@ RUN npm ci --only=production && npm cache clean --force
 COPY --from=builder /app/dist ./dist
 
 # Expor porta
-EXPOSE 5000
+EXPOSE 3001
 
 # Variáveis de ambiente (serão sobrescritas pelo docker-compose)
 ENV NODE_ENV=production
-ENV PORT=5000
+ENV PORT=3001
 
 # Comando de inicialização
 CMD ["node", "dist/index.js"]

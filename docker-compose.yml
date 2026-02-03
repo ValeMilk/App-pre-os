@@ -1,6 +1,29 @@
 version: '3.8'
 
 services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: app-precos-postgres
+    restart: unless-stopped
+    ports:
+      - "5433:5432"  # Porta externa 5433 para não conflitar com PostgreSQL local
+    environment:
+      POSTGRES_DB: dbactions
+      POSTGRES_USER: apiuser
+      POSTGRES_PASSWORD: Postgres@2026!
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U apiuser -d dbactions"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   # Backend - API Node.js + Express
   backend:
     build:
@@ -9,19 +32,27 @@ services:
     container_name: app-precos-backend
     restart: unless-stopped
     ports:
-      - "5001:5000"  # Porta externa alterada para 5001
+      - "3001:3001"
     environment:
       NODE_ENV: production
-      PORT: 5000
-      MONGO_URI: mongodb+srv://nicolasimoes_db_user:TOG293qtDIlYsa6X@pricerequest.p5p0lrb.mongodb.net/?appName=priceRequest
-      JWT_SECRET: sua_chave_secreta_jwt_aqui_2024
-      CORS_ORIGIN: http://localhost:8080
-    volumes:
-      - ./backend/src:/app/src:ro
+      PORT: 3001
+      # PostgreSQL Connection
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: dbactions
+      DB_USER: apiuser
+      DB_PASSWORD: Postgres@2026!
+      # JWT Secret
+      JWT_SECRET: valemilk_jwt_secret_2026
+      # CORS
+      CORS_ORIGIN: http://72.61.62.17
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks:
       - app-network
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5000/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/api/produtos"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -32,16 +63,47 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        VITE_API_URL: http://localhost:5001
+        VITE_API_URL: http://72.61.62.17:3001
     container_name: app-precos-frontend
     restart: unless-stopped
     ports:
-      - "8080:80"  # Porta externa alterada para 8080
+      - "80:80"
     depends_on:
       - backend
+    networks:
+      - app-network
+
+  # ETL Cron Job (sincronização SQL Server → PostgreSQL)
+  etl:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.etl
+    container_name: app-precos-etl
+    restart: unless-stopped
+    environment:
+      # SQL Server (via VPN)
+      SQL_HOST: 10.1.0.3\\SQLSTANDARD
+      SQL_USER: analistarpt
+      SQL_PASSWORD: mM=DU9lUd3C$qb@
+      SQL_DATABASE: dbactions
+      # PostgreSQL
+      PG_HOST: postgres
+      PG_PORT: 5432
+      PG_DATABASE: dbactions
+      PG_USER: apiuser
+      PG_PASSWORD: Postgres@2026!
+      # Cron schedule (a cada 10 minutos)
+      CRON_SCHEDULE: "*/10 * * * *"
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks:
       - app-network
 
 networks:
   app-network:
     driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
