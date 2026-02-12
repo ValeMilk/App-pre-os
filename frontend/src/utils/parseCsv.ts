@@ -8,6 +8,7 @@ export function parseClientesCsv(text: string): Cliente[] {
   const res = Papa.parse<string[]>(text, { delimiter: ';' })
   const rows: any[] = res.data as any[]
   const parsed = rows
+    .slice(1) // Pular a primeira linha (header)
     .map(r => r.filter((c: any) => c !== undefined && String(c).trim() !== ''))
     .filter(r => r.length >= 6) // Mínimo: REDE, SUBREDE, CANAL, SEGMENTO, CODIGO, NOME
     .map(r => ({
