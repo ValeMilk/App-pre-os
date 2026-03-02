@@ -125,6 +125,17 @@ export default function SupervisorPanel() {
 
       const data = await response.json();
       console.log('📊 Dados recebidos do backend (SupervisorPanel):', data);
+      console.log('📊 Total de solicitações recebidas:', data.length);
+      if (data.length > 0) {
+        console.log('📊 Exemplo de solicitação:', {
+          id: data[0]._id,
+          status: data[0].status,
+          customer_name: data[0].customer_name,
+          codigo_supervisor: data[0].codigo_supervisor,
+          nome_supervisor: data[0].nome_supervisor,
+          created_at: data[0].created_at
+        });
+      }
       
       // Validar com Zod
       try {

@@ -75,18 +75,57 @@ mongoose.connect(mongoUri)
     res.json(requests);
   });
 
+  // Endpoint para debug: listar supervisores únicos nas solicitações
+  app.get('/api/debug/supervisores', requireAuth, async (req: AuthRequest, res: Response) => {
+    if (!req.user || req.user.email !== 'admin@admin.com') {
+      return res.status(403).json({ error: 'Acesso negado. Apenas admin.' });
+    }
+    
+    try {
+      const supervisores = await PriceRequest.aggregate([
+        {
+          $group: {
+            _id: {
+              codigo: '$codigo_supervisor',
+              nome: '$nome_supervisor'
+            },
+            total: { $sum: 1 }
+          }
+        },
+        { $sort: { total: -1 } }
+      ]);
+      
+      res.json(supervisores);
+    } catch (err) {
+      res.status(500).json({ error: 'Erro ao buscar supervisores', details: err });
+    }
+  });
+
   app.get('/api/requests/supervisor', requireAuth, async (req: AuthRequest, res: Response) => {
     try {
       const codigo_supervisor = req.user?.codigo_supervisor;
-      const nome_supervisor = req.user?.nome_supervisor;
+      const nome_user = req.user?.name;
       const tipo = req.user?.tipo;
+      
+      console.log('[SUPERVISOR] Buscando solicitações para:', { codigo_supervisor, nome_user, tipo });
+      
       if (tipo !== 'supervisor') {
         return res.status(403).json({ error: 'Acesso permitido apenas para supervisores.' });
       }
+      
       const filter: any = {};
-      if (codigo_supervisor) filter.codigo_supervisor = codigo_supervisor;
-      else if (nome_supervisor) filter.nome_supervisor = nome_supervisor;
-      else return res.status(400).json({ error: 'Supervisor sem código/nome no token.' });
+      
+      // Buscar por código OU por nome (fallback mais flexível)
+      if (codigo_supervisor) {
+        filter.$or = [
+          { codigo_supervisor: codigo_supervisor },
+          { nome_supervisor: nome_user }
+        ];
+      } else if (nome_user) {
+        filter.nome_supervisor = nome_user;
+      } else {
+        return res.status(400).json({ error: 'Supervisor sem código/nome no token.' });
+      }
       
       // Filtro de data: últimos 14 dias por padrão
       const { start_date, end_date } = req.query;
@@ -96,9 +135,23 @@ mongoose.connect(mongoUri)
         if (end_date) filter.created_at.$lte = new Date(end_date as string);
       }
       
+      console.log('[SUPERVISOR] Filtro aplicado:', JSON.stringify(filter));
+      
       const requests = await PriceRequest.find(filter).sort({ created_at: -1 });
+      
+      console.log('[SUPERVISOR] Solicitações encontradas:', requests.length);
+      if (requests.length > 0) {
+        console.log('[SUPERVISOR] Exemplo de solicitação:', {
+          id: requests[0]._id,
+          codigo_supervisor: requests[0].codigo_supervisor,
+          nome_supervisor: requests[0].nome_supervisor,
+          status: requests[0].status
+        });
+      }
+      
       res.json(requests);
     } catch (err) {
+      console.error('[SUPERVISOR] Erro ao buscar solicitações:', err);
       res.status(500).json({ error: 'Erro ao buscar solicitações do supervisor', details: err });
     }
   });
@@ -107,14 +160,28 @@ mongoose.connect(mongoUri)
     try {
       console.log('[REQUESTS] POST by user:', req.user);
       const data = req.body;
+      
+      console.log('[REQUESTS] Dados recebidos:', {
+        customer_code: data.customer_code,
+        customer_name: data.customer_name,
+        product_id: data.product_id,
+        codigo_supervisor: data.codigo_supervisor,
+        nome_supervisor: data.nome_supervisor,
+        status: data.status
+      });
+      
       const created = await PriceRequest.create({
         ...data,
         requester_id: req.user?.userId,
         requester_name: req.user?.name,
         created_at: new Date()
       });
+      
+      console.log('[REQUESTS] Solicitação criada com ID:', created._id, 'para supervisor:', data.codigo_supervisor, data.nome_supervisor);
+      
       res.status(201).json(created);
     } catch (err) {
+      console.error('[REQUESTS] Erro ao criar solicitação:', err);
       res.status(400).json({ error: 'Erro ao criar solicitação', details: err });
     }
   });
@@ -314,6 +381,10 @@ mongoose.connect(mongoUri)
   app.get('/api/requests/gerente', requireAuth, async (req: AuthRequest, res: Response) => {
     try {
       const tipo = req.user?.tipo;
+      const nome_user = req.user?.name;
+      
+      console.log('[GERENTE] Buscando solicitações para:', { nome_user, tipo });
+      
       if (tipo !== 'gerente') {
         return res.status(403).json({ error: 'Acesso permitido apenas para gerentes.' });
       }
@@ -332,9 +403,22 @@ mongoose.connect(mongoUri)
         if (end_date) filter.created_at.$lte = new Date(end_date as string);
       }
       
+      console.log('[GERENTE] Filtro aplicado:', JSON.stringify(filter));
+      
       const requests = await PriceRequest.find(filter).sort({ created_at: -1 });
+      
+      console.log('[GERENTE] Solicitações encontradas:', requests.length);
+      if (requests.length > 0) {
+        console.log('[GERENTE] Exemplo de solicitação:', {
+          id: requests[0]._id,
+          status: requests[0].status,
+          customer_name: requests[0].customer_name
+        });
+      }
+      
       res.json(requests);
     } catch (err) {
+      console.error('[GERENTE] Erro ao buscar solicitações:', err);
       res.status(500).json({ error: 'Erro ao buscar solicitações da gerência', details: err });
     }
   });

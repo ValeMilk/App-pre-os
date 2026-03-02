@@ -847,7 +847,8 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
         }
         if (!res.ok) throw new Error('Erro ao enviar solicitação');
         const created = await res.json();
-        setRequests(prev => [created, ...prev]);
+        // Recarregar solicitações do servidor para garantir dados atualizados
+        fetchRequests();
         setSuccess('Solicitação registrada com sucesso!');
         
       } else {
