@@ -5,6 +5,24 @@ import { PriceRequest } from '../models/PriceRequest';
 const router = Router();
 
 /**
+ * Helper para aplicar filtro de data corretamente
+ * Adiciona 1 dia ao end_date para incluir todo o dia especificado
+ */
+function applyDateFilter(filter: any, start_date?: string, end_date?: string) {
+  if (start_date || end_date) {
+    filter.created_at = {};
+    if (start_date) filter.created_at.$gte = new Date(start_date);
+    if (end_date) {
+      // Adicionar 1 dia para incluir todo o dia especificado (até 23:59:59)
+      const endDatePlusOne = new Date(end_date);
+      endDatePlusOne.setDate(endDatePlusOne.getDate() + 1);
+      filter.created_at.$lt = endDatePlusOne;
+    }
+  }
+  return filter;
+}
+
+/**
  * GET /api/analytics/requests
  * Retorna todas as solicitações com filtros opcionais
  * Query params: start_date, end_date, status, vendedor_id, supervisor_code
@@ -22,11 +40,7 @@ router.get('/requests', requireAuth, async (req: AuthRequest, res: Response) => 
     const filter: any = {};
 
     // Filtro por data
-    if (start_date || end_date) {
-      filter.created_at = {};
-      if (start_date) filter.created_at.$gte = new Date(start_date as string);
-      if (end_date) filter.created_at.$lte = new Date(end_date as string);
-    }
+    applyDateFilter(filter, start_date as string, end_date as string);
 
     // Filtro por status
     if (status) {
@@ -80,11 +94,7 @@ router.get('/summary', requireAuth, async (req: AuthRequest, res: Response) => {
     const filter: any = {};
 
     // Filtro por data
-    if (start_date || end_date) {
-      filter.created_at = {};
-      if (start_date) filter.created_at.$gte = new Date(start_date as string);
-      if (end_date) filter.created_at.$lte = new Date(end_date as string);
-    }
+    applyDateFilter(filter, start_date as string, end_date as string);
 
     // Se for supervisor, limitar aos dados dele
     if (userType === 'supervisor') {
@@ -137,7 +147,7 @@ router.get('/by-product', requireAuth, async (req: AuthRequest, res: Response) =
     if (start_date || end_date) {
       matchFilter.created_at = {};
       if (start_date) matchFilter.created_at.$gte = new Date(start_date as string);
-      if (end_date) matchFilter.created_at.$lte = new Date(end_date as string);
+      // Use applyDateFilter instead
     }
 
     // Se for supervisor, limitar aos dados dele
@@ -196,7 +206,7 @@ router.get('/by-vendedor', requireAuth, async (req: AuthRequest, res: Response) 
     if (start_date || end_date) {
       matchFilter.created_at = {};
       if (start_date) matchFilter.created_at.$gte = new Date(start_date as string);
-      if (end_date) matchFilter.created_at.$lte = new Date(end_date as string);
+      // Use applyDateFilter instead
     }
 
     // Se for supervisor, limitar aos dados dele
@@ -256,7 +266,7 @@ router.get('/by-period', requireAuth, async (req: AuthRequest, res: Response) =>
     if (start_date || end_date) {
       matchFilter.created_at = {};
       if (start_date) matchFilter.created_at.$gte = new Date(start_date as string);
-      if (end_date) matchFilter.created_at.$lte = new Date(end_date as string);
+      // Use applyDateFilter instead
     }
 
     // Se for supervisor, limitar aos dados dele
@@ -328,7 +338,7 @@ router.get('/by-supervisor', requireAuth, async (req: AuthRequest, res: Response
     if (start_date || end_date) {
       matchFilter.created_at = {};
       if (start_date) matchFilter.created_at.$gte = new Date(start_date as string);
-      if (end_date) matchFilter.created_at.$lte = new Date(end_date as string);
+      // Use applyDateFilter instead
     }
 
     const result = await PriceRequest.aggregate([
@@ -379,7 +389,7 @@ router.get('/by-customer', requireAuth, async (req: AuthRequest, res: Response) 
     if (start_date || end_date) {
       matchFilter.created_at = {};
       if (start_date) matchFilter.created_at.$gte = new Date(start_date as string);
-      if (end_date) matchFilter.created_at.$lte = new Date(end_date as string);
+      // Use applyDateFilter instead
     }
 
     // Se for supervisor, limitar aos dados dele
@@ -441,7 +451,7 @@ router.get('/tempo-aprovacao', requireAuth, async (req: AuthRequest, res: Respon
     if (start_date || end_date) {
       matchFilter.created_at = {};
       if (start_date) matchFilter.created_at.$gte = new Date(start_date as string);
-      if (end_date) matchFilter.created_at.$lte = new Date(end_date as string);
+      // Use applyDateFilter instead
     }
 
     // Se for supervisor, limitar aos dados dele
@@ -516,7 +526,7 @@ router.get('/dashboard', requireAuth, async (req: AuthRequest, res: Response) =>
     if (start_date || end_date) {
       matchFilter.created_at = {};
       if (start_date) matchFilter.created_at.$gte = new Date(start_date as string);
-      if (end_date) matchFilter.created_at.$lte = new Date(end_date as string);
+      // Use applyDateFilter instead
     }
 
     // Se for supervisor, limitar aos dados dele

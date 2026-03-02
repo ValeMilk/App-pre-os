@@ -68,7 +68,12 @@ mongoose.connect(mongoUri)
     if (start_date || end_date) {
       filter.created_at = {};
       if (start_date) filter.created_at.$gte = new Date(start_date as string);
-      if (end_date) filter.created_at.$lte = new Date(end_date as string);
+      if (end_date) {
+        // Adicionar 1 dia para incluir todo o dia especificado
+        const endDatePlusOne = new Date(end_date as string);
+        endDatePlusOne.setDate(endDatePlusOne.getDate() + 1);
+        filter.created_at.$lt = endDatePlusOne;
+      }
     }
     
     const requests = await PriceRequest.find(filter).sort({ created_at: -1 });
@@ -132,7 +137,12 @@ mongoose.connect(mongoUri)
       if (start_date || end_date) {
         filter.created_at = {};
         if (start_date) filter.created_at.$gte = new Date(start_date as string);
-        if (end_date) filter.created_at.$lte = new Date(end_date as string);
+        if (end_date) {
+          // Adicionar 1 dia para incluir todo o dia especificado
+          const endDatePlusOne = new Date(end_date as string);
+          endDatePlusOne.setDate(endDatePlusOne.getDate() + 1);
+          filter.created_at.$lt = endDatePlusOne;
+        }
       }
       
       console.log('[SUPERVISOR] Filtro aplicado:', JSON.stringify(filter));
@@ -198,7 +208,12 @@ mongoose.connect(mongoUri)
       if (start_date || end_date) {
         filter.created_at = {};
         if (start_date) filter.created_at.$gte = new Date(start_date as string);
-        if (end_date) filter.created_at.$lte = new Date(end_date as string);
+        if (end_date) {
+          // Adicionar 1 dia para incluir todo o dia especificado
+          const endDatePlusOne = new Date(end_date as string);
+          endDatePlusOne.setDate(endDatePlusOne.getDate() + 1);
+          filter.created_at.$lt = endDatePlusOne;
+        }
       }
       
       const requests = await PriceRequest.find(filter).sort({ created_at: -1 });
@@ -400,7 +415,12 @@ mongoose.connect(mongoUri)
       if (start_date || end_date) {
         filter.created_at = {};
         if (start_date) filter.created_at.$gte = new Date(start_date as string);
-        if (end_date) filter.created_at.$lte = new Date(end_date as string);
+        if (end_date) {
+          // Adicionar 1 dia para incluir todo o dia especificado
+          const endDatePlusOne = new Date(end_date as string);
+          endDatePlusOne.setDate(endDatePlusOne.getDate() + 1);
+          filter.created_at.$lt = endDatePlusOne;
+        }
       }
       
       console.log('[GERENTE] Filtro aplicado:', JSON.stringify(filter));
