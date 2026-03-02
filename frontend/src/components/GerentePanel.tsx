@@ -97,8 +97,18 @@ export default function GerentePanel() {
         return;
       }
 
+      // Calcular data de 14 dias atrás
+      const hoje = new Date();
+      const quatorzeDiasAtras = new Date();
+      quatorzeDiasAtras.setDate(hoje.getDate() - 14);
+      
+      const startDate = quatorzeDiasAtras.toISOString().split('T')[0]; // YYYY-MM-DD
+      const endDate = hoje.toISOString().split('T')[0];
+      
+      const url = `${API_URL}/gerente?start_date=${startDate}&end_date=${endDate}`;
+
       // Buscar todas as solicitações da gerência (pendentes e processadas)
-      const response = await fetch(`${API_URL}/gerente`, {
+      const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -392,6 +402,11 @@ export default function GerentePanel() {
           Aprovar preços especiais abaixo do mínimo estabelecido
         </Typography>
       </Box>
+
+      {/* Mensagem sobre período de exibição */}
+      <Alert severity="info" sx={{ mb: 2, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+        📅 Exibindo solicitações dos <strong>últimos 14 dias</strong> para melhor performance.
+      </Alert>
 
       {error && (
         <Alert severity="error" onClose={() => setError(null)} sx={{ mb: { xs: 1, sm: 1.5, md: 2 }, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>

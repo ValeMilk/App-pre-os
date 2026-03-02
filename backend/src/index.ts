@@ -60,7 +60,18 @@ mongoose.connect(mongoUri)
     if (!req.user || req.user.email !== 'admin@admin.com') {
       return res.status(403).json({ error: 'Acesso negado. Apenas admin pode ver todas as solicitações.' });
     }
-    const requests = await PriceRequest.find({}).sort({ created_at: -1 });
+    
+    const filter: any = {};
+    
+    // Filtro de data: últimos 14 dias por padrão
+    const { start_date, end_date } = req.query;
+    if (start_date || end_date) {
+      filter.created_at = {};
+      if (start_date) filter.created_at.$gte = new Date(start_date as string);
+      if (end_date) filter.created_at.$lte = new Date(end_date as string);
+    }
+    
+    const requests = await PriceRequest.find(filter).sort({ created_at: -1 });
     res.json(requests);
   });
 
@@ -76,6 +87,15 @@ mongoose.connect(mongoUri)
       if (codigo_supervisor) filter.codigo_supervisor = codigo_supervisor;
       else if (nome_supervisor) filter.nome_supervisor = nome_supervisor;
       else return res.status(400).json({ error: 'Supervisor sem código/nome no token.' });
+      
+      // Filtro de data: últimos 14 dias por padrão
+      const { start_date, end_date } = req.query;
+      if (start_date || end_date) {
+        filter.created_at = {};
+        if (start_date) filter.created_at.$gte = new Date(start_date as string);
+        if (end_date) filter.created_at.$lte = new Date(end_date as string);
+      }
+      
       const requests = await PriceRequest.find(filter).sort({ created_at: -1 });
       res.json(requests);
     } catch (err) {
@@ -104,7 +124,17 @@ mongoose.connect(mongoUri)
     try {
       console.log('[REQUESTS] GET by user:', req.user);
       const userId = req.user?.userId;
-      const requests = await PriceRequest.find({ requester_id: userId }).sort({ created_at: -1 });
+      const filter: any = { requester_id: userId };
+      
+      // Filtro de data: últimos 14 dias por padrão
+      const { start_date, end_date } = req.query;
+      if (start_date || end_date) {
+        filter.created_at = {};
+        if (start_date) filter.created_at.$gte = new Date(start_date as string);
+        if (end_date) filter.created_at.$lte = new Date(end_date as string);
+      }
+      
+      const requests = await PriceRequest.find(filter).sort({ created_at: -1 });
       res.json(requests);
     } catch (err) {
       console.error('[REQUESTS] Error fetching requests for user', req.user, err);
@@ -288,11 +318,21 @@ mongoose.connect(mongoUri)
         return res.status(403).json({ error: 'Acesso permitido apenas para gerentes.' });
       }
       // Retorna solicitações pendentes E processadas pela gerência (incluindo Alterado)
-      const requests = await PriceRequest.find({ 
+      const filter: any = {
         status: { 
           $in: ['Aguardando Gerência', 'Aprovado pela Gerência', 'Reprovado pela Gerência', 'Alterado'] 
-        } 
-      }).sort({ created_at: -1 });
+        }
+      };
+      
+      // Filtro de data: últimos 14 dias por padrão
+      const { start_date, end_date } = req.query;
+      if (start_date || end_date) {
+        filter.created_at = {};
+        if (start_date) filter.created_at.$gte = new Date(start_date as string);
+        if (end_date) filter.created_at.$lte = new Date(end_date as string);
+      }
+      
+      const requests = await PriceRequest.find(filter).sort({ created_at: -1 });
       res.json(requests);
     } catch (err) {
       res.status(500).json({ error: 'Erro ao buscar solicitações da gerência', details: err });

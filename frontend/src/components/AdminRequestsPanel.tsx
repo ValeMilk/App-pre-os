@@ -31,7 +31,18 @@ export default function AdminRequestsPanel() {
   const fetchRequests = () => {
     if (!token) return;
     setLoading(true);
-    fetch(API_URL, {
+    
+    // Calcular data de 14 dias atrás
+    const hoje = new Date();
+    const quatorzeDiasAtras = new Date();
+    quatorzeDiasAtras.setDate(hoje.getDate() - 14);
+    
+    const startDate = quatorzeDiasAtras.toISOString().split('T')[0]; // YYYY-MM-DD
+    const endDate = hoje.toISOString().split('T')[0];
+    
+    const url = `${API_URL}?start_date=${startDate}&end_date=${endDate}`;
+    
+    fetch(url, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(async res => {
@@ -447,6 +458,11 @@ export default function AdminRequestsPanel() {
         <MenuItem onClick={() => handleStatusPrecoFilterSelect('Igual/Acima do Mín.')}>Igual/Acima do Mín.</MenuItem>
         <MenuItem onClick={() => handleStatusPrecoFilterSelect('Sem preço mín.')}>Sem preço mín.</MenuItem>
       </Menu>
+
+      {/* Mensagem sobre período de exibição */}
+      <Alert severity="info" sx={{ mb: 2, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+        📅 Exibindo solicitações dos <strong>últimos 14 dias</strong> para melhor performance.
+      </Alert>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}

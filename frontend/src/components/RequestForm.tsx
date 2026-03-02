@@ -476,7 +476,18 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
   // Carregar solicitações do backend
   const fetchRequests = () => {
     if (!token) return;
-    fetch(API_URL, {
+    
+    // Calcular data de 14 dias atrás
+    const hoje = new Date();
+    const quatorzeDiasAtras = new Date();
+    quatorzeDiasAtras.setDate(hoje.getDate() - 14);
+    
+    const startDate = quatorzeDiasAtras.toISOString().split('T')[0]; // YYYY-MM-DD
+    const endDate = hoje.toISOString().split('T')[0];
+    
+    const url = `${API_URL}?start_date=${startDate}&end_date=${endDate}`;
+    
+    fetch(url, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(async res => {
