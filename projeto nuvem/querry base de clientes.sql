@@ -8,7 +8,7 @@ SELECT
     c.A00_FANTASIA,
     c.A00_ID_VEND,
 	v.A00_FANTASIA AS VENDEDOR,
-    c.A00_ID_VEND_2,                  -- opcional: conferência
+    c.A00_ID_VEND_2,                  -- opcional: conferï¿½ncia
     s.A00_FANTASIA AS SUPERVISOR
 
 FROM A00 c
@@ -27,8 +27,9 @@ WHERE
     AND a.A14_DESC NOT IN (
         '999 - L80-INDUSTRIA',
         '700 - L81 - REMESSA VENDA',
-        '142 - L82-PARACURU-LICITAÇÃO',
-        '147 - L82-PARAIPABA-LICITAÇÃO',
-        '149 - L82-SGA-LICITAÇÃO',
+        '142 - L82-PARACURU-LICITAï¿½ï¿½O',
+        '147 - L82-PARAIPABA-LICITAï¿½ï¿½O',
+        '149 - L82-SGA-LICITAï¿½ï¿½O',
         '000 - L82-EXTRA ROTA'
-    );
+    )
+    AND (A16.A16_ID NOT IN (2, 3, 5, 6, 7, 21, 26) OR A16.A16_ID IS NULL);

@@ -1,0 +1,150 @@
+# docker-compose-customizado.yml
+# Use este arquivo alterando as PORTAS conforme necessário
+
+# INSTRUÇÕES:
+# 1. Copie este arquivo para /root/app-precos/docker-compose-custom.yml
+# 2. Edite as portas conforme as portas livres encontradas
+# 3. Execute: docker compose -f docker-compose-custom.yml up -d
+
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: app-precos-postgres
+    restart: unless-stopped
+    ports:
+      - "5433:5432"  # ⚙️ ALTERAR PRIMEIRO NÚMERO se porta 5433 estiver ocupada
+                     # Ex: "5434:5432" para usar porta 5434
+    environment:
+      POSTGRES_DB: dbactions
+      POSTGRES_USER: apiuser
+      POSTGRES_PASSWORD: Postgres@2026!
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U apiuser -d dbactions"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend - API Node.js + Express
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: app-precos-backend
+    restart: unless-stopped
+    ports:
+      - "3001:3001"  # ⚙️ ALTERAR PRIMEIRO NÚMERO se porta 3001 estiver ocupada
+                     # Ex: "8001:3001" para usar porta 8001
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      # PostgreSQL Connection
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: dbactions
+      DB_USER: apiuser
+      DB_PASSWORD: Postgres@2026!
+      # JWT Secret
+      JWT_SECRET: valemilk_jwt_secret_2026
+      # CORS - ALTERAR SE USAR PORTA DIFERENTE!
+      CORS_ORIGIN: http://72.61.62.17  # ⚙️ Manter assim se usar porta 80, ou 
+                                         # Ex: "http://72.61.62.17:8080" se usar 8080
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/api/produtos"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Frontend - React + Vite + Nginx
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # ⚙️ ALTERAR VITE_API_URL se usar porta diferente para backend!
+        VITE_API_URL: http://72.61.62.17:3001  # Ex: "http://72.61.62.17:8001" se backend usar 8001
+    container_name: app-precos-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"  # ⚙️ ALTERAR PRIMEIRO NÚMERO se porta 80 estiver ocupada
+                 # Ex: "8080:80" para usar porta 8080
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+  # ETL Cron Job (sincronização SQL Server → PostgreSQL)
+  etl:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.etl
+    container_name: app-precos-etl
+    restart: unless-stopped
+    environment:
+      # SQL Server (via VPN)
+      SQL_HOST: 10.1.0.3\\SQLSTANDARD
+      SQL_USER: analistarpt
+      SQL_PASSWORD: mM=DU9lUd3C$qb@
+      SQL_DATABASE: dbactions
+      # PostgreSQL - LEVAR EM CONTA A PORTA ALTERADA SE NECESSÁRIO
+      PG_HOST: postgres
+      PG_PORT: 5432  # ⚠️ MANTER ASSIM (porta interna do container)
+      PG_DATABASE: dbactions
+      PG_USER: apiuser
+      PG_PASSWORD: Postgres@2026!
+      # Cron schedule (a cada 10 minutos)
+      CRON_SCHEDULE: "*/10 * * * *"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app-network
+
+volumes:
+  postgres_data:
+
+networks:
+  app-network:
+    driver: bridge
+
+# ════════════════════════════════════════════════════════
+# 📝 GUIA DE ALTERAÇÕES
+# ════════════════════════════════════════════════════════
+
+# Se as portas originais estão livres, NÃO ALTERE NADA.
+# Se algumas portas estão ocupadas, faça as alterações abaixo:
+
+# EXEMPLO 1: Portas 80, 3001, 5433 estão LIVRES
+# ✅ Não altere nada! Use este arquivo como está.
+
+# EXEMPLO 2: Portas originais ocupadas, use 8080, 8001, 5434
+# Altere:
+#   - postgres: "5434:5432"
+#   - backend: "8001:3001"
+#   - frontend: "8080:80"
+#   - backend CORS_ORIGIN: "http://72.61.62.17:8080"
+#   - frontend VITE_API_URL: "http://72.61.62.17:8001"
+# Acesse em: http://72.61.62.17:8080
+
+# EXEMPLO 3: Misturado (80 livre, 3001 + 5433 ocupados)
+# Altere:
+#   - postgres: "5434:5432"
+#   - backend: "8001:3001"
+#   - backend CORS_ORIGIN: "http://72.61.62.17"
+#   - frontend VITE_API_URL: "http://72.61.62.17:8001"
+# Acesse em: http://72.61.62.17
+
+# ════════════════════════════════════════════════════════

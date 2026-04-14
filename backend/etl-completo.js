@@ -94,6 +94,7 @@ async function syncData() {
           '149 - L82-SGA-LICITAÇÃO',
           '000 - L82-EXTRA ROTA'
         )
+        AND (A16.A16_ID NOT IN (2, 3, 5, 6, 7, 21, 26) OR A16.A16_ID IS NULL)
     `);
 
     await pgPool.query('DELETE FROM clientes');
