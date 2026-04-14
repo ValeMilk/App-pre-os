@@ -7,7 +7,7 @@ services:
     container_name: app-precos-postgres
     restart: unless-stopped
     ports:
-      - "5433:5432"  # Porta externa 5433 para não conflitar com PostgreSQL local
+      - "9002:5432"  # Porta externa 9002 para não conflitar com outras apps
     environment:
       POSTGRES_DB: dbactions
       POSTGRES_USER: apiuser
@@ -32,7 +32,7 @@ services:
     container_name: app-precos-backend
     restart: unless-stopped
     ports:
-      - "3001:3001"
+      - "9001:3001"
     environment:
       NODE_ENV: production
       PORT: 3001
@@ -45,7 +45,7 @@ services:
       # JWT Secret
       JWT_SECRET: valemilk_jwt_secret_2026
       # CORS
-      CORS_ORIGIN: http://72.61.62.17
+      CORS_ORIGIN: http://72.61.62.17:9000
     depends_on:
       postgres:
         condition: service_healthy
@@ -63,11 +63,11 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        VITE_API_URL: http://72.61.62.17:3001
+        VITE_API_URL: http://72.61.62.17:9001
     container_name: app-precos-frontend
     restart: unless-stopped
     ports:
-      - "80:80"
+      - "9000:80"
     depends_on:
       - backend
     networks:
