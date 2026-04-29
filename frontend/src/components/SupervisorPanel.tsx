@@ -97,7 +97,17 @@ export default function SupervisorPanel() {
         return;
       }
 
-      const response = await fetch(`${API_URL}/supervisor`, {
+      // Calcular data de 14 dias atrás
+      const hoje = new Date();
+      const quatorzeDiasAtras = new Date();
+      quatorzeDiasAtras.setDate(hoje.getDate() - 14);
+      
+      const startDate = quatorzeDiasAtras.toISOString().split('T')[0]; // YYYY-MM-DD
+      const endDate = hoje.toISOString().split('T')[0];
+      
+      const url = `${API_URL}/supervisor?start_date=${startDate}&end_date=${endDate}`;
+
+      const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -115,6 +125,17 @@ export default function SupervisorPanel() {
 
       const data = await response.json();
       console.log('📊 Dados recebidos do backend (SupervisorPanel):', data);
+      console.log('📊 Total de solicitações recebidas:', data.length);
+      if (data.length > 0) {
+        console.log('📊 Exemplo de solicitação:', {
+          id: data[0]._id,
+          status: data[0].status,
+          customer_name: data[0].customer_name,
+          codigo_supervisor: data[0].codigo_supervisor,
+          nome_supervisor: data[0].nome_supervisor,
+          created_at: data[0].created_at
+        });
+      }
       
       // Validar com Zod
       try {
@@ -430,6 +451,11 @@ export default function SupervisorPanel() {
           Calculadora
         </Button>
       </Box>
+
+      {/* Mensagem sobre período de exibição */}
+      <Alert severity="info" sx={{ mb: 2, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+        📅 Exibindo solicitações dos <strong>últimos 14 dias</strong> para melhor performance.
+      </Alert>
 
       {error && (
         <Alert severity="error" onClose={() => setError(null)} sx={{ mb: { xs: 1, sm: 1.5, md: 2 }, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>

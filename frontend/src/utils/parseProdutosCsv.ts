@@ -8,6 +8,7 @@ export function parseProdutosCsv(text: string): Produto[] {
   const res = Papa.parse<string[]>(text, { delimiter: ';' })
   const rows: any[] = res.data as any[]
   const parsed = rows
+    .slice(1) // Pular a primeira linha (header)
     .map(r => r.filter((c: any) => c !== undefined && String(c).trim() !== ''))
     .filter(r => r.length >= 3)
     .map(r => ({

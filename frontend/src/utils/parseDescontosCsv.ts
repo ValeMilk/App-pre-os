@@ -4,7 +4,7 @@ export function parseDescontosCsv(text: string): Desconto[] {
   const lines = text.split('\n').filter(l => l.trim());
   const descontos: Desconto[] = [];
 
-  for (let i = 0; i < lines.length; i++) {
+  for (let i = 1; i < lines.length; i++) { // Começar em 1 para pular o header
     const line = lines[i].trim();
     if (!line) continue;
 
