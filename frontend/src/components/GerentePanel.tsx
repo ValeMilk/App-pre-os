@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Paper,
   Typography,
@@ -88,6 +88,95 @@ export default function GerentePanel() {
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
   const [rejectNotes, setRejectNotes] = useState('');
+
+  // Filtros de busca
+  const [vendorSearch, setVendorSearch] = useState('');
+  const [customerSearch, setCustomerSearch] = useState('');
+  const [codeSearch, setCodeSearch] = useState('');
+  const [dateStart, setDateStart] = useState('');
+  const [dateEnd, setDateEnd] = useState('');
+
+  // Helpers de filtro
+  const matchesFiltersRequest = (r: Request) => {
+    const v = vendorSearch.trim().toLowerCase();
+    const c = customerSearch.trim().toLowerCase();
+    const cd = codeSearch.trim().toLowerCase();
+    if (v && !(r.requester_name || '').toLowerCase().includes(v)) return false;
+    if (c && !(r.customer_name || '').toLowerCase().includes(c)) return false;
+    if (cd && !String(r.customer_code || '').toLowerCase().includes(cd)) return false;
+    if (dateStart || dateEnd) {
+      const d = r.created_at ? new Date(r.created_at as any) : null;
+      if (!d || isNaN(d.getTime())) return false;
+      if (dateStart) {
+        const ds = new Date(dateStart);
+        if (d < ds) return false;
+      }
+      if (dateEnd) {
+        const de = new Date(dateEnd);
+        de.setDate(de.getDate() + 1); // inclusivo
+        if (d >= de) return false;
+      }
+    }
+    return true;
+  };
+
+  const matchesFiltersGroup = (g: GroupedRequest) => {
+    const v = vendorSearch.trim().toLowerCase();
+    const c = customerSearch.trim().toLowerCase();
+    const cd = codeSearch.trim().toLowerCase();
+    if (v && !(g.requester_name || '').toLowerCase().includes(v)) return false;
+    if (c) {
+      const hit = g.requests.some(r => (r.customer_name || '').toLowerCase().includes(c));
+      if (!hit) return false;
+    }
+    if (cd) {
+      const hit = g.requests.some(r => String(r.customer_code || '').toLowerCase().includes(cd));
+      if (!hit) return false;
+    }
+    if (dateStart || dateEnd) {
+      const d = g.created_at ? new Date(g.created_at) : null;
+      if (!d || isNaN(d.getTime())) return false;
+      if (dateStart) {
+        const ds = new Date(dateStart);
+        if (d < ds) return false;
+      }
+      if (dateEnd) {
+        const de = new Date(dateEnd);
+        de.setDate(de.getDate() + 1);
+        if (d >= de) return false;
+      }
+    }
+    return true;
+  };
+
+  const filteredGroupedRequests = useMemo(
+    () => groupedRequests.filter(matchesFiltersGroup),
+    [groupedRequests, vendorSearch, customerSearch, codeSearch, dateStart, dateEnd]
+  );
+  const filteredIndividualRequests = useMemo(
+    () => individualRequests.filter(matchesFiltersRequest),
+    [individualRequests, vendorSearch, customerSearch, codeSearch, dateStart, dateEnd]
+  );
+  const filteredGroupedProcessed = useMemo(
+    () => groupedProcessed.filter(matchesFiltersGroup),
+    [groupedProcessed, vendorSearch, customerSearch, codeSearch, dateStart, dateEnd]
+  );
+  const filteredIndividualProcessed = useMemo(
+    () => individualProcessed.filter(matchesFiltersRequest),
+    [individualProcessed, vendorSearch, customerSearch, codeSearch, dateStart, dateEnd]
+  );
+  const filteredAllRequests = useMemo(
+    () => allRequests.filter(matchesFiltersRequest),
+    [allRequests, vendorSearch, customerSearch, codeSearch, dateStart, dateEnd]
+  );
+
+  const clearFilters = () => {
+    setVendorSearch('');
+    setCustomerSearch('');
+    setCodeSearch('');
+    setDateStart('');
+    setDateEnd('');
+  };
 
   const fetchRequests = async () => {
     try {
@@ -432,6 +521,75 @@ export default function GerentePanel() {
         </Alert>
       )}
 
+      {/* Filtros de busca */}
+      <Box sx={{
+        p: { xs: 1.5, sm: 2 },
+        mb: { xs: 1.5, sm: 2 },
+        bgcolor: '#f5f9ff',
+        border: '1px solid #cfe1ff',
+        borderRadius: 2,
+        display: 'flex',
+        flexDirection: { xs: 'column', md: 'row' },
+        flexWrap: 'wrap',
+        gap: 1.5,
+        alignItems: { xs: 'stretch', md: 'center' }
+      }}>
+        <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#0d47a1', minWidth: 80 }}>
+          🔎 Filtros
+        </Typography>
+        <TextField
+          label="Vendedor"
+          size="small"
+          value={vendorSearch}
+          onChange={(e) => setVendorSearch(e.target.value)}
+          placeholder="Nome do vendedor"
+          sx={{ minWidth: 180, flex: 1 }}
+        />
+        <TextField
+          label="Cliente"
+          size="small"
+          value={customerSearch}
+          onChange={(e) => setCustomerSearch(e.target.value)}
+          placeholder="Nome do cliente"
+          sx={{ minWidth: 180, flex: 1 }}
+        />
+        <TextField
+          label="Código Cliente"
+          size="small"
+          value={codeSearch}
+          onChange={(e) => setCodeSearch(e.target.value)}
+          placeholder="Ex: 2240"
+          sx={{ minWidth: 130, flex: 1 }}
+        />
+        <TextField
+          label="De"
+          type="date"
+          size="small"
+          value={dateStart}
+          onChange={(e) => setDateStart(e.target.value)}
+          InputLabelProps={{ shrink: true }}
+          sx={{ minWidth: 150 }}
+        />
+        <TextField
+          label="Até"
+          type="date"
+          size="small"
+          value={dateEnd}
+          onChange={(e) => setDateEnd(e.target.value)}
+          InputLabelProps={{ shrink: true }}
+          sx={{ minWidth: 150 }}
+        />
+        <Button
+          variant="outlined"
+          color="inherit"
+          size="small"
+          onClick={clearFilters}
+          disabled={!vendorSearch && !customerSearch && !codeSearch && !dateStart && !dateEnd}
+        >
+          Limpar
+        </Button>
+      </Box>
+
       <Box sx={{ 
         display: 'flex', 
         flexDirection: { xs: 'column', sm: 'row' },
@@ -476,7 +634,7 @@ export default function GerentePanel() {
             </TableHead>
             <TableBody>
               {/* Subredes agrupadas */}
-              {groupedRequests.map((group) => (
+              {filteredGroupedRequests.map((group) => (
                 <TableRow 
                   key={group.batchId} 
                   sx={{ 
@@ -563,7 +721,7 @@ export default function GerentePanel() {
               ))}
               
               {/* Solicitações individuais */}
-              {individualRequests.map((req) => (
+              {filteredIndividualRequests.map((req) => (
                 <TableRow 
                   key={req._id} 
                   sx={{ 
@@ -664,7 +822,7 @@ export default function GerentePanel() {
               📊 Histórico de Decisões
             </Typography>
             <Chip 
-              label={allRequests.length} 
+              label={filteredAllRequests.length} 
               color="default" 
               size="small"
               variant="outlined"
@@ -692,8 +850,8 @@ export default function GerentePanel() {
               <TableBody>
                 {/* Misturar e ordenar subredes + individuais por data */}
                 {[
-                  ...groupedProcessed.map(g => ({ type: 'grouped' as const, data: g, date: g.requests[0]?.approved_at || g.created_at })),
-                  ...individualProcessed.map(r => ({ type: 'individual' as const, data: r, date: r.approved_at || r.created_at }))
+                  ...filteredGroupedProcessed.map(g => ({ type: 'grouped' as const, data: g, date: g.requests[0]?.approved_at || g.created_at })),
+                  ...filteredIndividualProcessed.map(r => ({ type: 'individual' as const, data: r, date: r.approved_at || r.created_at }))
                 ]
                   .sort((a, b) => {
                     const dateA = new Date(a.date || 0).getTime();
@@ -896,6 +1054,39 @@ export default function GerentePanel() {
           </TableContainer>
         </Box>
       )}
+
+      {/* Dialog de Reprovação */}
+      <Dialog open={rejectDialogOpen} onClose={handleRejectCancel} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          {selectedBatchId ? 'Reprovar Subrede' : 'Reprovar Solicitação'}
+        </DialogTitle>
+        <DialogContent>
+          <TextField
+            label="Motivo da Reprovação"
+            multiline
+            rows={4}
+            fullWidth
+            value={rejectNotes}
+            onChange={(e) => setRejectNotes(e.target.value)}
+            placeholder="Explique o motivo da reprovação..."
+            autoFocus
+            sx={{ mt: 2 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleRejectCancel} color="inherit">
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleRejectConfirm}
+            color="error"
+            variant="contained"
+            disabled={!rejectNotes.trim()}
+          >
+            Confirmar Reprovação
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Paper>
   );
 }
