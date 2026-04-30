@@ -607,8 +607,9 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
       }
     }
 
-    // Verificar se já existe solicitação pendente/aguardando para o mesmo cliente + produto + preço
-    const statusPendenteList = ['Pendente', 'Pending', 'Aguardando Gerência'];
+    // Verificar se já existe solicitação ativa para o mesmo cliente + produto + preço
+    // Bloqueia todos os status exceto Reprovado e Cancelado
+    const statusPendenteList = ['Pendente', 'Pending', 'Aguardando Gerência', 'Aprovado pela Gerência', 'Aprovado', 'Alterado'];
 
     if (selectionMode === 'cliente' && selectedCustomer && selectedProduct) {
       const solicitacaoDuplicada = requests.find(r => {
