@@ -661,46 +661,46 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
       }
     }
 
-    // Verificar se já existe solicitação pendente/aguardando para o mesmo cliente + produto
+    // Verificar se já existe solicitação pendente/aguardando para o mesmo cliente + produto + preço
+    const statusPendenteList = ['Pendente', 'Pending', 'Aguardando Gerência'];
+
     if (selectionMode === 'cliente' && selectedCustomer && selectedProduct) {
-      console.log('🔍 Verificando duplicação - Total de requests:', requests.length);
-      console.log('🔍 Cliente selecionado:', selectedCustomer.codigo, selectedCustomer.nome_fantasia);
-      console.log('🔍 Produto selecionado:', selectedProduct.codigo_produto, selectedProduct.nome_produto);
-      
       const solicitacaoDuplicada = requests.find(r => {
         const mesmoCliente = String(r.customer_code).trim() === String(selectedCustomer.codigo).trim();
         const mesmoProduto = String(r.product_id).trim() === String(selectedProduct.codigo_produto).trim();
-        const statusPendente = ['Pendente', 'Pending', 'Aguardando Gerência'].includes(r.status);
-        
-        if (mesmoCliente || mesmoProduto) {
-          console.log('🔍 Verificando solicitação:', {
-            id: r.id?.substring(0, 8),
-            cliente_request: `"${r.customer_code}"`,
-            cliente_selecionado: `"${selectedCustomer.codigo}"`,
-            produto_request: `"${r.product_id}"`,
-            produto_selecionado: `"${selectedProduct.codigo_produto}"`,
-            status: r.status,
-            mesmoCliente,
-            mesmoProduto,
-            statusPendente,
-            match: mesmoCliente && mesmoProduto && statusPendente
-          });
-        }
-        
-        return mesmoCliente && mesmoProduto && statusPendente;
+        const mesmoPreco = parseFloat(String(r.requested_price).replace(',', '.')) === parseFloat(price.replace(',', '.'));
+        const statusPendente = statusPendenteList.includes(r.status);
+        return mesmoCliente && mesmoProduto && mesmoPreco && statusPendente;
       });
 
       if (solicitacaoDuplicada) {
-        const statusMsg = solicitacaoDuplicada.status === 'Aguardando Gerência' 
-          ? 'aguardando aprovação da gerência' 
+        const statusMsg = solicitacaoDuplicada.status === 'Aguardando Gerência'
+          ? 'aguardando aprovação da gerência'
           : 'pendente de aprovação';
-        
-        console.log('❌ DUPLICAÇÃO DETECTADA!', solicitacaoDuplicada);
-        setError(`⚠️ SOLICITAÇÃO DUPLICADA: Já existe uma solicitação ${statusMsg} para o produto "${selectedProduct.nome_produto}" no cliente "${selectedCustomer.nome_fantasia}". Aguarde a aprovação ou cancelamento antes de criar uma nova solicitação.`);
+        setError(`⚠️ SOLICITAÇÃO DUPLICADA: Já existe uma solicitação ${statusMsg} para o produto "${selectedProduct.nome_produto}" no cliente "${selectedCustomer.nome_fantasia}" com o mesmo preço. Aguarde a aprovação ou cancelamento antes de criar uma nova solicitação.`);
         return;
       }
-      
-      console.log('✅ Nenhuma duplicação encontrada, prosseguindo...');
+    }
+
+    if (selectionMode === 'subrede' && selectedSubrede && selectedProduct) {
+      const clientesDaSubrede = clientes.filter(c => c.subrede && c.subrede.trim() === selectedSubrede.trim());
+      const codigosSubrede = new Set(clientesDaSubrede.map(c => String(c.codigo).trim()));
+
+      const solicitacaoDuplicada = requests.find(r => {
+        const clienteNaSubrede = codigosSubrede.has(String(r.customer_code).trim());
+        const mesmoProduto = String(r.product_id).trim() === String(selectedProduct.codigo_produto).trim();
+        const mesmoPreco = parseFloat(String(r.requested_price).replace(',', '.')) === parseFloat(price.replace(',', '.'));
+        const statusPendente = statusPendenteList.includes(r.status);
+        return clienteNaSubrede && mesmoProduto && mesmoPreco && statusPendente;
+      });
+
+      if (solicitacaoDuplicada) {
+        const statusMsg = solicitacaoDuplicada.status === 'Aguardando Gerência'
+          ? 'aguardando aprovação da gerência'
+          : 'pendente de aprovação';
+        setError(`⚠️ SOLICITAÇÃO DUPLICADA: Já existe uma solicitação ${statusMsg} para o produto "${selectedProduct.nome_produto}" na subrede "${selectedSubrede}" com o mesmo preço. Aguarde a aprovação ou cancelamento antes de criar uma nova solicitação.`);
+        return;
+      }
     }
 
     // Validação de faixa de preço do produto

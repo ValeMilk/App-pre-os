@@ -613,8 +613,8 @@ export default function GerentePanel() {
           ✅ Nenhuma solicitação aguardando aprovação da gerência no momento.
         </Alert>
       ) : (
-        <TableContainer sx={{ overflowX: 'auto', maxWidth: '100%' }}>
-          <Table size="small" sx={{ minWidth: 700 }}>
+        <TableContainer sx={{ overflowX: 'auto', maxWidth: '100%', maxHeight: 520 }}>
+          <Table size="small" sx={{ minWidth: 700 }} stickyHeader>
             <TableHead>
               <TableRow sx={{ bgcolor: '#f5f5f5' }}>
                 <TableCell sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Vendedor</strong></TableCell>
@@ -829,8 +829,8 @@ export default function GerentePanel() {
               sx={{ fontWeight: 600 }}
             />
           </Box>
-          <TableContainer sx={{ overflowX: 'auto', maxWidth: '100%' }}>
-            <Table size="small" sx={{ minWidth: 700 }}>
+          <TableContainer sx={{ overflowX: 'auto', maxWidth: '100%', maxHeight: 520 }}>
+            <Table size="small" sx={{ minWidth: 700 }} stickyHeader>
               <TableHead>
                 <TableRow sx={{ bgcolor: '#f5f5f5' }}>
                   <TableCell sx={{ fontSize: { xs: '0.7rem', sm: '0.875rem' } }}><strong>Vendedor</strong></TableCell>
