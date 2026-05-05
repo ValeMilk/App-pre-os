@@ -607,49 +607,6 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
       }
     }
 
-    // Verificar se já existe solicitação ativa para o mesmo cliente + produto + preço
-    // Bloqueia todos os status exceto Reprovado e Cancelado
-    const statusPendenteList = ['Pendente', 'Pending', 'Aguardando Gerência', 'Aprovado pela Gerência', 'Aprovado', 'Alterado'];
-
-    if (selectionMode === 'cliente' && selectedCustomer && selectedProduct) {
-      const solicitacaoDuplicada = requests.find(r => {
-        const mesmoCliente = String(r.customer_code).trim() === String(selectedCustomer.codigo).trim();
-        const mesmoProduto = String(r.product_id).trim() === String(selectedProduct.codigo_produto).trim();
-        const mesmoPreco = parseFloat(String(r.requested_price).replace(',', '.')) === parseFloat(price.replace(',', '.'));
-        const statusPendente = statusPendenteList.includes(r.status);
-        return mesmoCliente && mesmoProduto && mesmoPreco && statusPendente;
-      });
-
-      if (solicitacaoDuplicada) {
-        const statusMsg = solicitacaoDuplicada.status === 'Aguardando Gerência'
-          ? 'aguardando aprovação da gerência'
-          : 'pendente de aprovação';
-        setError(`⚠️ SOLICITAÇÃO DUPLICADA: Já existe uma solicitação ${statusMsg} para o produto "${selectedProduct.nome_produto}" no cliente "${selectedCustomer.nome_fantasia}" com o mesmo preço. Aguarde a aprovação ou cancelamento antes de criar uma nova solicitação.`);
-        return;
-      }
-    }
-
-    if (selectionMode === 'subrede' && selectedSubrede && selectedProduct) {
-      const clientesDaSubrede = clientes.filter(c => c.subrede && c.subrede.trim() === selectedSubrede.trim());
-      const codigosSubrede = new Set(clientesDaSubrede.map(c => String(c.codigo).trim()));
-
-      const solicitacaoDuplicada = requests.find(r => {
-        const clienteNaSubrede = codigosSubrede.has(String(r.customer_code).trim());
-        const mesmoProduto = String(r.product_id).trim() === String(selectedProduct.codigo_produto).trim();
-        const mesmoPreco = parseFloat(String(r.requested_price).replace(',', '.')) === parseFloat(price.replace(',', '.'));
-        const statusPendente = statusPendenteList.includes(r.status);
-        return clienteNaSubrede && mesmoProduto && mesmoPreco && statusPendente;
-      });
-
-      if (solicitacaoDuplicada) {
-        const statusMsg = solicitacaoDuplicada.status === 'Aguardando Gerência'
-          ? 'aguardando aprovação da gerência'
-          : 'pendente de aprovação';
-        setError(`⚠️ SOLICITAÇÃO DUPLICADA: Já existe uma solicitação ${statusMsg} para o produto "${selectedProduct.nome_produto}" na subrede "${selectedSubrede}" com o mesmo preço. Aguarde a aprovação ou cancelamento antes de criar uma nova solicitação.`);
-        return;
-      }
-    }
-
     // Validação de faixa de preço do produto
     if (selectedProduct && selectedProduct.maximo && selectedProduct.minimo && selectedProduct.promocional) {
       const priceNum = parseFloat(price);
