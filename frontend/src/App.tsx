@@ -9,6 +9,7 @@ import AdminRequestsPanel from './components/AdminRequestsPanel';
 import AdminLixeira from './components/AdminLixeira';
 import SupervisorPanel from './components/SupervisorPanel';
 import GerentePanel from './components/GerentePanel';
+import HistoricoGerentePanel from './components/HistoricoGerentePanel';
 import VendorDashboard from './components/VendorDashboard';
 import CalculadoraStandalone from './components/CalculadoraStandalone';
 import { parseClientesCsv } from './utils/parseCsv';
@@ -207,6 +208,16 @@ function AppContent() {
                   <Typography variant="subtitle1">Bem-vindo, {user.name} </Typography>
                 </Box>
                 <GerentePanel />
+              </Box>
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          } />
+
+          <Route path="/gerente/historico" element={
+            token && user ? (
+              <Box sx={{ width: '100%', maxWidth: { xs: '100%', sm: '100%', md: 1400 }, mx: 'auto', px: { xs: 1, sm: 2 } }}>
+                <HistoricoGerentePanel />
               </Box>
             ) : (
               <Navigate to="/login" replace />

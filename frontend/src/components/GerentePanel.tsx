@@ -22,6 +22,8 @@ import {
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
+import HistoryIcon from '@mui/icons-material/History';
+import { useNavigate } from 'react-router-dom';
 import { API_ENDPOINTS } from '../config/api';
 import { RequestsArraySchema } from '../schemas';
 
@@ -76,6 +78,7 @@ interface GroupedRequest {
 }
 
 export default function GerentePanel() {
+  const navigate = useNavigate();
   const [requests, setRequests] = useState<Request[]>([]);
   const [allRequests, setAllRequests] = useState<Request[]>([]);
   const [groupedRequests, setGroupedRequests] = useState<GroupedRequest[]>([]);
@@ -494,14 +497,29 @@ export default function GerentePanel() {
         p: { xs: 1.5, sm: 2.5, md: 3 },
         borderRadius: { xs: 1, sm: 2 },
         mb: { xs: 1.5, sm: 2.5, md: 3 },
-        color: 'white'
+        color: 'white',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: 1
       }}>
-        <Typography variant="h5" fontWeight={700} gutterBottom sx={{ fontSize: { xs: '1rem', sm: '1.3rem', md: '1.5rem' } }}>
-          👔 Painel do Gerente
-        </Typography>
-        <Typography variant="body2" sx={{ opacity: 0.9, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
-          Aprovar preços especiais abaixo do mínimo estabelecido
-        </Typography>
+        <Box>
+          <Typography variant="h5" fontWeight={700} gutterBottom sx={{ fontSize: { xs: '1rem', sm: '1.3rem', md: '1.5rem' } }}>
+            👔 Painel do Gerente
+          </Typography>
+          <Typography variant="body2" sx={{ opacity: 0.9, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
+            Aprovar preços especiais abaixo do mínimo estabelecido
+          </Typography>
+        </Box>
+        <Button
+          variant="outlined"
+          startIcon={<HistoryIcon />}
+          onClick={() => navigate('/gerente/historico')}
+          sx={{ color: 'white', borderColor: 'rgba(255,255,255,0.7)', '&:hover': { borderColor: 'white', bgcolor: 'rgba(255,255,255,0.15)' }, fontWeight: 600 }}
+        >
+          Histórico
+        </Button>
       </Box>
 
       {/* Mensagem sobre período de exibição */}
