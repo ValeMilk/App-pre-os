@@ -20,7 +20,7 @@ import { Cliente } from './types/Cliente';
 import { Produto } from './types/Produto';
 import { Desconto } from './types/Desconto';
 
-function AdminRoute() {
+function AdminRoute({ descontos, clientes }: { descontos: any[]; clientes: any[] }) {
   const [cadastroOpen, setCadastroOpen] = useState(false);
 
   return (
@@ -31,7 +31,7 @@ function AdminRoute() {
       px: { xs: 2, md: 3 },
       py: 3
     }}>
-      <AdminRequestsPanel />
+      <AdminRequestsPanel descontos={descontos} clientes={clientes} />
       <Box mt={3}>
         <AdminLixeira />
       </Box>
@@ -182,7 +182,7 @@ function AppContent() {
 
           <Route path="/admin" element={
             token && user && user.email === 'admin@admin.com' ? (
-              <AdminRoute />
+              <AdminRoute descontos={descontos} clientes={clientes} />
             ) : (
               <Navigate to="/login" replace />
             )

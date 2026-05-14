@@ -14,7 +14,46 @@ import { RequestsArraySchema } from '../schemas';
 
 const API_URL = API_ENDPOINTS.requests.all;
 
-export default function AdminRequestsPanel() {
+interface Props {
+  descontos?: { rede?: string; subrede?: string; codigo_produto: string; desconto: string }[];
+  clientes?: { codigo: string; rede?: string; subrede?: string }[];
+}
+
+function calcularDescontoDinamico(
+  r: any,
+  descontos: Props['descontos'],
+  clientes: Props['clientes']
+): { discount_percent: string; discounted_price: string } | null {
+  if (!descontos || !clientes || !r.product_id || !r.customer_code || !r.requested_price) return null;
+
+  const cliente = clientes.find(c => c.codigo === String(r.customer_code));
+  if (!cliente || !cliente.rede) return null;
+
+  const desconto = descontos.find(d => {
+    const produtoMatch = d.codigo_produto === String(r.product_id);
+    if (!produtoMatch) return false;
+    const redeMatch = d.rede && d.rede.trim().toLowerCase() === cliente.rede!.trim().toLowerCase();
+    const subMatch = !d.subrede || d.subrede === '-' || d.subrede === '';
+    return redeMatch && subMatch;
+  });
+
+  if (!desconto) return null;
+
+  const percentStr = desconto.desconto.replace('%', '').replace(',', '.').trim();
+  const percent = parseFloat(percentStr);
+  if (isNaN(percent) || percent <= 0) return null;
+
+  const preco = parseFloat(String(r.requested_price).replace(',', '.'));
+  if (isNaN(preco)) return null;
+
+  const precoFinal = preco - preco * (percent / 100);
+  return {
+    discount_percent: percent.toFixed(2),
+    discounted_price: precoFinal.toFixed(2)
+  };
+}
+
+export default function AdminRequestsPanel({ descontos = [], clientes = [] }: Props) {
   const token = localStorage.getItem('token');
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -649,12 +688,24 @@ export default function AdminRequestsPanel() {
                         {precoMinimo !== null && !isNaN(precoMinimo) ? `R$ ${precoMinimo.toFixed(2)}` : '—'}
                       </td>
                       <td style={{ padding: 10, textAlign: 'center', fontWeight: 600 }}>{r.quantity || '—'}</td>
-                      <td style={{ padding: 10, textAlign: 'center', color: r.discount_percent ? '#f57c00' : '#999', fontWeight: 600 }}>
-                        {r.discount_percent ? `${r.discount_percent}%` : '—'}
-                      </td>
-                      <td style={{ padding: 10, color: r.discounted_price ? '#2e7d32' : '#999', fontWeight: 600, textAlign: 'right' }}>
-                        {r.discounted_price ? `R$ ${Number(r.discounted_price).toFixed(2)}` : '—'}
-                      </td>
+                      {(() => {
+                        const dinamico = !r.discount_percent ? calcularDescontoDinamico(r, descontos, clientes) : null;
+                        const dp = r.discount_percent || dinamico?.discount_percent;
+                        const dpr = r.discounted_price || dinamico?.discounted_price;
+                        const isDinamico = !r.discount_percent && !!dinamico;
+                        return (
+                          <>
+                            <td style={{ padding: 10, textAlign: 'center', color: dp ? (isDinamico ? '#e65100' : '#f57c00') : '#999', fontWeight: 600 }}>
+                              {dp ? `${dp}%` : '—'}
+                              {isDinamico && <span style={{ fontSize: 10, color: '#e65100', marginLeft: 2 }}>*</span>}
+                            </td>
+                            <td style={{ padding: 10, color: dpr ? (isDinamico ? '#1b5e20' : '#2e7d32') : '#999', fontWeight: 600, textAlign: 'right' }}>
+                              {dpr ? `R$ ${Number(dpr).toFixed(2)}` : '—'}
+                              {isDinamico && <span style={{ fontSize: 10, color: '#e65100', marginLeft: 2 }}>*</span>}
+                            </td>
+                          </>
+                        );
+                      })()}
                       <td style={{ padding: 10, textAlign: 'center' }}>
                         <Chip
                           label={r.status}
