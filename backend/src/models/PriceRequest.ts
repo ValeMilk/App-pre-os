@@ -27,6 +27,10 @@ const priceRequestSchema = new mongoose.Schema({
   discount_percent: String,
   discounted_price: String,
   supervisor_notes: String,
+  gerente_approved_by: String,
+  gerente_approved_at: Date,
+  gerente_rejected_by: String,
+  gerente_rejected_at: Date,
   cancellation_requested: { type: Boolean, default: false },
   cancellation_reason: String,
   cancellation_requested_at: Date

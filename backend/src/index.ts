@@ -453,8 +453,8 @@ mongoose.connect(mongoUri)
         req.params.id,
         {
           status: 'Aprovado pela Gerência',
-          approved_by: req.user?.name,
-          approved_at: new Date()
+          gerente_approved_by: req.user?.name,
+          gerente_approved_at: new Date()
         },
         { new: true }
       );
@@ -478,8 +478,8 @@ mongoose.connect(mongoUri)
         req.params.id,
         {
           status: 'Reprovado pela Gerência',
-          approved_by: req.user?.name,
-          approved_at: new Date(),
+          gerente_rejected_by: req.user?.name,
+          gerente_rejected_at: new Date(),
           supervisor_notes: notes
         },
         { new: true }
@@ -502,8 +502,8 @@ mongoose.connect(mongoUri)
         { subrede_batch_id: req.params.batchId },
         {
           status: 'Aprovado pela Gerência',
-          approved_by: req.user?.name,
-          approved_at: new Date()
+          gerente_approved_by: req.user?.name,
+          gerente_approved_at: new Date()
         }
       );
       res.json({ message: `${result.modifiedCount} solicitações aprovadas pela gerência`, count: result.modifiedCount });
@@ -525,8 +525,8 @@ mongoose.connect(mongoUri)
         { subrede_batch_id: req.params.batchId },
         {
           status: 'Reprovado pela Gerência',
-          approved_by: req.user?.name,
-          approved_at: new Date(),
+          gerente_rejected_by: req.user?.name,
+          gerente_rejected_at: new Date(),
           supervisor_notes: notes
         }
       );

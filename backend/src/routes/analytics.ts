@@ -738,12 +738,22 @@ router.get('/dashboard', requireAuth, async (req: AuthRequest, res: Response) =>
         quantity: req.quantity || null,
         currency: req.currency,
         
-        // Status e Aprovação
+        // Status e Aprovação (Supervisor)
         status: req.status,
         approved_by: req.approved_by || null,
         approved_at: req.approved_at || null,
         rejected_by: req.rejected_by || null,
         rejected_at: req.rejected_at || null,
+
+        // Aprovação / Rejeição do Gerente
+        gerente_approved_by: req.gerente_approved_by || null,
+        gerente_approved_at: req.gerente_approved_at || null,
+        gerente_rejected_by: req.gerente_rejected_by || null,
+        gerente_rejected_at: req.gerente_rejected_at || null,
+
+        // Alterado pelo Admin
+        altered_by: req.altered_by || null,
+        altered_at: req.altered_at || null,
         
         // Supervisor
         codigo_supervisor: req.codigo_supervisor,
