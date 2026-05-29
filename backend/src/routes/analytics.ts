@@ -746,10 +746,12 @@ router.get('/dashboard', requireAuth, async (req: AuthRequest, res: Response) =>
         rejected_at: req.rejected_at || null,
 
         // Aprovação / Rejeição do Gerente
-        gerente_approved_by: req.gerente_approved_by || null,
-        gerente_approved_at: req.gerente_approved_at || null,
-        gerente_rejected_by: req.gerente_rejected_by || null,
-        gerente_rejected_at: req.gerente_rejected_at || null,
+        // Fallback para registros históricos: se gerente_approved_at não existe,
+        // usa approved_at quando status indica que o gerente agiu
+        gerente_approved_by: req.gerente_approved_by || (req.status === 'Aprovado pela Gerência' ? req.approved_by : null) || null,
+        gerente_approved_at: req.gerente_approved_at || (req.status === 'Aprovado pela Gerência' ? req.approved_at : null) || null,
+        gerente_rejected_by: req.gerente_rejected_by || (req.status === 'Reprovado pela Gerência' ? req.approved_by : null) || null,
+        gerente_rejected_at: req.gerente_rejected_at || (req.status === 'Reprovado pela Gerência' ? req.approved_at : null) || null,
 
         // Alterado pelo Admin
         altered_by: req.altered_by || null,
