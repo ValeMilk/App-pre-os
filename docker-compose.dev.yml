@@ -16,7 +16,7 @@ services:
     environment:
       NODE_ENV: development
       PORT: 5000
-      MONGODB_URI: mongodb+srv://nicolasimoes_db_user:TOG293qtDIlYsa6X@pricerequest.p5p0lrb.mongodb.net/price_requests_dev?retryWrites=true&w=majority&appName=priceRequest
+      MONGODB_URI: mongodb+srv://nicolasimoes_db_user:cgNhZCjN409RzXh7@pricerequest.p5p0lrb.mongodb.net/?appName=priceRequest
       JWT_SECRET: dev_jwt_secret_key
       CORS_ORIGIN: http://localhost:5174
     volumes:
