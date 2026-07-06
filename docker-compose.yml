@@ -33,10 +33,11 @@ services:
     restart: unless-stopped
     ports:
       - "9001:3001"
-    env_file: ./backend/.env
     environment:
       NODE_ENV: production
       PORT: 3001
+      # MongoDB Atlas
+      MONGO_URI: mongodb+srv://nicolasimoes_db_user:cgNhZCjN409RzXh7@pricerequest.p5p0lrb.mongodb.net/?appName=priceRequest
       # PostgreSQL Connection
       DB_HOST: postgres
       DB_PORT: 5432
@@ -47,8 +48,15 @@ services:
       JWT_SECRET: valemilk_jwt_secret_2026
       # CORS
       CORS_ORIGIN: http://72.61.62.17:9000
-      # ERP SQL Server Password ($$ escapa o $ no docker-compose)
+      # ERP SQL Server
+      ERP_HOST: 10.1.0.3
+      ERP_INSTANCE: SQLSTANDARD
+      ERP_PORT: ""
+      ERP_USER: analistarpt
       ERP_PASSWORD: "mM=DU9lUd3C$$qb@"
+      ERP_DATABASE: dbactions
+      # Frontend URL
+      VITE_API_URL: http://72.61.62.17:3001
     depends_on:
       postgres:
         condition: service_healthy
