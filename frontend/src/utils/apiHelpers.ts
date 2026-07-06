@@ -8,19 +8,18 @@ export async function fetchClientesFromAPI(): Promise<Cliente[]> {
   if (!response.ok) throw new Error('Erro ao buscar clientes da API');
   const data = await response.json();
   
-  // Mapear do formato PostgreSQL para Cliente
+  // Mapear do formato SQL Server para Cliente
   return data.map((row: any) => ({
-    codigo: String(row.a00_id || ''),
-    nome_fantasia: String(row.a00_fantasia || '').trim(),
-    rede: row.rede ? String(row.rede).trim() : undefined,
-    rede_id: row.rede_id ? Number(row.rede_id) : undefined,
-    subrede: row.subrede && row.subrede !== '-' ? String(row.subrede).trim() : undefined,
-    canal_venda: row.canal_de_venda ? String(row.canal_de_venda).trim() : undefined,
-    segmento: row.segmento ? String(row.segmento).trim() : undefined,
-    vendedor_code: row.a00_id_vend ? String(row.a00_id_vend) : undefined,
-    vendedor_name: row.vendedor ? String(row.vendedor).trim() : undefined,
-    supervisor_code: row.a00_id_vend_2 ? String(row.a00_id_vend_2) : undefined,
-    supervisor_name: row.supervisor ? String(row.supervisor).trim() : undefined,
+    codigo: String(row.A00_ID || ''),
+    nome_fantasia: String(row.A00_FANTASIA || '').trim(),
+    rede: row.REDE && row.REDE !== '-' ? String(row.REDE).trim() : undefined,
+    subrede: row.SUBREDE && row.SUBREDE !== '-' ? String(row.SUBREDE).trim() : undefined,
+    canal_venda: row.CANAL_DE_VENDA ? String(row.CANAL_DE_VENDA).trim() : undefined,
+    segmento: row.SEGMENTO ? String(row.SEGMENTO).trim() : undefined,
+    vendedor_code: row.A00_ID_VEND ? String(row.A00_ID_VEND) : undefined,
+    vendedor_name: row.VENDEDOR ? String(row.VENDEDOR).trim() : undefined,
+    supervisor_code: row.A00_ID_VEND_2 ? String(row.A00_ID_VEND_2) : undefined,
+    supervisor_name: row.SUPERVISOR ? String(row.SUPERVISOR).trim() : undefined,
   }));
 }
 
@@ -29,14 +28,14 @@ export async function fetchProdutosFromAPI(): Promise<Produto[]> {
   if (!response.ok) throw new Error('Erro ao buscar produtos da API');
   const data = await response.json();
   
-  // Mapear do formato PostgreSQL para Produto
+  // Mapear do formato SQL Server para Produto
   return data.map((row: any) => ({
-    id: String(row.e02_id || ''),
-    codigo_produto: String(row.e02_livre || ''),
-    nome_produto: String(row.e02_desc || ''),
-    maximo: row.tabela_70 ? String(row.tabela_70) : undefined,
-    minimo: row.minimo ? String(row.minimo) : undefined,
-    promocional: row.promo ? String(row.promo) : undefined,
+    id: String(row.E02_ID || ''),
+    codigo_produto: String(row.E02_LIVRE || ''),
+    nome_produto: String(row.E02_DESC || '').trim(),
+    maximo: row.TABELA_70 ? String(row.TABELA_70) : undefined,
+    minimo: row.MINIMO ? String(row.MINIMO) : undefined,
+    promocional: row.PROMO ? String(row.PROMO) : undefined,
   }));
 }
 
