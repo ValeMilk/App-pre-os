@@ -9,6 +9,7 @@ import authRoutes from './routes/auth';
 import analyticsRoutes from './routes/analytics';
 import { requireAuth, AuthRequest } from './middleware/auth';
 import { PriceRequest } from './models/PriceRequest';
+import { erpService } from './services/ERPService';
 
 // dotenv already loaded via side-effect import above
 
@@ -623,6 +624,67 @@ mongoose.connect(mongoUri)
       res.status(500).json({ error: 'Erro ao aprovar cancelamento', details: err });
     }
   });
+
+// ============================================
+// ERP Service Endpoints
+// ============================================
+
+/**
+ * GET /api/clientes
+ * Busca todos os clientes da carteira do SQL Server
+ */
+app.get('/api/clientes', async (req: Request, res: Response) => {
+  try {
+    console.log('[ERP] GET /api/clientes - iniciando busca...');
+    const clientes = await erpService.getClientes();
+    console.log(`[ERP] Retornando ${clientes.length} clientes`);
+    res.json(clientes);
+  } catch (error) {
+    console.error('[ERP] Erro ao buscar clientes:', error);
+    res.status(500).json({ 
+      error: 'Erro ao buscar clientes do SQL Server',
+      details: error instanceof Error ? error.message : 'Erro desconhecido'
+    });
+  }
+});
+
+/**
+ * GET /api/produtos
+ * Busca todos os produtos do SQL Server
+ */
+app.get('/api/produtos', async (req: Request, res: Response) => {
+  try {
+    console.log('[ERP] GET /api/produtos - iniciando busca...');
+    const produtos = await erpService.getProdutos();
+    console.log(`[ERP] Retornando ${produtos.length} produtos`);
+    res.json(produtos);
+  } catch (error) {
+    console.error('[ERP] Erro ao buscar produtos:', error);
+    res.status(500).json({ 
+      error: 'Erro ao buscar produtos do SQL Server',
+      details: error instanceof Error ? error.message : 'Erro desconhecido'
+    });
+  }
+});
+
+/**
+ * GET /api/descontos
+ * Busca todos os descontos do SQL Server (placeholder até implementação)
+ */
+app.get('/api/descontos', async (req: Request, res: Response) => {
+  try {
+    console.log('[ERP] GET /api/descontos - iniciando busca...');
+    const descontos = await erpService.getDescontos();
+    console.log(`[ERP] Retornando ${descontos.length} descontos`);
+    res.json(descontos);
+  } catch (error) {
+    console.error('[ERP] Erro ao buscar descontos:', error);
+    res.status(500).json({ 
+      error: 'Erro ao buscar descontos do SQL Server',
+      details: error instanceof Error ? error.message : 'Erro desconhecido'
+    });
+  }
+});
 
 const PORT = parseInt(process.env.PORT || '4000', 10);
 app.listen(PORT, '0.0.0.0', () => {
