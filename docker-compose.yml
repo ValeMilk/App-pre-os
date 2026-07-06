@@ -47,8 +47,8 @@ services:
       JWT_SECRET: valemilk_jwt_secret_2026
       # CORS
       CORS_ORIGIN: http://72.61.62.17:9000
-      # ERP SQL Server Password (escaped $ with $$)
-      ERP_PASSWORD: mM=DU9lUd3C$$qb@
+      # ERP SQL Server Password (aspas simples previnem interpolação)
+      ERP_PASSWORD: 'mM=DU9lUd3C$qb@'
     depends_on:
       postgres:
         condition: service_healthy
