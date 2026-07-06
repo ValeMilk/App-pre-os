@@ -5,9 +5,20 @@ class ERPService {
   private config: sql.config;
 
   constructor() {
-    this.config = {
-      server: process.env.ERP_HOST || '10.1.0.3',
-      port: process.env.ERP_PORT ? parseInt(process.env.ERP_PORT) : 1433,
+    // Construir server string com instância nomeada se disponível
+    const host = process.env.ERP_HOST || '10.1.0.3';
+    const instance = process.env.ERP_INSTANCE;
+    const port = process.env.ERP_PORT ? parseInt(process.env.ERP_PORT) : undefined;
+    
+    // Se temos instância nomeada, usa formato: host\INSTANCE
+    // Senão, usa host:port ou apenas host
+    let server = host;
+    if (instance) {
+      server = `${host}\\${instance}`;
+    }
+
+    const config: any = {
+      server,
       database: process.env.ERP_DATABASE || 'dbactions',
       authentication: {
         type: 'default',
@@ -23,6 +34,13 @@ class ERPService {
         requestTimeout: 30000,
       },
     };
+
+    // Adiciona porta apenas se não temos instância nomeada e porta está definida
+    if (!instance && port) {
+      config.port = port;
+    }
+
+    this.config = config;
   }
 
   /**
