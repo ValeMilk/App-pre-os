@@ -59,3 +59,33 @@ export async function fetchDescontosFromAPI(): Promise<Desconto[]> {
   }));
 }
 
+/**
+ * Busca descontos do cliente baseado na última compra (dinâmico)
+ * @param clienteId Código do cliente
+ * @returns Array com descontos aplicáveis
+ */
+export async function fetchDescontosPorClienteFromAPI(clienteId: string): Promise<any[]> {
+  try {
+    const response = await fetch(`${API_ENDPOINTS.data.descontos}?clienteId=${clienteId}`);
+    if (!response.ok) {
+      console.warn(`Nenhum desconto encontrado para cliente ${clienteId}`);
+      return [];
+    }
+    const data = await response.json();
+    
+    console.log(`📊 Descontos carregados para cliente ${clienteId}:`, data.length, 'produtos');
+    
+    // Mapear do formato SQL Server para objeto normalizado
+    return data.map((row: any) => ({
+      cliente_codigo: row.cliente_codigo,
+      produto_codigo: String(row.produto_codigo || '').trim(),
+      codigo_produto: row.codigo_produto,
+      desconto_percentual: Number(row.desconto_percentual || 0), // Ex: 0.05 para 5%
+      produto_nome: String(row.produto_nome || '').trim(),
+    }));
+  } catch (error) {
+    console.error('❌ Erro ao buscar descontos por cliente:', error);
+    return [];
+  }
+}
+

@@ -5,6 +5,7 @@ import { Cliente } from '../utils/parseCsv'
 import { Produto } from '../utils/parseProdutosCsv'
 import { Desconto } from '../types/Desconto'
 import { RequestFormSchema, RequestsArraySchema } from '../schemas'
+import { fetchDescontosPorClienteFromAPI } from '../utils/apiHelpers'
 import { Box, Button, TextField, Typography, Alert, Stack, Paper, Autocomplete, Divider, Slide, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, DialogContentText, Chip, InputAdornment, Tooltip } from '@mui/material'
 import SendIcon from '@mui/icons-material/Send';
 import DownloadIcon from '@mui/icons-material/Download';
@@ -50,6 +51,8 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
   // Estados do formulário e feedback
   const [selectionMode, setSelectionMode] = useState<'cliente' | 'subrede'>('cliente');
   const [selectedCustomer, setSelectedCustomer] = useState<Cliente | null>(null)
+  const [descontosPorCliente, setDescontosPorCliente] = useState<any[]>([])
+  const [descontoAtualProduto, setDescontoAtualProduto] = useState<number | null>(null)
   const [selectedSubrede, setSelectedSubrede] = useState<string | null>(null)
   const [selectedProduct, setSelectedProduct] = useState<Produto | null>(null)
   const [price, setPrice] = useState('')
@@ -363,6 +366,19 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
 
   // Calcular desconto aplicável em tempo real
   const descontoAplicavel = useMemo(() => {
+    // PRIORITY 1: Verificar desconto dinâmico carregado da query SQL Server
+    if (descontoAtualProduto !== null && descontoAtualProduto > 0) {
+      return {
+        rede: undefined,
+        rede_id: undefined,
+        codigo_produto: selectedProduct?.codigo_produto || '',
+        nome_produto: selectedProduct?.nome_produto || '',
+        desconto: `${(descontoAtualProduto * 100).toFixed(2)}%`,
+        tipo_desconto: 'produto' as const
+      };
+    }
+
+    // PRIORITY 2: Usar sistema antigo de descontos (compatibilidade)
     if (!selectedCustomer && !selectedSubrede) return null;
     if (!selectedProduct) return null;
 
@@ -377,7 +393,7 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
     if (!cliente) return null;
 
     return findDescontoForClienteProduto(cliente, selectedProduct);
-  }, [selectedCustomer, selectedSubrede, selectedProduct, descontos, clientes, selectionMode]);
+  }, [selectedCustomer, selectedSubrede, selectedProduct, descontos, clientes, selectionMode, descontoAtualProduto]);
 
   // Calcular preço com desconto
   const precoComDesconto = useMemo(() => {
@@ -1101,8 +1117,23 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
                     value={selectedCustomer}
                     onChange={(_, value) => {
                       setSelectedCustomer(value);
+                      setDescontoAtualProduto(null);
+                      setDescontosPorCliente([]);
                       setSelectedProduct(null);
                       setPrice('');
+                      
+                      // Carregar descontos do cliente selecionado
+                      if (value?.codigo) {
+                        fetchDescontosPorClienteFromAPI(value.codigo)
+                          .then(descontos => {
+                            setDescontosPorCliente(descontos);
+                            console.log(`✅ Descontos carregados para cliente ${value.codigo}:`, descontos.length);
+                          })
+                          .catch(err => {
+                            console.warn(`⚠️ Erro ao carregar descontos para cliente ${value.codigo}:`, err);
+                            setDescontosPorCliente([]);
+                          });
+                      }
                     }}
                     renderInput={params => (
                       <TextField 
@@ -1204,7 +1235,25 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
                 options={produtos}
                 getOptionLabel={option => `${option.nome_produto} — ${option.id}`}
                 value={selectedProduct}
-                onChange={(_, value) => setSelectedProduct(value)}
+                onChange={(_, value) => {
+                  setSelectedProduct(value);
+                  
+                  // Procurar desconto para este produto
+                  if (value && descontosPorCliente.length > 0) {
+                    const desconto = descontosPorCliente.find(
+                      d => String(d.codigo_produto).trim() === String(value.id).trim() ||
+                           String(d.produto_codigo).trim() === String(value.codigo_produto).trim()
+                    );
+                    if (desconto) {
+                      setDescontoAtualProduto(desconto.desconto_percentual);
+                      console.log(`🎯 Desconto encontrado para produto ${value.nome_produto}: ${(desconto.desconto_percentual * 100).toFixed(2)}%`);
+                    } else {
+                      setDescontoAtualProduto(null);
+                    }
+                  } else {
+                    setDescontoAtualProduto(null);
+                  }
+                }}
                 renderInput={params => (
                   <TextField 
                     {...params} 
@@ -1226,6 +1275,16 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
                 disabled={selectionMode === 'cliente' ? !selectedCustomer : !selectedSubrede}
                 fullWidth
               />
+              
+              {/* Alerta com Desconto do Cliente */}
+              {selectedProduct && descontoAtualProduto !== null && descontoAtualProduto > 0 && (
+                <Alert 
+                  severity="success" 
+                  sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
+                >
+                  ✅ Cliente tem <strong>{(descontoAtualProduto * 100).toFixed(2)}%</strong> de desconto neste produto!
+                </Alert>
+              )}
               
               {/* Card com Preços da Tabela quando Produto é Selecionado */}
               {selectedProduct && selectedProduct.maximo && (
