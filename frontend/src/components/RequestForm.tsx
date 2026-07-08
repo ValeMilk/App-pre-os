@@ -1229,91 +1229,52 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
               
               {/* Card com Preços da Tabela quando Produto é Selecionado */}
               {selectedProduct && selectedProduct.maximo && (
-                <Paper
-                  elevation={2}
+                <Box
                   sx={{
-                    p: 2,
-                    bgcolor: '#f5f5f5',
-                    border: '2px solid #2196F3',
-                    borderRadius: 2
+                    p: 1.5,
+                    bgcolor: '#f9f9f9',
+                    border: '1px solid #e0e0e0',
+                    borderRadius: 1,
+                    display: 'flex',
+                    gap: 2,
+                    flexWrap: 'wrap',
+                    alignItems: 'center'
                   }}
                 >
-                  <Stack spacing={1.5}>
-                    <Typography 
-                      variant="subtitle2" 
-                      fontWeight={700}
-                      sx={{ color: '#1976D2', fontSize: { xs: '0.9rem', sm: '1rem' } }}
-                    >
-                      📊 Tabela de Preços - {selectedProduct.nome_produto}
+                  <Box>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>
+                      Tabela 70
                     </Typography>
-                    
-                    <Stack direction="row" spacing={3} sx={{ flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
+                    <Typography variant="body2" fontWeight={600} sx={{ color: '#388E3C' }}>
+                      R$ {selectedProduct.maximo}
+                    </Typography>
+                  </Box>
+                  
+                  <Box sx={{ width: '1px', height: '30px', bgcolor: '#ddd' }} />
+                  
+                  <Box>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>
+                      Mínimo
+                    </Typography>
+                    <Typography variant="body2" fontWeight={600} sx={{ color: '#D32F2F' }}>
+                      R$ {selectedProduct.minimo}
+                    </Typography>
+                  </Box>
+                  
+                  {selectedProduct.promocional && selectedProduct.promocional !== selectedProduct.minimo && (
+                    <>
+                      <Box sx={{ width: '1px', height: '30px', bgcolor: '#ddd' }} />
                       <Box>
-                        <Typography 
-                          variant="caption" 
-                          sx={{ color: 'text.secondary', fontWeight: 600, fontSize: '0.75rem' }}
-                        >
-                          Tabela 70 (Máximo)
+                        <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>
+                          Promo
                         </Typography>
-                        <Typography 
-                          variant="body1" 
-                          fontWeight={700}
-                          sx={{ 
-                            color: '#388E3C',
-                            fontSize: { xs: '1.1rem', sm: '1.3rem' }
-                          }}
-                        >
-                          R$ {selectedProduct.maximo}
+                        <Typography variant="body2" fontWeight={600} sx={{ color: '#F57C00' }}>
+                          R$ {selectedProduct.promocional}
                         </Typography>
                       </Box>
-                      
-                      <Box sx={{ borderRight: '2px solid #ddd', my: { xs: 0, sm: 1 } }} />
-                      
-                      <Box>
-                        <Typography 
-                          variant="caption" 
-                          sx={{ color: 'text.secondary', fontWeight: 600, fontSize: '0.75rem' }}
-                        >
-                          Preço Mínimo
-                        </Typography>
-                        <Typography 
-                          variant="body1" 
-                          fontWeight={700}
-                          sx={{ 
-                            color: '#D32F2F',
-                            fontSize: { xs: '1.1rem', sm: '1.3rem' }
-                          }}
-                        >
-                          R$ {selectedProduct.minimo}
-                        </Typography>
-                      </Box>
-                      
-                      {selectedProduct.promocional && selectedProduct.promocional !== selectedProduct.minimo && (
-                        <>
-                          <Box sx={{ borderRight: '2px solid #ddd', my: { xs: 0, sm: 1 } }} />
-                          <Box>
-                            <Typography 
-                              variant="caption" 
-                              sx={{ color: 'text.secondary', fontWeight: 600, fontSize: '0.75rem' }}
-                            >
-                              Preço Promocional
-                            </Typography>
-                            <Typography 
-                              variant="body1" 
-                              fontWeight={700}
-                              sx={{ 
-                                color: '#F57C00',
-                                fontSize: { xs: '1.1rem', sm: '1.3rem' }
-                              }}
-                            >
-                              R$ {selectedProduct.promocional}
-                            </Typography>
-                          </Box>
-                        </>
-                      )}
-                    </Stack>
-                  </Stack>
-                </Paper>
+                    </>
+                  )}
+                </Box>
               )}
               
               {selectedProduct && selectedProduct.promocional && selectedProduct.maximo && (
