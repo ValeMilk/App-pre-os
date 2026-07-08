@@ -18,9 +18,9 @@ export async function fetchClientesFromAPI(): Promise<Cliente[]> {
     subrede: row.SUBREDE && row.SUBREDE !== '-' ? String(row.SUBREDE).trim() : undefined,
     canal_venda: row.CANAL_DE_VENDA ? String(row.CANAL_DE_VENDA).trim() : undefined,
     segmento: row.SEGMENTO ? String(row.SEGMENTO).trim() : undefined,
-    vendedor_code: String(row.A00_ID_VEND || '').trim(),
+    vendedor_code: String(row.CODIGO_VENDEDOR || '').trim(),
     vendedor_name: row.VENDEDOR ? String(row.VENDEDOR).trim() : undefined,
-    supervisor_code: String(row.A00_ID_VEND_2 || '').trim(),
+    supervisor_code: String(row.CODIGO_SUPERVISOR || '').trim(),
     supervisor_name: row.SUPERVISOR ? String(row.SUPERVISOR).trim() : undefined,
   }));
   

@@ -79,11 +79,11 @@ class ERPService {
 
       const request = this.pool!.request();
       const result = await request.query(`
-        SELECT
+       SELECT
             c.A00_ID,
             c.A00_FANTASIA,
-            c.A00_ID_VEND,
-            c.A00_ID_VEND_2,
+            c.A00_ID_VEND as CODIGO_VENDEDOR,
+            c.A00_ID_VEND_2 AS CODIGO_SUPERVISOR,
             r.A43_DESC AS CANAL_DE_VENDA,
             t.A44_DESC AS SEGMENTO,
             v.A00_FANTASIA AS VENDEDOR,
@@ -102,7 +102,7 @@ class ERPService {
             AND c.A00_ID NOT IN (1,2,3,4,13,265,278)
             AND c.A00_ID_VEND NOT IN (11919,0,2,3,1,8029,12171) 
             AND c.A00_EN_CL = 1
-        ORDER BY c.A00_FANTASIA ASC
+        ORDER BY c.A00_FANTASIA ASC;
       `);
 
       return result.recordset;

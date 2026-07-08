@@ -229,31 +229,26 @@ function AppContent() {
                 </Box>
                 <RequestForm
                   clientes={(() => {
-                    // Encontrar o cliente específico MERCADINHO PITOMBEIRA
-                    const pitombeira = clientes.find(c => c.codigo === '12132');
-                    console.log('🎯 MERCADINHO PITOMBEIRA encontrado?', !!pitombeira);
-                    if (pitombeira) {
-                      console.log('🎯 PITOMBEIRA:', {
-                        codigo: pitombeira.codigo,
-                        nome: pitombeira.nome_fantasia,
-                        vendedor_code: `"${pitombeira.vendedor_code}"`,
-                        matchesUser: pitombeira.vendedor_code === user.vendedor_code
-                      });
-                    } else {
-                      console.log('❌ Cliente 12132 NÃO FOI PARSEADO DO CSV!');
-                      // Listar todos os códigos próximos ao 12132
-                      const proximos = clientes.filter(c => {
-                        const cod = parseInt(c.codigo);
-                        return cod >= 12120 && cod <= 12145;
-                      }).map(c => ({ codigo: c.codigo, nome: c.nome_fantasia }));
-                      console.log('Clientes próximos de 12132:', proximos);
-                    }
+                    // DEBUG: Listar todos os vendedor_codes ÚNICOS que existem
+                    const vendedorCodesUnicos = new Set(clientes.map(c => c.vendedor_code).filter(Boolean));
+                    console.log('📊 TODOS os vendedor_codes únicos na carteira:', Array.from(vendedorCodesUnicos).sort());
                     
-                    // Listar TODOS os clientes com vendedor_code 11617
-                    const todos11617 = clientes.filter(c => c.vendedor_code === '11617');
-                    console.log(`📋 Todos os ${todos11617.length} clientes com vendedor_code "11617":`, 
-                      todos11617.map(c => ({ codigo: c.codigo, nome: c.nome_fantasia }))
-                    );
+                    // DEBUG: Verificar o vendedor_code do usuário logado
+                    console.log('👤 Usuário logado:', {
+                      name: user.name,
+                      email: user.email,
+                      vendedor_code: `"${user.vendedor_code}"`,
+                      tipo: user.tipo
+                    });
+                    
+                    // DEBUG: Contar quantos clientes para CADA vendedor_code
+                    const clientesPorVendedor = {} as Record<string, number>;
+                    clientes.forEach(c => {
+                      if (c.vendedor_code) {
+                        clientesPorVendedor[c.vendedor_code] = (clientesPorVendedor[c.vendedor_code] || 0) + 1;
+                      }
+                    });
+                    console.log('📈 Distribuição de clientes por vendedor_code:', clientesPorVendedor);
                     
                     const filtered = clientes.filter(c => {
                       if (!user.vendedor_code) return true;
@@ -265,8 +260,13 @@ function AppContent() {
                       totalClientes: clientes.length,
                       userVendedorCode: `"${user.vendedor_code}"`,
                       clientesFiltrados: filtered.length,
-                      deveSerNoMinimo: 56
+                      existeNoCarteira: vendedorCodesUnicos.has(user.vendedor_code || '')
                     });
+                    
+                    if (filtered.length === 0) {
+                      console.warn('⚠️ ALERTA: Nenhum cliente encontrado para vendedor_code "' + user.vendedor_code + '". Verifique se o usuário foi criado com o código correto.');
+                    }
+                    
                     return filtered;
                   })()}
                   produtos={produtos}
