@@ -157,13 +157,69 @@ class ERPService {
   /**
    * Busca todos os descontos (placeholder - aguardando query do usuário)
    */
-  async getDescontos(): Promise<any[]> {
+  async getDescontos(clienteId: number): Promise<any[]> {
     try {
       if (!this.pool) await this.connect();
 
-      // TODO: Implementar quando o usuário fornecer a query de descontos
-      console.warn('[ERPService] Query de descontos ainda não foi implementada');
-      return [];
+      const query = `
+        DECLARE @ClienteCodigo INT = ${clienteId};
+
+        WITH UltimaCompra AS (
+            SELECT
+                m00.M00_ID_A00 AS ClienteCodigo,
+                e02.E02_LIVRE  AS ProdutoCodigo,
+                e02.e02_id as CodigoProduto,
+                e02.E02_DESC as Produto,
+                (ISNULL(a24.A24_DESC_PERC, ISNULL(a16.A16_REM_DESC_VALOR, 0)) / 100) AS DescontoPercentual,
+
+                ROW_NUMBER() OVER (
+                    PARTITION BY 
+                        m00.M00_ID_A00,
+                        m01.M01_ID_E02
+                    ORDER BY 
+                        m00.M00_ENTSAI DESC
+                ) AS rn
+
+            FROM dbo.M01 AS m01 WITH (NOLOCK)
+            INNER JOIN dbo.M00 AS m00 WITH (NOLOCK)
+                ON m01.M01_ID_M00 = m00.M00_ID
+            INNER JOIN dbo.E02 AS e02 WITH (NOLOCK)
+                ON m01.M01_ID_E02 = e02.E02_ID
+            INNER JOIN dbo.A00 AS a00 WITH (NOLOCK)
+                ON m00.M00_ID_A00 = a00.A00_ID
+            LEFT JOIN dbo.A16 AS a16 WITH (NOLOCK)
+                ON a00.A00_ID_A16 = a16.A16_ID
+            LEFT JOIN dbo.A24 AS a24 WITH (NOLOCK)
+                ON a24.A24_ID_E02 = e02.E02_ID
+            WHERE 
+                m00.M00_ENTSAI IS NOT NULL
+                AND m00.M00_STATUS = 'N'
+                AND m00.M00_ID_A00 = @ClienteCodigo
+        )
+
+        SELECT
+            ClienteCodigo,
+            ProdutoCodigo,
+            DescontoPercentual,
+            CodigoProduto,
+            Produto
+        FROM UltimaCompra
+        WHERE rn = 1
+          AND DescontoPercentual > 0
+        ORDER BY DescontoPercentual DESC;
+      `;
+
+      const result = await this.pool!.request().query(query);
+      
+      console.log(`[ERPService] Descontos encontrados para cliente ${clienteId}:`, result.recordset.length);
+      
+      return result.recordset.map((row: any) => ({
+        cliente_codigo: row.ClienteCodigo,
+        produto_codigo: row.ProdutoCodigo,
+        desconto_percentual: row.DescontoPercentual,
+        codigo_produto: row.CodigoProduto,
+        produto_nome: row.Produto,
+      }));
     } catch (error) {
       console.error('[ERPService] Erro ao buscar descontos:', error);
       throw error;

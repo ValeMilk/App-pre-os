@@ -668,14 +668,30 @@ app.get('/api/produtos', async (req: Request, res: Response) => {
 });
 
 /**
- * GET /api/descontos
- * Busca todos os descontos do SQL Server (placeholder até implementação)
+ * GET /api/descontos?clienteId=XXXX
+ * Busca os descontos do cliente baseado na última compra
  */
 app.get('/api/descontos', async (req: Request, res: Response) => {
   try {
-    console.log('[ERP] GET /api/descontos - iniciando busca...');
-    const descontos = await erpService.getDescontos();
-    console.log(`[ERP] Retornando ${descontos.length} descontos`);
+    const clienteId = req.query.clienteId;
+    
+    if (!clienteId) {
+      return res.status(400).json({ 
+        error: 'Parâmetro clienteId é obrigatório',
+        example: '/api/descontos?clienteId=11747'
+      });
+    }
+
+    const cliente = Number(clienteId);
+    if (isNaN(cliente)) {
+      return res.status(400).json({ 
+        error: 'clienteId deve ser um número válido'
+      });
+    }
+
+    console.log(`[ERP] GET /api/descontos?clienteId=${cliente} - iniciando busca...`);
+    const descontos = await erpService.getDescontos(cliente);
+    console.log(`[ERP] Retornando ${descontos.length} descontos para cliente ${cliente}`);
     res.json(descontos);
   } catch (error) {
     console.error('[ERP] Erro ao buscar descontos:', error);
