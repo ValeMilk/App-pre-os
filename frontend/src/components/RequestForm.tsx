@@ -1124,15 +1124,19 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
                       
                       // Carregar descontos do cliente selecionado
                       if (value?.codigo) {
-                        fetchDescontosPorClienteFromAPI(value.codigo)
+                        const clienteId = String(value.codigo);
+                        console.log(`🔍 Carregando descontos para cliente: codigo="${clienteId}"`);
+                        fetchDescontosPorClienteFromAPI(clienteId)
                           .then(descontos => {
                             setDescontosPorCliente(descontos);
-                            console.log(`✅ Descontos carregados para cliente ${value.codigo}:`, descontos.length);
+                            console.log(`✅ Descontos carregados para cliente ${clienteId}:`, descontos.length);
                           })
                           .catch(err => {
-                            console.warn(`⚠️ Erro ao carregar descontos para cliente ${value.codigo}:`, err);
+                            console.warn(`⚠️ Erro ao carregar descontos para cliente ${clienteId}:`, err);
                             setDescontosPorCliente([]);
                           });
+                      } else {
+                        console.warn('⚠️ Cliente selecionado sem código');
                       }
                     }}
                     renderInput={params => (

@@ -66,11 +66,17 @@ export async function fetchDescontosFromAPI(): Promise<Desconto[]> {
  */
 export async function fetchDescontosPorClienteFromAPI(clienteId: string): Promise<any[]> {
   try {
-    const response = await fetch(`${API_ENDPOINTS.data.descontos}?clienteId=${clienteId}`);
+    const url = `${API_ENDPOINTS.data.descontos}?clienteId=${clienteId}`;
+    console.log(`📡 Chamando API de descontos:`, url);
+    
+    const response = await fetch(url);
+    
     if (!response.ok) {
-      console.warn(`Nenhum desconto encontrado para cliente ${clienteId}`);
+      const errorText = await response.text();
+      console.warn(`❌ Erro ${response.status} ao buscar descontos para cliente ${clienteId}:`, errorText);
       return [];
     }
+    
     const data = await response.json();
     
     console.log(`📊 Descontos carregados para cliente ${clienteId}:`, data.length, 'produtos');
