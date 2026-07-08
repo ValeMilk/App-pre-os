@@ -1226,6 +1226,96 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
                 disabled={selectionMode === 'cliente' ? !selectedCustomer : !selectedSubrede}
                 fullWidth
               />
+              
+              {/* Card com Preços da Tabela quando Produto é Selecionado */}
+              {selectedProduct && selectedProduct.maximo && (
+                <Paper
+                  elevation={2}
+                  sx={{
+                    p: 2,
+                    bgcolor: '#f5f5f5',
+                    border: '2px solid #2196F3',
+                    borderRadius: 2
+                  }}
+                >
+                  <Stack spacing={1.5}>
+                    <Typography 
+                      variant="subtitle2" 
+                      fontWeight={700}
+                      sx={{ color: '#1976D2', fontSize: { xs: '0.9rem', sm: '1rem' } }}
+                    >
+                      📊 Tabela de Preços - {selectedProduct.nome_produto}
+                    </Typography>
+                    
+                    <Stack direction="row" spacing={3} sx={{ flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
+                      <Box>
+                        <Typography 
+                          variant="caption" 
+                          sx={{ color: 'text.secondary', fontWeight: 600, fontSize: '0.75rem' }}
+                        >
+                          Tabela 70 (Máximo)
+                        </Typography>
+                        <Typography 
+                          variant="body1" 
+                          fontWeight={700}
+                          sx={{ 
+                            color: '#388E3C',
+                            fontSize: { xs: '1.1rem', sm: '1.3rem' }
+                          }}
+                        >
+                          R$ {selectedProduct.maximo}
+                        </Typography>
+                      </Box>
+                      
+                      <Box sx={{ borderRight: '2px solid #ddd', my: { xs: 0, sm: 1 } }} />
+                      
+                      <Box>
+                        <Typography 
+                          variant="caption" 
+                          sx={{ color: 'text.secondary', fontWeight: 600, fontSize: '0.75rem' }}
+                        >
+                          Preço Mínimo
+                        </Typography>
+                        <Typography 
+                          variant="body1" 
+                          fontWeight={700}
+                          sx={{ 
+                            color: '#D32F2F',
+                            fontSize: { xs: '1.1rem', sm: '1.3rem' }
+                          }}
+                        >
+                          R$ {selectedProduct.minimo}
+                        </Typography>
+                      </Box>
+                      
+                      {selectedProduct.promocional && selectedProduct.promocional !== selectedProduct.minimo && (
+                        <>
+                          <Box sx={{ borderRight: '2px solid #ddd', my: { xs: 0, sm: 1 } }} />
+                          <Box>
+                            <Typography 
+                              variant="caption" 
+                              sx={{ color: 'text.secondary', fontWeight: 600, fontSize: '0.75rem' }}
+                            >
+                              Preço Promocional
+                            </Typography>
+                            <Typography 
+                              variant="body1" 
+                              fontWeight={700}
+                              sx={{ 
+                                color: '#F57C00',
+                                fontSize: { xs: '1.1rem', sm: '1.3rem' }
+                              }}
+                            >
+                              R$ {selectedProduct.promocional}
+                            </Typography>
+                          </Box>
+                        </>
+                      )}
+                    </Stack>
+                  </Stack>
+                </Paper>
+              )}
+              
               {selectedProduct && selectedProduct.promocional && selectedProduct.maximo && (
                 <Alert severity="info" sx={{ fontSize: { xs: '0.75rem', sm: '0.8125rem' } }}>
                   Faixa de preço permitida: R$ {selectedProduct.minimo} até R$ {selectedProduct.maximo}
