@@ -74,7 +74,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        VITE_API_URL: http://72.61.62.17:9001
+        VITE_API_URL: /api
     container_name: app-precos-frontend
     restart: unless-stopped
     ports:
