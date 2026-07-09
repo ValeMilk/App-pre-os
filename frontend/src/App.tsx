@@ -14,7 +14,7 @@ import CalculadoraStandalone from './components/CalculadoraStandalone';
 import { parseClientesCsv } from './utils/parseCsv';
 import { parseProdutosCsv } from './utils/parseProdutosCsv';
 import { parseDescontosCsv } from './utils/parseDescontosCsv';
-import { fetchClientesFromAPI, fetchProdutosFromAPI, fetchDescontosFromAPI } from './utils/apiHelpers';
+import { fetchClientesFromAPI, fetchProdutosFromAPI } from './utils/apiHelpers';
 import theme from './mui-theme';
 import { Cliente } from './types/Cliente';
 import { Produto } from './types/Produto';
@@ -91,16 +91,7 @@ function AppContent() {
         setError('Erro ao carregar produtos da API.')
       })
     
-    // Buscar descontos da API
-    fetchDescontosFromAPI()
-      .then(parsed => {
-        setDescontos(parsed)
-        localStorage.setItem('descontos', JSON.stringify(parsed))
-        console.log('Descontos carregados da API:', parsed)
-      })
-      .catch(() => {
-        setError('Erro ao carregar descontos da API.')
-      })
+    // Descontos agora são carregados dinamicamente por cliente no RequestForm
   }, [user])
 
   useEffect(() => {
