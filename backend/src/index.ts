@@ -770,8 +770,7 @@ app.get('/api/debug/cliente/:clienteId', async (req: Request, res: Response) => 
         a00.A00_FANTASIA,
         a00.A00_ID_A16,
         a16.A16_ID,
-        a16.A16_REM_DESC_VALOR,
-        a16.A16_DESC_PERC
+        a16.A16_REM_DESC_VALOR
       FROM dbo.A00
       LEFT JOIN dbo.A16 ON a00.A00_ID_A16 = a16.A16_ID
       WHERE a00.A00_ID = ${clienteId}
@@ -783,8 +782,8 @@ app.get('/api/debug/cliente/:clienteId', async (req: Request, res: Response) => 
       cliente_id: clienteId,
       dados: result[0] || null,
       analise: result[0]?.A16_REM_DESC_VALOR 
-        ? `Cliente tem desconto A16: ${result[0].A16_REM_DESC_VALOR}% (REMO) ou ${result[0].A16_DESC_PERC}% (DESC)`
-        : 'Cliente SEM desconto A16 configurado'
+        ? `✅ Cliente tem desconto A16: ${result[0].A16_REM_DESC_VALOR}%`
+        : '❌ Cliente SEM desconto A16 configurado'
     });
   } catch (error) {
     console.error('[DEBUG] Erro:', error);
