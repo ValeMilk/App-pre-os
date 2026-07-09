@@ -721,7 +721,55 @@ app.get('/api/debug/produto/:id', async (req: Request, res: Response) => {
       encontrado_em_descontos: !!encontrado,
       desconto_encontrado: encontrado || null,
       total_descontos_cliente: descontos.length,
-      primeiros_descontos: descontos.slice(0, 3)
+      primeiros_descontos: descontos.slice(0, 3),
+      analise: 'Se encontrado_em_descontos=false, significa que este cliente NUNCA comprou este produto. A query getDescontos() retorna apenas produtos com histórico de compra.'
+    });
+  } catch (error) {
+    console.error('[DEBUG] Erro:', error);
+    res.status(500).json({ error: String(error) });
+  }
+});
+
+/**
+ * DEBUG: Query completa de M01 sem filtro para verificar histórico
+ */
+app.get('/api/debug/historicocompra/:produtoId/:clienteId', async (req: Request, res: Response) => {
+  try {
+    const produtoId = Number(req.params.produtoId) || 3;
+    const clienteId = Number(req.params.clienteId) || 11747;
+    
+    const pool = (erpService as any).pool;
+    if (!pool) {
+      return res.status(500).json({ error: 'Conexão SQL não inicializada' });
+    }
+    
+    const query = `
+      SELECT TOP 10
+          m00.M00_ID_A00,
+          m01.M01_ID_E02,
+          e02.E02_DESC,
+          m00.M00_ENTSAI,
+          m00.M00_STATUS,
+          a24.A24_DESC_PERC
+      FROM dbo.M01 AS m01
+      INNER JOIN dbo.M00 AS m00 ON m01.M01_ID_M00 = m00.M00_ID
+      INNER JOIN dbo.E02 AS e02 ON m01.M01_ID_E02 = e02.E02_ID
+      LEFT JOIN dbo.A24 AS a24 ON a24.A24_ID_E02 = e02.E02_ID
+      WHERE m00.M00_ID_A00 = ${clienteId}
+      AND m01.M01_ID_E02 = ${produtoId}
+      ORDER BY m00.M00_ENTSAI DESC
+    `;
+    
+    const result = await pool.request().query(query);
+    
+    res.json({
+      cliente_id: clienteId,
+      produto_id: produtoId,
+      registros_encontrados: result.recordset.length,
+      compras: result.recordset,
+      analise: result.recordset.length === 0 
+        ? 'CLIENTE NUNCA COMPROU ESTE PRODUTO - Logo não terá desconto nele' 
+        : 'Cliente tem histórico. Verificar por que getDescontos() não o incluiu'
     });
   } catch (error) {
     console.error('[DEBUG] Erro:', error);
