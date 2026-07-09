@@ -170,7 +170,11 @@ class ERPService {
                 e02.E02_LIVRE  AS ProdutoCodigo,
                 e02.e02_id as CodigoProduto,
                 e02.E02_DESC as Produto,
-                (ISNULL(a24.A24_DESC_PERC, ISNULL(a16.A16_REM_DESC_VALOR, 0)) / 100) AS DescontoPercentual,
+                -- Prioridade: A24 (desconto produto) se > 0, senão A16 (desconto cliente)
+                (CASE 
+                    WHEN a24.A24_DESC_PERC > 0 THEN a24.A24_DESC_PERC
+                    ELSE ISNULL(a16.A16_REM_DESC_VALOR, 0)
+                END / 100.0) AS DescontoPercentual,
 
                 ROW_NUMBER() OVER (
                     PARTITION BY 
