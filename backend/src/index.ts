@@ -757,6 +757,41 @@ app.get('/api/debug/historicocompra/:produtoId/:clienteId', async (req: Request,
   }
 });
 
+/**
+ * DEBUG: Verificar dados do cliente (A00 + A16)
+ */
+app.get('/api/debug/cliente/:clienteId', async (req: Request, res: Response) => {
+  try {
+    const clienteId = Number(req.params.clienteId) || 11747;
+    
+    const query = `
+      SELECT
+        a00.A00_ID,
+        a00.A00_FANTASIA,
+        a00.A00_ID_A16,
+        a16.A16_ID,
+        a16.A16_REM_DESC_VALOR,
+        a16.A16_DESC_PERC
+      FROM dbo.A00
+      LEFT JOIN dbo.A16 ON a00.A00_ID_A16 = a16.A16_ID
+      WHERE a00.A00_ID = ${clienteId}
+    `;
+    
+    const result = await erpService.executeQuery(query);
+    
+    res.json({
+      cliente_id: clienteId,
+      dados: result[0] || null,
+      analise: result[0]?.A16_REM_DESC_VALOR 
+        ? `Cliente tem desconto A16: ${result[0].A16_REM_DESC_VALOR}% (REMO) ou ${result[0].A16_DESC_PERC}% (DESC)`
+        : 'Cliente SEM desconto A16 configurado'
+    });
+  } catch (error) {
+    console.error('[DEBUG] Erro:', error);
+    res.status(500).json({ error: String(error) });
+  }
+});
+
 const PORT = parseInt(process.env.PORT || '4000', 10);
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`✅ Servidor rodando na porta ${PORT}`);
