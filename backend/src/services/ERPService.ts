@@ -227,6 +227,38 @@ class ERPService {
   }
 
   /**
+   * DEBUG: Verificar histórico de compras de um cliente para um produto específico
+   */
+  async verificarHistoricoCompra(clienteId: number, produtoId: number): Promise<any[]> {
+    try {
+      if (!this.pool) await this.connect();
+
+      const query = `
+        SELECT TOP 10
+          M00_ID_A00,
+          M01_ID_E02,
+          E02_DESC,
+          M00_ENTSAI,
+          M00_STATUS,
+          A24_DESC_PERC
+        FROM dbo.M01
+        INNER JOIN dbo.M00 ON M01_ID_M00 = M00_ID
+        INNER JOIN dbo.E02 ON M01_ID_E02 = E02_ID
+        LEFT JOIN dbo.A24 ON A24_ID_E02 = E02_ID
+        WHERE M00_ID_A00 = ${clienteId}
+        AND M01_ID_E02 = ${produtoId}
+        ORDER BY M00_ENTSAI DESC
+      `;
+
+      const result = await this.pool!.request().query(query);
+      return result.recordset;
+    } catch (error) {
+      console.error('[ERPService] Erro ao verificar histórico de compras:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Executa uma query customizada
    */
   async executeQuery(query: string): Promise<any[]> {

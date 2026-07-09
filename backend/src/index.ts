@@ -738,38 +738,18 @@ app.get('/api/debug/historicocompra/:produtoId/:clienteId', async (req: Request,
     const produtoId = Number(req.params.produtoId) || 3;
     const clienteId = Number(req.params.clienteId) || 11747;
     
-    const pool = (erpService as any).pool;
-    if (!pool) {
-      return res.status(500).json({ error: 'Conexão SQL não inicializada' });
-    }
+    console.log(`[DEBUG] Verificando histórico de compras: cliente ${clienteId}, produto ${produtoId}`);
     
-    const query = `
-      SELECT TOP 10
-          m00.M00_ID_A00,
-          m01.M01_ID_E02,
-          e02.E02_DESC,
-          m00.M00_ENTSAI,
-          m00.M00_STATUS,
-          a24.A24_DESC_PERC
-      FROM dbo.M01 AS m01
-      INNER JOIN dbo.M00 AS m00 ON m01.M01_ID_M00 = m00.M00_ID
-      INNER JOIN dbo.E02 AS e02 ON m01.M01_ID_E02 = e02.E02_ID
-      LEFT JOIN dbo.A24 AS a24 ON a24.A24_ID_E02 = e02.E02_ID
-      WHERE m00.M00_ID_A00 = ${clienteId}
-      AND m01.M01_ID_E02 = ${produtoId}
-      ORDER BY m00.M00_ENTSAI DESC
-    `;
-    
-    const result = await pool.request().query(query);
+    const historico = await erpService.verificarHistoricoCompra(clienteId, produtoId);
     
     res.json({
       cliente_id: clienteId,
       produto_id: produtoId,
-      registros_encontrados: result.recordset.length,
-      compras: result.recordset,
-      analise: result.recordset.length === 0 
-        ? 'CLIENTE NUNCA COMPROU ESTE PRODUTO - Logo não terá desconto nele' 
-        : 'Cliente tem histórico. Verificar por que getDescontos() não o incluiu'
+      registros_encontrados: historico.length,
+      compras: historico,
+      analise: historico.length === 0 
+        ? '🔴 CLIENTE NUNCA COMPROU ESTE PRODUTO - Por isso não há desconto nele' 
+        : '🟢 Cliente tem histórico. Verificar por que getDescontos() não o incluiu'
     });
   } catch (error) {
     console.error('[DEBUG] Erro:', error);
