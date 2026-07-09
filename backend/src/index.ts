@@ -702,6 +702,33 @@ app.get('/api/descontos', async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * DEBUG: Endpoint para testar produto sem filtro de desconto
+ */
+app.get('/api/debug/produto/:id', async (req: Request, res: Response) => {
+  try {
+    const produtoId = Number(req.params.id) || 3;
+    const clienteId = Number(req.query.clienteId) || 11747;
+    
+    console.log(`[DEBUG] Buscando compras do cliente ${clienteId} para produto ${produtoId}`);
+    const descontos = await erpService.getDescontos(clienteId);
+    
+    const encontrado = descontos.find((d: any) => d.codigo_produto == produtoId);
+    
+    res.json({
+      cliente_id: clienteId,
+      produto_id_buscado: produtoId,
+      encontrado_em_descontos: !!encontrado,
+      desconto_encontrado: encontrado || null,
+      total_descontos_cliente: descontos.length,
+      primeiros_descontos: descontos.slice(0, 3)
+    });
+  } catch (error) {
+    console.error('[DEBUG] Erro:', error);
+    res.status(500).json({ error: String(error) });
+  }
+});
+
 const PORT = parseInt(process.env.PORT || '4000', 10);
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`✅ Servidor rodando na porta ${PORT}`);
