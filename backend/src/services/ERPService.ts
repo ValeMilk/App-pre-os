@@ -155,7 +155,8 @@ class ERPService {
   }
 
   /**
-   * Busca todos os descontos (placeholder - aguardando query do usuário)
+   * Busca descontos aplicáveis para todos os produtos de um cliente
+   * Verifica: Desconto Produto (A24) > Desconto Categoria (A24) > Desconto Rede (A16)
    */
   async getDescontos(clienteId: number): Promise<any[]> {
     try {
@@ -164,53 +165,63 @@ class ERPService {
       const query = `
         DECLARE @ClienteCodigo INT = ${clienteId};
 
-        WITH UltimaCompra AS (
-            SELECT
-                m00.M00_ID_A00 AS ClienteCodigo,
-                e02.E02_LIVRE  AS ProdutoCodigo,
-                e02.e02_id as CodigoProduto,
-                e02.E02_DESC as Produto,
-                -- Prioridade: A24 (desconto produto) se > 0, senão A16 (desconto cliente)
-                (CASE 
-                    WHEN a24.A24_DESC_PERC > 0 THEN a24.A24_DESC_PERC
-                    ELSE ISNULL(a16.A16_REM_DESC_VALOR, 0)
-                END / 100.0) AS DescontoPercentual,
-
-                ROW_NUMBER() OVER (
-                    PARTITION BY 
-                        m00.M00_ID_A00,
-                        m01.M01_ID_E02
-                    ORDER BY 
-                        m00.M00_ENTSAI DESC
-                ) AS rn
-
-            FROM dbo.M01 AS m01 WITH (NOLOCK)
-            INNER JOIN dbo.M00 AS m00 WITH (NOLOCK)
-                ON m01.M01_ID_M00 = m00.M00_ID
-            INNER JOIN dbo.E02 AS e02 WITH (NOLOCK)
-                ON m01.M01_ID_E02 = e02.E02_ID
-            INNER JOIN dbo.A00 AS a00 WITH (NOLOCK)
-                ON m00.M00_ID_A00 = a00.A00_ID
-            LEFT JOIN dbo.A16 AS a16 WITH (NOLOCK)
-                ON a00.A00_ID_A16 = a16.A16_ID
-            LEFT JOIN dbo.A24 AS a24 WITH (NOLOCK)
-                ON a24.A24_ID_E02 = e02.E02_ID
-            WHERE 
-                m00.M00_ENTSAI IS NOT NULL
-                AND m00.M00_STATUS = 'N'
-                AND m00.M00_ID_A00 = @ClienteCodigo
-        )
-
         SELECT
-            ClienteCodigo,
-            ProdutoCodigo,
-            DescontoPercentual,
-            CodigoProduto,
-            Produto
-        FROM UltimaCompra
-        WHERE rn = 1
-          AND DescontoPercentual > 0
-        ORDER BY DescontoPercentual DESC;
+            c.A00_ID AS ClienteCodigo,
+            c.A00_FANTASIA AS NomeCliente,
+            a16.A16_ID AS RedeID,
+            a16.A16_DESC AS RedeDescricao,
+            e01.E01_ID AS CategoriaID,
+            e01.E01_DESC AS Categoria,
+            p.E02_ID AS CodigoProduto,
+            p.E02_LIVRE AS ProdutoCodigo,
+            p.E02_DESC AS Produto,
+           
+            (CASE 
+                WHEN ISNULL(a24_produto.A24_DESC_PERC, 0) > 0 THEN a24_produto.A24_DESC_PERC
+                WHEN ISNULL(a24_categoria.A24_DESC_PERC, 0) > 0 THEN a24_categoria.A24_DESC_PERC
+                WHEN ISNULL(a16.A16_REM_DESC_VALOR, 0) > 0 THEN a16.A16_REM_DESC_VALOR
+                ELSE 0
+            END) / 100.0 AS DescontoPercentual,
+            CASE 
+                WHEN ISNULL(a24_produto.A24_DESC_PERC, 0) > 0 THEN 'Contrato Produto (A24)'
+                WHEN ISNULL(a24_categoria.A24_DESC_PERC, 0) > 0 THEN 'Contrato Categoria (A24)'
+                WHEN ISNULL(a16.A16_REM_DESC_VALOR, 0) > 0 THEN 'Rede (A16)'
+                ELSE 'Sem Desconto'
+            END AS TipoDesconto
+
+        FROM dbo.A00 AS c WITH (NOLOCK)
+        LEFT JOIN dbo.A16 AS a16 WITH (NOLOCK)
+            ON c.A00_ID_A16 = a16.A16_ID
+        CROSS JOIN dbo.E02 AS p WITH (NOLOCK)
+        LEFT JOIN dbo.E01 AS e01 WITH (NOLOCK)
+            ON p.E02_ID_E01 = e01.E01_ID
+        
+        LEFT JOIN dbo.A23 AS a23 WITH (NOLOCK)
+            ON (a23.A23_ID_A16 = a16.A16_ID OR a23.A23_ID_CLIENTE = c.A00_ID)
+            AND (a23.A23_ATIVO = 1 OR a23.A23_ATIVO IS NULL)
+            AND CAST(GETDATE() AS DATE) BETWEEN a23.A23_DT_INICIO 
+                                             AND ISNULL(a23.A23_DT_FIM, CAST(GETDATE() AS DATE))
+
+        LEFT JOIN dbo.A24 AS a24_produto WITH (NOLOCK)
+            ON a24_produto.A24_ID_A23 = a23.A23_ID
+            AND a24_produto.A24_ID_E02 = p.E02_ID
+            AND a24_produto.A24_ID_E02 > 0
+            AND a24_produto.A24_DESC_PERC > 0
+
+        LEFT JOIN dbo.A24 AS a24_categoria WITH (NOLOCK)
+            ON a24_categoria.A24_ID_A23 = a23.A23_ID
+            AND a24_categoria.A24_ID_E01 = e01.E01_ID
+            AND (a24_categoria.A24_ID_E02 IS NULL OR a24_categoria.A24_ID_E02 = 0)
+            AND a24_categoria.A24_DESC_PERC > 0
+
+        WHERE 
+            c.A00_ID = @ClienteCodigo
+            AND p.E02_TIPO = 4
+            AND E02_DESC NOT LIKE '%(INATIVO)%'
+            AND E02_DESC NOT LIKE '%(INATIVADO)%'
+            AND E02_DESC NOT LIKE '%(PASTEURIZADO)%'
+
+        ORDER BY e01.E01_DESC, DescontoPercentual DESC;
       `;
 
       const result = await this.pool!.request().query(query);
@@ -219,10 +230,16 @@ class ERPService {
       
       return result.recordset.map((row: any) => ({
         cliente_codigo: row.ClienteCodigo,
-        produto_codigo: row.ProdutoCodigo,
-        desconto_percentual: row.DescontoPercentual,
+        nome_cliente: row.NomeCliente,
+        rede_id: row.RedeID,
+        rede_descricao: row.RedeDescricao,
+        categoria_id: row.CategoriaID,
+        categoria: row.Categoria,
         codigo_produto: row.CodigoProduto,
+        produto_codigo: row.ProdutoCodigo,
         produto_nome: row.Produto,
+        desconto_percentual: row.DescontoPercentual,
+        tipo_desconto: row.TipoDesconto,
       }));
     } catch (error) {
       console.error('[ERPService] Erro ao buscar descontos:', error);
