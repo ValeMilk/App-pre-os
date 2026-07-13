@@ -1216,6 +1216,26 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
                     setPrice('');
                     setDescontoAtualProduto(null);
                     setDescontosPorCliente([]);
+                    
+                    // Carregar descontos da subrede: encontrar 1 cliente e buscar seus descontos
+                    if (value) {
+                      const clienteDaSubrede = clientes.find(c => c.subrede === value);
+                      if (clienteDaSubrede?.codigo) {
+                        const clienteId = String(clienteDaSubrede.codigo);
+                        console.log(`🔍 Carregando descontos para subrede: "${value}" (cliente ${clienteId})`);
+                        fetchDescontosPorClienteFromAPI(clienteId)
+                          .then(descontos => {
+                            setDescontosPorCliente(descontos);
+                            console.log(`✅ Descontos carregados para subrede ${value}:`, descontos.length);
+                          })
+                          .catch(err => {
+                            console.warn(`⚠️ Erro ao carregar descontos para subrede ${value}:`, err);
+                            setDescontosPorCliente([]);
+                          });
+                      } else {
+                        console.warn(`⚠️ Nenhum cliente encontrado para subrede: ${value}`);
+                      }
+                    }
                   }}
                   renderInput={params => (
                     <TextField 
