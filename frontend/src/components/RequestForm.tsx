@@ -1364,7 +1364,7 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
               
               {selectedProduct && selectedProduct.promocional && selectedProduct.maximo && (
                 <Alert severity="info" sx={{ fontSize: { xs: '0.75rem', sm: '0.8125rem' } }}>
-                  Faixa de preço permitida: R$ {selectedProduct.minimo} até R$ {selectedProduct.maximo}
+                  R$ {parseFloat(selectedProduct.minimo.replace(',', '.')).toFixed(2)} - R$ {parseFloat(selectedProduct.maximo.replace(',', '.')).toFixed(2)}
                 </Alert>
               )}
               
