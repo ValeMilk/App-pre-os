@@ -1214,6 +1214,8 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
                     setSelectedSubrede(value);
                     setSelectedProduct(null);
                     setPrice('');
+                    setDescontoAtualProduto(null);
+                    setDescontosPorCliente([]);
                   }}
                   renderInput={params => (
                     <TextField 
