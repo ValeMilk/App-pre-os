@@ -1405,6 +1405,14 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
                 label="Preço solicitado"
                 value={price}
                 onChange={e => setPrice(e.target.value)}
+                onBlur={() => {
+                  if (price) {
+                    const num = parseFloat(price.replace(',', '.'));
+                    if (!isNaN(num)) {
+                      setPrice(num.toFixed(2));
+                    }
+                  }
+                }}
                 required
                 placeholder="0.00"
                 type="number"
