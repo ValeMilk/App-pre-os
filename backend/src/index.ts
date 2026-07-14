@@ -15,6 +15,67 @@ import { erpService } from './services/ERPService';
 
 const app = express();
 
+// Função auxiliar para preencher status_history automaticamente
+function fillStatusHistory(requests: any[]) {
+  return requests.map((r: any) => {
+    const req = typeof r.toObject === 'function' ? r.toObject() : r;
+    
+    // Se já tem histórico, retorna como está
+    if (req.status_history && req.status_history.length > 0) {
+      return req;
+    }
+    
+    // Gerar histórico baseado nos campos existentes
+    const history = [];
+    
+    // 1. Criação (sempre existe)
+    history.push({
+      status: 'Pendente',
+      timestamp: req.created_at,
+      changed_by: req.requester_name
+    });
+    
+    // 2. Se foi aprovado
+    if (req.approved_at && req.approved_by) {
+      history.push({
+        status: req.status.includes('Gerência') ? 'Aprovado pela Gerência' : 'Aprovado',
+        timestamp: req.approved_at,
+        changed_by: req.approved_by
+      });
+    }
+    
+    // 3. Se foi reprovado
+    if ((req.status === 'Reprovado' || req.status === 'Reprovado pela Gerência') && !history.some((h: any) => h.status.includes('Reprovado'))) {
+      history.push({
+        status: req.status,
+        timestamp: req.approved_at || req.updated_at || req.created_at,
+        changed_by: req.approved_by || 'Sistema'
+      });
+    }
+    
+    // 4. Se foi alterado
+    if (req.status === 'Alterado' && req.altered_at) {
+      history.push({
+        status: 'Alterado',
+        timestamp: req.altered_at,
+        changed_by: 'Sistema'
+      });
+    }
+    
+    // 5. Se foi cancelado
+    if (req.status === 'Cancelado') {
+      history.push({
+        status: 'Cancelado',
+        timestamp: req.cancellation_requested_at || req.updated_at || req.created_at,
+        changed_by: req.requester_name
+      });
+    }
+    
+    req.status_history = history;
+    return req;
+  });
+}
+
 // Helper para adicionar ao histórico de status
 async function addStatusHistory(
   requestId: string,
@@ -103,7 +164,7 @@ mongoose.connect(mongoUri)
     }
     
     const requests = await PriceRequest.find(filter).sort({ created_at: -1 });
-    res.json(requests);
+    res.json(fillStatusHistory(requests));
   });
 
   // Endpoint para debug: listar supervisores únicos nas solicitações
@@ -185,7 +246,7 @@ mongoose.connect(mongoUri)
         });
       }
       
-      res.json(requests);
+      res.json(fillStatusHistory(requests));
     } catch (err) {
       console.error('[SUPERVISOR] Erro ao buscar solicitações:', err);
       res.status(500).json({ error: 'Erro ao buscar solicitações do supervisor', details: err });
@@ -251,7 +312,7 @@ mongoose.connect(mongoUri)
       }
       
       const requests = await PriceRequest.find(filter).sort({ created_at: -1 });
-      res.json(requests);
+      res.json(fillStatusHistory(requests));
     } catch (err) {
       console.error('[REQUESTS] Error fetching requests for user', req.user, err);
       res.status(500).json({ error: 'Erro ao buscar solicitações', details: err });
@@ -502,7 +563,7 @@ mongoose.connect(mongoUri)
         });
       }
       
-      res.json(requests);
+      res.json(fillStatusHistory(requests));
     } catch (err) {
       console.error('[GERENTE] Erro ao buscar solicitações:', err);
       res.status(500).json({ error: 'Erro ao buscar solicitações da gerência', details: err });
@@ -657,7 +718,7 @@ mongoose.connect(mongoUri)
         status: { $ne: 'Cancelado' }
       }).sort({ cancellation_requested_at: -1 });
       
-      res.json(requests);
+      res.json(fillStatusHistory(requests));
     } catch (err) {
       res.status(500).json({ error: 'Erro ao buscar solicitações de cancelamento', details: err });
     }
