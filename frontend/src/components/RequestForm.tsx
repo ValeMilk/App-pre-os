@@ -16,6 +16,7 @@ import LocalOfferIcon from '@mui/icons-material/LocalOffer';
 import CancelIcon from '@mui/icons-material/Cancel';
 import CalculateIcon from '@mui/icons-material/Calculate';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import StatusHistoryDialog from './StatusHistoryDialog';
 
 type Props = {
   clientes: Cliente[]
@@ -1602,36 +1603,42 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
                     <Typography variant="subtitle2" fontWeight={600} color={r.status === 'Cancelado' ? 'white' : 'primary.main'} sx={{ fontSize: { xs: '0.85rem', sm: '0.875rem' } }}>
                       {r.customer_name}
                     </Typography>
-                    {r.status === 'Alterado' && (
-                      <Typography variant="caption" sx={{ bgcolor: '#2196f3', color: 'white', px: { xs: 0.75, sm: 1 }, py: { xs: 0.4, sm: 0.5 }, borderRadius: 1, fontWeight: 600, fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>
-                        ✓ ALTERADO
-                      </Typography>
-                    )}
-                    {(r.status === 'Aprovado' || r.status === 'Aprovado pela Gerência') && (
-                      <Typography variant="caption" sx={{ bgcolor: '#4caf50', color: 'white', px: { xs: 0.75, sm: 1 }, py: { xs: 0.4, sm: 0.5 }, borderRadius: 1, fontWeight: 600, fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>
-                        ✓ APROVADO
-                      </Typography>
-                    )}
-                    {(r.status === 'Reprovado' || r.status === 'Reprovado pela Gerência') && (
-                      <Typography variant="caption" sx={{ bgcolor: '#f44336', color: 'white', px: { xs: 0.75, sm: 1 }, py: { xs: 0.4, sm: 0.5 }, borderRadius: 1, fontWeight: 600, fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>
-                        ✗ REPROVADO
-                      </Typography>
-                    )}
-                    {r.status === 'Aguardando Gerência' && (
-                      <Typography variant="caption" sx={{ bgcolor: '#ff9800', color: 'white', px: { xs: 0.75, sm: 1 }, py: { xs: 0.4, sm: 0.5 }, borderRadius: 1, fontWeight: 600, fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>
-                        ⏳ AGUARDANDO GERÊNCIA
-                      </Typography>
-                    )}
-                    {r.status === 'Pending' && (
-                      <Typography variant="caption" sx={{ bgcolor: '#9e9e9e', color: 'white', px: { xs: 0.75, sm: 1 }, py: { xs: 0.4, sm: 0.5 }, borderRadius: 1, fontWeight: 600, fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>
-                        ⏱ PENDENTE
-                      </Typography>
-                    )}
-                    {r.status === 'Cancelado' && (
-                      <Typography variant="caption" sx={{ bgcolor: '#000', color: 'white', px: { xs: 0.75, sm: 1 }, py: { xs: 0.4, sm: 0.5 }, borderRadius: 1, fontWeight: 600, fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>
-                        ✗ CANCELADO
-                      </Typography>
-                    )}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
+                      {r.status === 'Alterado' && (
+                        <Typography variant="caption" sx={{ bgcolor: '#2196f3', color: 'white', px: { xs: 0.75, sm: 1 }, py: { xs: 0.4, sm: 0.5 }, borderRadius: 1, fontWeight: 600, fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>
+                          ✓ ALTERADO
+                        </Typography>
+                      )}
+                      {(r.status === 'Aprovado' || r.status === 'Aprovado pela Gerência') && (
+                        <Typography variant="caption" sx={{ bgcolor: '#4caf50', color: 'white', px: { xs: 0.75, sm: 1 }, py: { xs: 0.4, sm: 0.5 }, borderRadius: 1, fontWeight: 600, fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>
+                          ✓ APROVADO
+                        </Typography>
+                      )}
+                      {(r.status === 'Reprovado' || r.status === 'Reprovado pela Gerência') && (
+                        <Typography variant="caption" sx={{ bgcolor: '#f44336', color: 'white', px: { xs: 0.75, sm: 1 }, py: { xs: 0.4, sm: 0.5 }, borderRadius: 1, fontWeight: 600, fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>
+                          ✗ REPROVADO
+                        </Typography>
+                      )}
+                      {r.status === 'Aguardando Gerência' && (
+                        <Typography variant="caption" sx={{ bgcolor: '#ff9800', color: 'white', px: { xs: 0.75, sm: 1 }, py: { xs: 0.4, sm: 0.5 }, borderRadius: 1, fontWeight: 600, fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>
+                          ⏳ AGUARDANDO GERÊNCIA
+                        </Typography>
+                      )}
+                      {r.status === 'Pending' && (
+                        <Typography variant="caption" sx={{ bgcolor: '#9e9e9e', color: 'white', px: { xs: 0.75, sm: 1 }, py: { xs: 0.4, sm: 0.5 }, borderRadius: 1, fontWeight: 600, fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>
+                          ⏱ PENDENTE
+                        </Typography>
+                      )}
+                      {r.status === 'Cancelado' && (
+                        <Typography variant="caption" sx={{ bgcolor: '#000', color: 'white', px: { xs: 0.75, sm: 1 }, py: { xs: 0.4, sm: 0.5 }, borderRadius: 1, fontWeight: 600, fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>
+                          ✗ CANCELADO
+                        </Typography>
+                      )}
+                      <StatusHistoryDialog
+                        statusHistory={r.status_history}
+                        createdAt={r.created_at}
+                      />
+                    </Box>
                   </Stack>
                   <Typography variant="body2" color={r.status === 'Cancelado' ? 'white' : 'text.secondary'} sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' }, mt: { xs: 0.5, sm: 0 } }}>
                     Produto: <b>{r.product_name || r.product_id}</b> — Preço: <b>R$ {Number(r.requested_price).toFixed(2)}</b> — Qtd: <b>{r.quantity || '—'}</b>
