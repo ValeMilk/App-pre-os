@@ -857,11 +857,12 @@ app.get('/api/debug/cliente/:clienteId', async (req: Request, res: Response) => 
 });
 
 // Endpoint de Migração: Preencher status_history de requisições antigas
-app.post('/api/migrate/status-history', requireAuth, async (req: AuthRequest, res: Response) => {
+app.post('/api/migrate/status-history', async (req: AuthRequest, res: Response) => {
   try {
-    // Apenas admin pode executar
-    if (req.user?.tipo !== 'admin') {
-      return res.status(403).json({ error: 'Acesso permitido apenas para administradores' });
+    // Token de segurança simples para evitar execução acidental
+    const token = req.headers['x-migration-token'];
+    if (token !== 'migrate-status-history-2024') {
+      return res.status(403).json({ error: 'Token de migração inválido' });
     }
 
     // Encontrar todas as requisições que não têm status_history ou têm array vazio
