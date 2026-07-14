@@ -29,7 +29,12 @@ const priceRequestSchema = new mongoose.Schema({
   supervisor_notes: String,
   cancellation_requested: { type: Boolean, default: false },
   cancellation_reason: String,
-  cancellation_requested_at: Date
+  cancellation_requested_at: Date,
+  status_history: [{
+    status: String,
+    timestamp: { type: Date, default: Date.now },
+    changed_by: String
+  }]
 });
 
 // Evitar recriar o modelo se já existe

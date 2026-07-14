@@ -15,6 +15,31 @@ import { erpService } from './services/ERPService';
 
 const app = express();
 
+// Helper para adicionar ao histórico de status
+async function addStatusHistory(
+  requestId: string,
+  newStatus: string,
+  changedBy: string
+) {
+  try {
+    await PriceRequest.findByIdAndUpdate(
+      requestId,
+      {
+        $push: {
+          status_history: {
+            status: newStatus,
+            timestamp: new Date(),
+            changed_by: changedBy
+          }
+        }
+      },
+      { new: true }
+    );
+  } catch (err) {
+    console.error('[STATUS_HISTORY] Erro ao adicionar ao histórico:', err);
+  }
+}
+
 // Configuração de CORS - permitir todas as origens (necessário para Power BI)
 app.use(cors({
   origin: '*', // Permitir qualquer origem
@@ -181,11 +206,19 @@ mongoose.connect(mongoUri)
         status: data.status
       });
       
+      const now = new Date();
       const created = await PriceRequest.create({
         ...data,
         requester_id: req.user?.userId,
         requester_name: req.user?.name,
-        created_at: new Date()
+        created_at: now,
+        status_history: [
+          {
+            status: data.status || 'Pendente',
+            timestamp: now,
+            changed_by: req.user?.name
+          }
+        ]
       });
       
       console.log('[REQUESTS] Solicitação criada com ID:', created._id, 'para supervisor:', data.codigo_supervisor, data.nome_supervisor);
@@ -231,13 +264,21 @@ mongoose.connect(mongoUri)
       if (tipo !== 'supervisor') {
         return res.status(403).json({ error: 'Acesso permitido apenas para supervisores.' });
       }
+      const now = new Date();
       const request = await PriceRequest.findByIdAndUpdate(
         req.params.id,
         {
           status: 'Aprovado',
           approved_by: req.user?.name,
-          approved_at: new Date(),
-          supervisor_notes: req.body.notes || ''
+          approved_at: now,
+          supervisor_notes: req.body.notes || '',
+          $push: {
+            status_history: {
+              status: 'Aprovado',
+              timestamp: now,
+              changed_by: req.user?.name
+            }
+          }
         },
         { new: true }
       );
@@ -256,13 +297,21 @@ mongoose.connect(mongoUri)
       }
       const { notes } = req.body;
       if (!notes) return res.status(400).json({ error: 'Justificativa obrigatória para reprovação.' });
+      const now = new Date();
       const request = await PriceRequest.findByIdAndUpdate(
         req.params.id,
         {
           status: 'Reprovado',
           approved_by: req.user?.name,
-          approved_at: new Date(),
-          supervisor_notes: notes
+          approved_at: now,
+          supervisor_notes: notes,
+          $push: {
+            status_history: {
+              status: 'Reprovado',
+              timestamp: now,
+              changed_by: req.user?.name
+            }
+          }
         },
         { new: true }
       );
@@ -286,12 +335,20 @@ mongoose.connect(mongoUri)
         return res.status(400).json({ error: 'Apenas solicitações aprovadas ou reprovadas podem ser marcadas como alteradas.' });
       }
 
+      const now = new Date();
       const updatedRequest = await PriceRequest.findByIdAndUpdate(
         req.params.id,
         {
           status: 'Alterado',
           altered_by: req.user?.name,
-          altered_at: new Date()
+          altered_at: now,
+          $push: {
+            status_history: {
+              status: 'Alterado',
+              timestamp: now,
+              changed_by: req.user?.name
+            }
+          }
         },
         { new: true }
       );
@@ -309,13 +366,21 @@ mongoose.connect(mongoUri)
         return res.status(403).json({ error: 'Acesso permitido apenas para supervisores.' });
       }
       const { supervisor_notes } = req.body;
+      const now = new Date();
       const request = await PriceRequest.findByIdAndUpdate(
         req.params.id,
         {
           status: 'Aguardando Gerência',
           approved_by: req.user?.name,
-          approved_at: new Date(),
-          supervisor_notes: supervisor_notes || ''
+          approved_at: now,
+          supervisor_notes: supervisor_notes || '',
+          $push: {
+            status_history: {
+              status: 'Aguardando Gerência',
+              timestamp: now,
+              changed_by: req.user?.name
+            }
+          }
         },
         { new: true }
       );

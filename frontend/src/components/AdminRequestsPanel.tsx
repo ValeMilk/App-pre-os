@@ -11,6 +11,7 @@ import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import { API_ENDPOINTS } from '../config/api';
 import { RequestsArraySchema } from '../schemas';
+import StatusHistoryDialog from './StatusHistoryDialog';
 
 const API_URL = API_ENDPOINTS.requests.all;
 
@@ -597,6 +598,7 @@ export default function AdminRequestsPanel() {
                     {sortColumn === 'supervisor_notes' && (sortDirection === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />)}
                   </Box>
                 </th>
+                <th style={{ padding: 10, textAlign: 'center', fontWeight: 600 }}>Histórico</th>
                 <th style={{ padding: 10, textAlign: 'center', fontWeight: 600 }}>Status Preço</th>
                 <th style={{ padding: 10, textAlign: 'center', fontWeight: 600 }}>Ações</th>
               </tr>
@@ -680,6 +682,12 @@ export default function AdminRequestsPanel() {
                       </td>
                       <td style={{ padding: 10, wordBreak: 'break-word', fontSize: 13, maxWidth: 180 }}>
                         {r.supervisor_notes || '—'}
+                      </td>
+                      <td style={{ padding: 10, textAlign: 'center' }}>
+                        <StatusHistoryDialog
+                          statusHistory={r.status_history}
+                          createdAt={r.created_at}
+                        />
                       </td>
                       <td style={{ padding: 10, textAlign: 'center' }}>
                         {statusPreco !== '—' && (
