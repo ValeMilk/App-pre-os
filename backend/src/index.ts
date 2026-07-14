@@ -856,6 +856,95 @@ app.get('/api/debug/cliente/:clienteId', async (req: Request, res: Response) => 
   }
 });
 
+// Endpoint de Migração: Preencher status_history de requisições antigas
+app.post('/api/migrate/status-history', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    // Apenas admin pode executar
+    if (req.user?.tipo !== 'admin') {
+      return res.status(403).json({ error: 'Acesso permitido apenas para administradores' });
+    }
+
+    // Encontrar todas as requisições que não têm status_history ou têm array vazio
+    const requestsToMigrate = await PriceRequest.find({
+      $or: [
+        { status_history: { $exists: false } },
+        { status_history: { $size: 0 } }
+      ]
+    });
+
+    console.log(`[MIGRATION] Encontradas ${requestsToMigrate.length} requisições para migrar`);
+
+    let updated = 0;
+    for (const req of requestsToMigrate) {
+      const history = [];
+
+      // Adicionar status inicial (Pendente)
+      history.push({
+        status: 'Pendente',
+        timestamp: req.created_at,
+        changed_by: req.requester_name
+      });
+
+      // Se foi aprovado, adicionar ao histórico
+      if (req.approved_at && req.approved_by) {
+        history.push({
+          status: 'Aprovado',
+          timestamp: req.approved_at,
+          changed_by: req.approved_by
+        });
+      }
+
+      // Se tem altered_at, significa que foi alterado
+      if (req.altered_at) {
+        history.push({
+          status: 'Alterado',
+          timestamp: req.altered_at,
+          changed_by: 'Sistema'
+        });
+      }
+
+      // Se foi cancelado, adicionar ao histórico
+      if (req.status === 'Cancelado' && req.cancellation_requested_at) {
+        history.push({
+          status: 'Cancelado',
+          timestamp: req.cancellation_requested_at,
+          changed_by: req.requester_name
+        });
+      }
+
+      // Se status é "Reprovado" mas não está no histórico, adicionar
+      if ((req.status === 'Reprovado' || req.status === 'Reprovado pela Gerência') && 
+          !history.some(h => h.status === 'Reprovado')) {
+        history.push({
+          status: req.status,
+          timestamp: req.updated_at || req.created_at,
+          changed_by: req.approved_by || 'Sistema'
+        });
+      }
+
+      // Atualizar a requisição com o histórico gerado
+      if (history.length > 0) {
+        await PriceRequest.findByIdAndUpdate(
+          req._id,
+          { status_history: history },
+          { new: true }
+        );
+        updated++;
+      }
+    }
+
+    res.json({
+      message: 'Migração concluída',
+      total: requestsToMigrate.length,
+      updated,
+      details: `${updated} de ${requestsToMigrate.length} requisições atualizadas com histórico de status`
+    });
+  } catch (err) {
+    console.error('[MIGRATION] Erro:', err);
+    res.status(500).json({ error: 'Erro ao migrar dados', details: err });
+  }
+});
+
 const PORT = parseInt(process.env.PORT || '4000', 10);
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`✅ Servidor rodando na porta ${PORT}`);
