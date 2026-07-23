@@ -347,7 +347,7 @@ mongoose.connect(mongoUri)
         }
       }
       
-      const requests = await PriceRequest.find(filter).sort({ created_at: 1 });
+      const requests = await PriceRequest.find(filter).sort({ created_at: -1 });
       res.json(fillStatusHistory(requests));
     } catch (err) {
       console.error('[REQUESTS] Error fetching requests for user', req.user, err);
