@@ -46,6 +46,19 @@ type PriceRequest = {
 import { API_ENDPOINTS } from '../config/api';
 const API_URL = API_ENDPOINTS.requests.base;
 
+// Interface para itens do carrinho
+interface CartItem {
+  product_id: string;
+  product_name: string;
+  requested_price: string;
+  quantity: string;
+  product_maximo: string;
+  product_minimo: string;
+  product_promocional: string;
+  discount_percent: string;
+  discounted_price: string;
+}
+
 export default function RequestForm({ clientes, produtos, descontos, onClientesLoaded }: Props) {
   const navigate = useNavigate();
   const token = localStorage.getItem('token');
@@ -59,6 +72,7 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
   const [price, setPrice] = useState('')
   const [quantity, setQuantity] = useState('')
   const [notes, setNotes] = useState('')
+  const [cart, setCart] = useState<CartItem[]>([]) // Carrinho de produtos
   const [requests, setRequests] = useState<PriceRequest[]>([])
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
@@ -613,7 +627,92 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
     })
   }
 
-  // Validação e submit do formulário
+  // Funções do carrinho de produtos
+  function addToCart() {
+    if (!selectedProduct || !price || !quantity) {
+      setError('Selecione produto, preço e quantidade antes de adicionar ao pedido');
+      return;
+    }
+
+    const descontoInfo = selectedCustomer 
+      ? calcularDesconto(selectedCustomer, selectedProduct, price)
+      : { desconto_percentual: 0, preco_final: parseFloat(price) };
+
+    const newItem: CartItem = {
+      product_id: selectedProduct.codigo_produto,
+      product_name: selectedProduct.nome_produto,
+      requested_price: price,
+      quantity: quantity,
+      product_maximo: selectedProduct.maximo || '',
+      product_minimo: selectedProduct.minimo || '',
+      product_promocional: selectedProduct.promocional || '',
+      discount_percent: descontoInfo.desconto_percentual.toString(),
+      discounted_price: descontoInfo.preco_final.toFixed(2)
+    };
+
+    setCart([...cart, newItem]);
+    setSelectedProduct(null);
+    setPrice('');
+    setQuantity('');
+    setSuccess(`✅ ${selectedProduct.nome_produto} adicionado ao pedido!`);
+    setTimeout(() => setSuccess(null), 2000);
+  }
+
+  function removeFromCart(index: number) {
+    setCart(cart.filter((_, i) => i !== index));
+  }
+
+  async function submitCart() {
+    if (cart.length === 0) {
+      setError('Adicione pelo menos um produto ao pedido');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      const payload: any = {
+        items: cart,
+        notes: notes,
+        status: 'Pendente'
+      };
+
+      if (selectionMode === 'cliente' && selectedCustomer) {
+        payload.customer_code = selectedCustomer.codigo;
+        payload.customer_name = selectedCustomer.nome_fantasia;
+        payload.codigo_supervisor = selectedCustomer.supervisor_code;
+        payload.nome_supervisor = selectedCustomer.supervisor_name;
+      } else if (selectionMode === 'subrede' && selectedSubrede) {
+        payload.subrede_name = selectedSubrede;
+      }
+
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erro ao enviar pedido');
+      }
+
+      setSuccess(`✅ Pedido com ${cart.length} produto(s) enviado com sucesso!`);
+      setCart([]);
+      setNotes('');
+      fetchRequests();
+    } catch (err: any) {
+      setError(err.message || 'Erro ao enviar pedido');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Validação e submit do formulário (mantido para pedidos individuais)
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -1527,31 +1626,123 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
                   }
                 }}
               />
-              <Button
-                type="submit"
-                variant="contained"
-                color="primary"
-                size="large"
-                endIcon={<SendIcon sx={{ fontSize: { xs: '1.1rem', sm: '1.25rem' } }} />}
-                disabled={
-                  (selectionMode === 'cliente' ? !selectedCustomer : !selectedSubrede) ||
-                  !selectedProduct ||
-                  !price || isNaN(Number(price)) || Number(price) <= 0 ||
-                  !quantity || isNaN(Number(quantity)) || Number(quantity) <= 0 ||
-                  !notes.trim() || notes.trim().length < 10 ||
-                  loading
-                }
-                fullWidth
-                sx={{ 
-                  fontWeight: 700, 
-                  borderRadius: { xs: 1.5, sm: 2 }, 
-                  py: { xs: 1.25, sm: 1.5 }, 
-                  fontSize: { xs: '0.85rem', sm: '1rem', md: '1.125rem' },
-                  minHeight: { xs: 48, sm: 52 }
-                }}
-              >
-                {loading ? 'Enviando...' : 'Enviar solicitação'}
-              </Button>
+
+              {/* Carrinho de Produtos */}
+              {cart.length > 0 && (
+                <Paper elevation={2} sx={{ p: 2, bgcolor: '#f5f5f5', mb: 2 }}>
+                  <Typography variant="h6" sx={{ mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <ShoppingCartIcon /> Produtos no Pedido ({cart.length})
+                  </Typography>
+                  <Stack spacing={1}>
+                    {cart.map((item, index) => (
+                      <Box key={index} sx={{ 
+                        p: 1.5, 
+                        bgcolor: 'white', 
+                        borderRadius: 1, 
+                        display: 'flex', 
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        border: '1px solid #e0e0e0'
+                      }}>
+                        <Box sx={{ flex: 1 }}>
+                          <Typography variant="body2" fontWeight={600} color="primary">
+                            {item.product_name}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Qtd: {item.quantity} | Preço: R$ {parseFloat(item.requested_price).toFixed(2)}
+                            {item.discount_percent && parseFloat(item.discount_percent) > 0 && 
+                              ` | Desconto: ${item.discount_percent}% | Final: R$ ${item.discounted_price}`
+                            }
+                          </Typography>
+                        </Box>
+                        <IconButton 
+                          size="small" 
+                          color="error" 
+                          onClick={() => removeFromCart(index)}
+                          sx={{ ml: 1 }}
+                        >
+                          <CancelIcon />
+                        </IconButton>
+                      </Box>
+                    ))}
+                  </Stack>
+                </Paper>
+              )}
+
+              {/* Botões de ação */}
+              <Stack direction="row" spacing={2}>
+                <Button
+                  variant="outlined"
+                  color="primary"
+                  size="large"
+                  onClick={addToCart}
+                  disabled={
+                    (selectionMode === 'cliente' ? !selectedCustomer : !selectedSubrede) ||
+                    !selectedProduct ||
+                    !price || isNaN(Number(price)) || Number(price) <= 0 ||
+                    !quantity || isNaN(Number(quantity)) || Number(quantity) <= 0 ||
+                    loading
+                  }
+                  fullWidth
+                  sx={{ 
+                    fontWeight: 600, 
+                    borderRadius: { xs: 1.5, sm: 2 }, 
+                    py: { xs: 1.25, sm: 1.5 },
+                    fontSize: { xs: '0.8rem', sm: '0.9rem', md: '1rem' }
+                  }}
+                >
+                  Adicionar ao Pedido
+                </Button>
+
+                {cart.length > 0 && (
+                  <Button
+                    variant="contained"
+                    color="success"
+                    size="large"
+                    onClick={submitCart}
+                    endIcon={<SendIcon />}
+                    disabled={!notes.trim() || notes.trim().length < 10 || loading}
+                    fullWidth
+                    sx={{ 
+                      fontWeight: 700, 
+                      borderRadius: { xs: 1.5, sm: 2 }, 
+                      py: { xs: 1.25, sm: 1.5 },
+                      fontSize: { xs: '0.85rem', sm: '1rem', md: '1.125rem' }
+                    }}
+                  >
+                    {loading ? 'Enviando...' : `Enviar Pedido (${cart.length} itens)`}
+                  </Button>
+                )}
+              </Stack>
+
+              {/* Botão original mantido como fallback quando carrinho vazio */}
+              {cart.length === 0 && (
+                <Button
+                  type="submit"
+                  variant="contained"
+                  color="primary"
+                  size="large"
+                  endIcon={<SendIcon sx={{ fontSize: { xs: '1.1rem', sm: '1.25rem' } }} />}
+                  disabled={
+                    (selectionMode === 'cliente' ? !selectedCustomer : !selectedSubrede) ||
+                    !selectedProduct ||
+                    !price || isNaN(Number(price)) || Number(price) <= 0 ||
+                    !quantity || isNaN(Number(quantity)) || Number(quantity) <= 0 ||
+                    !notes.trim() || notes.trim().length < 10 ||
+                    loading
+                  }
+                  fullWidth
+                  sx={{ 
+                    fontWeight: 700, 
+                    borderRadius: { xs: 1.5, sm: 2 }, 
+                    py: { xs: 1.25, sm: 1.5 }, 
+                    fontSize: { xs: '0.85rem', sm: '1rem', md: '1.125rem' },
+                    minHeight: { xs: 48, sm: 52 }
+                  }}
+                >
+                  {loading ? 'Enviando...' : 'Enviar solicitação'}
+                </Button>
+              )}
             </Stack>
           </form>
         </Paper>
