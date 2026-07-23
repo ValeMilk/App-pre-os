@@ -634,9 +634,16 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
       return;
     }
 
-    const descontoInfo = selectedCustomer 
-      ? calcularDesconto(selectedCustomer, selectedProduct, price)
-      : { desconto_percentual: 0, preco_final: parseFloat(price) };
+    let discount_percent = '0';
+    let discounted_price = price;
+
+    if (selectedCustomer) {
+      const descontoInfo = calcularDesconto(selectedCustomer, selectedProduct, price);
+      if (descontoInfo) {
+        discount_percent = descontoInfo.discount_percent;
+        discounted_price = descontoInfo.discounted_price;
+      }
+    }
 
     const newItem: CartItem = {
       product_id: selectedProduct.codigo_produto,
@@ -646,8 +653,8 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
       product_maximo: selectedProduct.maximo || '',
       product_minimo: selectedProduct.minimo || '',
       product_promocional: selectedProduct.promocional || '',
-      discount_percent: descontoInfo.desconto_percentual.toString(),
-      discounted_price: descontoInfo.preco_final.toFixed(2)
+      discount_percent: discount_percent,
+      discounted_price: discounted_price
     };
 
     setCart([...cart, newItem]);
