@@ -391,15 +391,16 @@ export default function SupervisorPanel() {
 
 
   const canApproveDirectly = (request: Request | GroupedRequest): boolean => {
-    if (!request.product_minimo || !request.requested_price) return true;
+    if (!request.product_minimo) return true;
+    if (!request.requested_price || request.requested_price === '0') return false;
     const priceNum = Number(request.requested_price.replace(',', '.'));
     const minPrice = Number(request.product_minimo.replace(',', '.'));
     return priceNum >= minPrice;
   };
 
-  const pendingRequests = requests.filter(r => r.status === 'Pending');
+  const pendingRequests = requests.filter(r => r.status === 'Pendente' || r.status === 'Pending');
   const processedRequests = requests
-    .filter(r => r.status !== 'Pending')
+    .filter(r => r.status !== 'Pendente' && r.status !== 'Pending')
     .sort((a, b) => {
       const dateA = a.approved_at ? new Date(a.approved_at).getTime() : 0;
       const dateB = b.approved_at ? new Date(b.approved_at).getTime() : 0;
