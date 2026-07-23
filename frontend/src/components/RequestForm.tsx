@@ -675,6 +675,17 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
       return;
     }
 
+    // Validação: verificar se cliente foi selecionado
+    if (selectionMode === 'cliente' && !selectedCustomer) {
+      setError('❌ Selecione um cliente antes de enviar');
+      return;
+    }
+
+    if (selectionMode === 'subrede' && !selectedSubrede) {
+      setError('❌ Selecione uma subrede antes de enviar');
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -693,6 +704,8 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
       } else if (selectionMode === 'subrede' && selectedSubrede) {
         payload.subrede_name = selectedSubrede;
       }
+
+      console.log('📤 Enviando pedido com payload:', payload);
 
       const response = await fetch(API_URL, {
         method: 'POST',
@@ -713,6 +726,7 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
       setNotes('');
       fetchRequests();
     } catch (err: any) {
+      console.error('❌ Erro ao enviar pedido:', err);
       setError(err.message || 'Erro ao enviar pedido');
     } finally {
       setLoading(false);

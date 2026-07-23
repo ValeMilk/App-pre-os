@@ -262,14 +262,35 @@ mongoose.connect(mongoUri)
         customer_code: data.customer_code,
         customer_name: data.customer_name,
         product_id: data.product_id,
+        items: data.items ? `${data.items.length} item(s)` : 'nenhum',
         codigo_supervisor: data.codigo_supervisor,
         nome_supervisor: data.nome_supervisor,
         status: data.status
       });
       
       const now = new Date();
+      
+      // Se houver items (novo formato com agrupamento), usar como está
+      // Se for produto individual (formato antigo), criar item único
+      const itemsToSave = data.items || (data.product_id ? [{
+        product_id: data.product_id,
+        product_name: data.product_name,
+        requested_price: data.requested_price,
+        quantity: data.quantity || 1,
+        product_maximo: data.product_maximo,
+        product_minimo: data.product_minimo,
+        product_promocional: data.product_promocional,
+        discount_percent: data.discount_percent || '0',
+        discounted_price: data.discounted_price || data.requested_price
+      }] : []);
+
+      if (itemsToSave.length === 0) {
+        return res.status(400).json({ error: 'Nenhum produto fornecido' });
+      }
+
       const created = await PriceRequest.create({
         ...data,
+        items: itemsToSave,
         requester_id: req.user?.userId,
         requester_name: req.user?.name,
         created_at: now,
@@ -282,7 +303,7 @@ mongoose.connect(mongoUri)
         ]
       });
       
-      console.log('[REQUESTS] Solicitação criada com ID:', created._id, 'para supervisor:', data.codigo_supervisor, data.nome_supervisor);
+      console.log('[REQUESTS] Solicitação criada com ID:', created._id, 'com', itemsToSave.length, 'item(s) para supervisor:', data.codigo_supervisor, data.nome_supervisor);
       
       res.status(201).json(created);
     } catch (err) {
