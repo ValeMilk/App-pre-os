@@ -138,20 +138,23 @@ export default function SupervisorPanel() {
       }
       
       // Validar com Zod
+      let validatedRequests: any[];
       try {
-        const validatedRequests = RequestsArraySchema.parse(data);
-        setRequests(validatedRequests as any);
+        validatedRequests = RequestsArraySchema.parse(data);
       } catch (err) {
         console.error('Erro ao validar solicitações:', err);
         setError('Dados inválidos recebidos do servidor');
         return;
       }
       
+      // Salvar todas as requests validadas
+      setRequests(validatedRequests);
+      
       // Agrupar solicitações por subrede_batch_id
       const grouped: { [key: string]: Request[] } = {};
       const individual: Request[] = [];
       
-      data.forEach((req: Request) => {
+      validatedRequests.forEach((req: Request) => {
         if (req.subrede_batch_id) {
           if (!grouped[req.subrede_batch_id]) {
             grouped[req.subrede_batch_id] = [];
