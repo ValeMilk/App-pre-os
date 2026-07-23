@@ -288,9 +288,22 @@ mongoose.connect(mongoUri)
         return res.status(400).json({ error: 'Nenhum produto fornecido' });
       }
 
-      const created = await PriceRequest.create({
+      // Para retrocompatibilidade, popular campos antigos com dados do primeiro item
+      const firstItem = itemsToSave[0];
+      const requestData = {
         ...data,
         items: itemsToSave,
+        // Campos de retrocompatibilidade (primeiro item)
+        product_id: firstItem.product_id,
+        product_name: firstItem.product_name,
+        requested_price: firstItem.requested_price,
+        quantity: firstItem.quantity,
+        product_maximo: firstItem.product_maximo,
+        product_minimo: firstItem.product_minimo,
+        product_promocional: firstItem.product_promocional,
+        discount_percent: firstItem.discount_percent,
+        discounted_price: firstItem.discounted_price,
+        // Metadados
         requester_id: req.user?.userId,
         requester_name: req.user?.name,
         created_at: now,
@@ -301,7 +314,9 @@ mongoose.connect(mongoUri)
             changed_by: req.user?.name
           }
         ]
-      });
+      };
+
+      const created = await PriceRequest.create(requestData);
       
       console.log('[REQUESTS] Solicitação criada com ID:', created._id, 'com', itemsToSave.length, 'item(s) para supervisor:', data.codigo_supervisor, data.nome_supervisor);
       
