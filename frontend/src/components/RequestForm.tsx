@@ -572,6 +572,8 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
     
     const url = `${API_URL}?start_date=${startDate}&end_date=${endDate}`;
     
+    console.log('🔄 Buscando solicitações do vendedor...', url);
+    
     fetch(url, {
       headers: { Authorization: `Bearer ${token}` }
     })
@@ -585,16 +587,25 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
         if (!res.ok) throw new Error('Erro ao buscar solicitações');
         const data = await res.json();
         
+        console.log('📥 Solicitações recebidas:', data.length, 'total');
+        if (data.length > 0) {
+          console.log('📋 Exemplo:', data[0]);
+        }
+        
         // Validar resposta com Zod
         try {
           const validatedRequests = RequestsArraySchema.parse(data);
+          console.log('✅ Solicitações validadas:', validatedRequests.length);
           setRequests(validatedRequests as any);
         } catch (err) {
-          console.error('Erro ao validar solicitações:', err);
+          console.error('❌ Erro ao validar solicitações:', err);
           setError('Dados inválidos recebidos do servidor');
         }
       })
-      .catch(() => setError('Erro ao buscar solicitações do servidor.'))
+      .catch((err) => {
+        console.error('❌ Erro ao buscar solicitações:', err);
+        setError('Erro ao buscar solicitações do servidor.');
+      })
       .finally(() => setLoading(false));
   };
 
@@ -720,6 +731,9 @@ export default function RequestForm({ clientes, produtos, descontos, onClientesL
         const errorData = await response.json();
         throw new Error(errorData.error || 'Erro ao enviar pedido');
       }
+
+      const createdRequest = await response.json();
+      console.log('✅ Pedido criado com sucesso:', createdRequest);
 
       setSuccess(`✅ Pedido com ${cart.length} produto(s) enviado com sucesso!`);
       setCart([]);
