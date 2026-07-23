@@ -163,7 +163,7 @@ mongoose.connect(mongoUri)
       }
     }
     
-    const requests = await PriceRequest.find(filter).sort({ created_at: -1 });
+    const requests = await PriceRequest.find(filter).sort({ created_at: 1 });
     res.json(fillStatusHistory(requests));
   });
 
@@ -234,7 +234,7 @@ mongoose.connect(mongoUri)
       
       console.log('[SUPERVISOR] Filtro aplicado:', JSON.stringify(filter));
       
-      const requests = await PriceRequest.find(filter).sort({ created_at: -1 });
+      const requests = await PriceRequest.find(filter).sort({ created_at: 1 });
       
       console.log('[SUPERVISOR] Solicitações encontradas:', requests.length);
       if (requests.length > 0) {
@@ -311,7 +311,7 @@ mongoose.connect(mongoUri)
         }
       }
       
-      const requests = await PriceRequest.find(filter).sort({ created_at: -1 });
+      const requests = await PriceRequest.find(filter).sort({ created_at: 1 });
       res.json(fillStatusHistory(requests));
     } catch (err) {
       console.error('[REQUESTS] Error fetching requests for user', req.user, err);
@@ -552,7 +552,7 @@ mongoose.connect(mongoUri)
       
       console.log('[GERENTE] Filtro aplicado:', JSON.stringify(filter));
       
-      const requests = await PriceRequest.find(filter).sort({ created_at: -1 });
+      const requests = await PriceRequest.find(filter).sort({ created_at: 1 });
       
       console.log('[GERENTE] Solicitações encontradas:', requests.length);
       if (requests.length > 0) {
@@ -716,7 +716,7 @@ mongoose.connect(mongoUri)
       const requests = await PriceRequest.find({ 
         cancellation_requested: true,
         status: { $ne: 'Cancelado' }
-      }).sort({ cancellation_requested_at: -1 });
+      }).sort({ cancellation_requested_at: 1 });
       
       res.json(fillStatusHistory(requests));
     } catch (err) {

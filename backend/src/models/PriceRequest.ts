@@ -5,6 +5,8 @@ const priceRequestSchema = new mongoose.Schema({
   requester_id: { type: String, required: true },
   customer_code: String,
   customer_name: String,
+  
+  // Suporte para pedido único (retrocompatibilidade)
   product_id: String,
   product_name: String,
   requested_price: String,
@@ -12,6 +14,22 @@ const priceRequestSchema = new mongoose.Schema({
   product_maximo: String,
   product_minimo: String,
   product_promocional: String,
+  discount_percent: String,
+  discounted_price: String,
+  
+  // Suporte para pedidos agrupados (múltiplos produtos)
+  items: [{
+    product_id: String,
+    product_name: String,
+    requested_price: String,
+    quantity: String,
+    product_maximo: String,
+    product_minimo: String,
+    product_promocional: String,
+    discount_percent: String,
+    discounted_price: String
+  }],
+  
   currency: String,
   status: String,
   notes: String,
@@ -24,8 +42,6 @@ const priceRequestSchema = new mongoose.Schema({
   nome_supervisor: String,
   subrede_batch_id: String,
   subrede_name: String,
-  discount_percent: String,
-  discounted_price: String,
   supervisor_notes: String,
   cancellation_requested: { type: Boolean, default: false },
   cancellation_reason: String,
