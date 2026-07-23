@@ -521,7 +521,7 @@ export default function SupervisorPanel() {
               </TableHead>
               <TableBody>
                 {/* Solicitações agrupadas por subrede */}
-                {groupedRequests.filter(g => g.status === 'Pending').map((group) => (
+                {groupedRequests.filter(g => g.status === 'Pendente' || g.status === 'Pending').map((group) => (
                   <TableRow key={group.batchId} sx={{ '&:hover': { bgcolor: '#fff9c4' }, bgcolor: '#fffde7' }}>
                     <TableCell>{group.requester_name}</TableCell>
                     <TableCell>
@@ -627,7 +627,7 @@ export default function SupervisorPanel() {
                 ))}
                 
                 {/* Solicitações individuais */}
-                {individualRequests.filter(r => r.status === 'Pending').map((req) => (
+                {individualRequests.filter(r => r.status === 'Pendente' || r.status === 'Pending').map((req) => (
                   <TableRow key={req._id} sx={{ '&:hover': { bgcolor: '#f5f5f5' } }}>
                     <TableCell>{req.requester_name}</TableCell>
                     <TableCell>
